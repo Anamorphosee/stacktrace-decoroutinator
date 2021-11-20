@@ -16,6 +16,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinVersion"]}")
+    testImplementation("io.mockk:mockk:${properties["mockkVersion"]}")
 }
 
 tasks.test {

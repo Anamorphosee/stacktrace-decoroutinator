@@ -9,7 +9,7 @@ import java.nio.file.FileSystems
 
 data class DecoroutinatorMethodSpec(
     val methodName: String,
-    val label2LineNumber: Map<Int, UInt?>
+    val label2LineNumber: Map<Int, UInt>
 )
 
 data class DecoroutinatorClassSpec(
@@ -55,7 +55,7 @@ class DecoroutinatorClassAnalyzerImpl(
                 val continuationInternalClassName = getContinuationInternalClassName(methodNode) ?:
                         return@mapNotNull null
                 val lineNumbers = getLineNumbers(methodNode.instructions)
-                val label2LineNumber = mutableMapOf<Int, UInt?>()
+                val label2LineNumber = mutableMapOf<Int, UInt>()
                 for (instruction in methodNode.instructions) {
                     if (instruction !is FieldInsnNode || instruction.opcode != Opcodes.PUTFIELD ||
                             instruction.owner != continuationInternalClassName || instruction.name != "label" ||
@@ -70,7 +70,7 @@ class DecoroutinatorClassAnalyzerImpl(
                         checkPushConstantIntInstruction(it)
                     } ?: return@mapNotNull null
                     val lineNumber = lineNumbers[instruction]
-                    label2LineNumber[label] = lineNumber
+                    label2LineNumber[label] = lineNumber ?: 1U
                 }
                 val continuationClassName = continuationInternalClassName.replace('/', '.')
                 continuationClassName to DecoroutinatorMethodSpec(methodNode.name, label2LineNumber)
@@ -80,6 +80,9 @@ class DecoroutinatorClassAnalyzerImpl(
 
     override fun getClassNameByContinuationClassName(coroutineClassName: String): String? {
         val classNode = getClassNode(coroutineClassName) ?: return null
+        if (classNode.superName != "kotlin/coroutines/jvm/internal/ContinuationImpl") {
+            return null
+        }
         val resumeMethod = classNode.methods.asSequence()
             .filter { it.name == "invokeSuspend" && it.desc == "(Ljava/lang/Object;)Ljava/lang/Object;" }
             .first()

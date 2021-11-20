@@ -4,15 +4,17 @@ import kotlinx.coroutines.delay
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-private suspend fun privateSuspendFunction() {
+private suspend fun privateSuspendFunction(): String {
     delay(100)
     println("test")
     delay(100)
+    return "test"
 }
 
-suspend fun suspendFunction() {
-    privateSuspendFunction()
+suspend fun suspendFunction(): String {
+    val result = privateSuspendFunction()
     println("test")
+    return result
 }
 
 interface TestInterface {
@@ -30,7 +32,7 @@ open class SuperTestInterface: TestInterface {
 }
 
 private class PrivateClass: SuperTestInterface() {
-    private suspend fun privateFun(par: Any?) {
+    private suspend fun privateFun(@Suppress("UNUSED_PARAMETER") par: Any?) {
         delay(100)
         println()
     }
@@ -60,7 +62,7 @@ class AnalyzerTest {
                 "dev.reformator.stacktracedecoroutinator.analyzer.Analyzer_testKt\$suspendFunction\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "suspendFunction",
-                            label2LineNumber = mapOf(1 to 14U)
+                            label2LineNumber = mapOf(1 to 15U)
                         )
             )
         ), fileSpec)
@@ -73,12 +75,12 @@ class AnalyzerTest {
                 "dev.reformator.stacktracedecoroutinator.analyzer.PrivateClass\$privateFun\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "privateFun",
-                            label2LineNumber = mapOf(1 to 34U)
+                            label2LineNumber = mapOf(1 to 36U)
                         ),
                 "dev.reformator.stacktracedecoroutinator.analyzer.PrivateClass\$publicFun\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "publicFun",
-                            label2LineNumber = mapOf(1 to 39U)
+                            label2LineNumber = mapOf(1 to 41U)
                         )
             )
         ), privateClassSpec)
@@ -91,7 +93,7 @@ class AnalyzerTest {
                 "dev.reformator.stacktracedecoroutinator.analyzer.TestInterface\$publicFun\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "publicFun",
-                            label2LineNumber = mapOf(1 to 20U)
+                            label2LineNumber = mapOf(1 to 22U)
                         )
             )
         ), testInterfaceSpec)

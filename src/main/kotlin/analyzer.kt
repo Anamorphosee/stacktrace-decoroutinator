@@ -4,12 +4,12 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
-import java.lang.IllegalArgumentException
 import java.nio.file.FileSystems
+import kotlin.IllegalArgumentException
 
 data class DecoroutinatorMethodSpec(
     val methodName: String,
-    val label2LineNumber: Map<Int, UInt>
+    val label2LineNumber: Map<Int, Int>
 )
 
 data class DecoroutinatorClassSpec(
@@ -21,7 +21,7 @@ typealias ClassBodyResolver = (className: String) -> ByteArray?
 
 interface DecoroutinatorClassAnalyzer {
     fun getDecoroutinatorClassSpec(className: String): DecoroutinatorClassSpec
-    fun getClassNameByContinuationClassName(coroutineClassName: String): String?
+    fun getClassNameByContinuationClassName(coroutineClassName: String): String
 }
 
 class DefaultClassBodyResolver: ClassBodyResolver {
@@ -55,7 +55,7 @@ class DecoroutinatorClassAnalyzerImpl(
                 val continuationInternalClassName = getContinuationInternalClassName(methodNode) ?:
                         return@mapNotNull null
                 val lineNumbers = getLineNumbers(methodNode.instructions)
-                val label2LineNumber = mutableMapOf<Int, UInt>()
+                val label2LineNumber = mutableMapOf<Int, Int>()
                 for (instruction in methodNode.instructions) {
                     if (instruction !is FieldInsnNode || instruction.opcode != Opcodes.PUTFIELD ||
                             instruction.owner != continuationInternalClassName || instruction.name != "label" ||
@@ -70,7 +70,7 @@ class DecoroutinatorClassAnalyzerImpl(
                         checkPushConstantIntInstruction(it)
                     } ?: return@mapNotNull null
                     val lineNumber = lineNumbers[instruction]
-                    label2LineNumber[label] = lineNumber ?: 1U
+                    label2LineNumber[label] = lineNumber ?: 1
                 }
                 val continuationClassName = continuationInternalClassName.replace('/', '.')
                 continuationClassName to DecoroutinatorMethodSpec(methodNode.name, label2LineNumber)
@@ -78,10 +78,11 @@ class DecoroutinatorClassAnalyzerImpl(
         return DecoroutinatorClassSpec(classNode.sourceFile, continuationClassName2Method)
     }
 
-    override fun getClassNameByContinuationClassName(coroutineClassName: String): String? {
-        val classNode = getClassNode(coroutineClassName) ?: return null
+    override fun getClassNameByContinuationClassName(coroutineClassName: String): String {
+        val classNode = getClassNode(coroutineClassName) ?:
+                throw IllegalArgumentException("class [$coroutineClassName] is not found")
         if (classNode.superName != "kotlin/coroutines/jvm/internal/ContinuationImpl") {
-            return null
+            throw IllegalArgumentException("class [$coroutineClassName] is not continuation")
         }
         val resumeMethod = classNode.methods.asSequence()
             .filter { it.name == "invokeSuspend" && it.desc == "(Ljava/lang/Object;)Ljava/lang/Object;" }
@@ -162,12 +163,12 @@ class DecoroutinatorClassAnalyzerImpl(
             else -> null
         }
 
-    private fun getLineNumbers(instructions: InsnList): Map<AbstractInsnNode, UInt> {
+    private fun getLineNumbers(instructions: InsnList): Map<AbstractInsnNode, Int> {
         val labelNode2LineNumber = instructions.asSequence()
             .mapNotNull { it as? LineNumberNode }
-            .map { it.start!! to it.line.toUInt() }
+            .map { it.start!! to it.line }
             .toMap()
-        var currentLineNumber: UInt? = null
+        var currentLineNumber: Int? = null
         return instructions.asSequence()
             .mapNotNull { instruction: AbstractInsnNode ->
                 if (instruction is LabelNode) {

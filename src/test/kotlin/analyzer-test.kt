@@ -57,12 +57,12 @@ class AnalyzerTest {
                 "dev.reformator.stacktracedecoroutinator.analyzer.Analyzer_testKt\$privateSuspendFunction\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "privateSuspendFunction",
-                            label2LineNumber = mapOf(1 to 8U, 2 to 10U)
+                            label2LineNumber = mapOf(1 to 8, 2 to 10)
                         ),
                 "dev.reformator.stacktracedecoroutinator.analyzer.Analyzer_testKt\$suspendFunction\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "suspendFunction",
-                            label2LineNumber = mapOf(1 to 15U)
+                            label2LineNumber = mapOf(1 to 15)
                         )
             )
         ), fileSpec)
@@ -75,12 +75,12 @@ class AnalyzerTest {
                 "dev.reformator.stacktracedecoroutinator.analyzer.PrivateClass\$privateFun\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "privateFun",
-                            label2LineNumber = mapOf(1 to 36U)
+                            label2LineNumber = mapOf(1 to 36)
                         ),
                 "dev.reformator.stacktracedecoroutinator.analyzer.PrivateClass\$publicFun\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "publicFun",
-                            label2LineNumber = mapOf(1 to 41U)
+                            label2LineNumber = mapOf(1 to 41)
                         )
             )
         ), privateClassSpec)
@@ -93,7 +93,7 @@ class AnalyzerTest {
                 "dev.reformator.stacktracedecoroutinator.analyzer.TestInterface\$publicFun\$1" to
                         DecoroutinatorMethodSpec(
                             methodName = "publicFun",
-                            label2LineNumber = mapOf(1 to 22U)
+                            label2LineNumber = mapOf(1 to 22)
                         )
             )
         ), testInterfaceSpec)

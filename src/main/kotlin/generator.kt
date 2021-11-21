@@ -6,38 +6,39 @@ import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
+import java.lang.invoke.MethodHandle
+import java.util.function.BiFunction
 
 typealias DecoroutinatorClassBodyGenerator = (className: String, spec: DecoroutinatorClassSpec) -> ByteArray
 
 class DecoroutinatorClassBodyGeneratorImpl: DecoroutinatorClassBodyGenerator {
     companion object {
-        val STACK_METHOD_HANDLERS_VAR_INDEX = 0
-        val LINE_NUMBERS_VAR_INDEX = 1
-        val NEXT_STEP_VAR_INDEX = 2
-        val CONTINUATION_METHOD_HANDLERS_FUNCTION_VAR_INDEX = 3
-        val RESULT_VAR_INDEX = 4
-        val SUSPEND_OBJECT_VAR_INDEX = 5
-        val LINE_NUMBER_VAR_INDEX = 6
+        private val STACK_METHOD_HANDLERS_VAR_INDEX = 0
+        private val LINE_NUMBERS_VAR_INDEX = 1
+        private val NEXT_STEP_VAR_INDEX = 2
+        private val INVOKE_FUNCTION_VAR_INDEX = 3
+        private val RESULT_VAR_INDEX = 4
+        private val SUSPEND_OBJECT_VAR_INDEX = 5
+        private val LINE_NUMBER_VAR_INDEX = 6
 
-        val METHOD_HANDLE_INTERNAL_CLASS_NAME = "java/lang/invoke/MethodHandle"
-        val FUNCTION_INTERNAL_CLASS_NAME = "java/util/function/Function"
-        val OBJECT_INTERNAL_CLASS_NAME = "java/lang/Object"
-        val THROWABLE_INTERNAL_CLASS_NAME = "java/lang/Throwable"
-        val INTEGER_INTERNAL_CLASS_NAME = Type.getType(Integer::class.java).internalName
-        val STRING_BUILDER_INTERNAL_CLASS_NAME = Type.getType(java.lang.StringBuilder::class.java).internalName
-        val STRING_INTERNAL_CLASS_NAME = Type.getType(java.lang.String::class.java).internalName
+        private val METHOD_HANDLE_INTERNAL_CLASS_NAME = Type.getInternalName(MethodHandle::class.java)
+        private val BI_FUNCTION_INTERNAL_CLASS_NAME = Type.getInternalName(BiFunction::class.java)
+        private val OBJECT_INTERNAL_CLASS_NAME = Type.getInternalName(Object::class.java)
+        private val INTEGER_INTERNAL_CLASS_NAME = Type.getInternalName(Integer::class.java)
+        private val STRING_BUILDER_INTERNAL_CLASS_NAME = Type.getInternalName(java.lang.StringBuilder::class.java)
+        private val STRING_INTERNAL_CLASS_NAME = Type.getInternalName(java.lang.String::class.java)
 
         //MethodHandle[] stackMethodHandlers
         //int[] stackLineNumbers
         //int nextStep
-        //Function<Integer, MethodHandle> continuationInvokeMethods
-        //Object result
+        //BiFunction<Integer, Result<*>, MethodHandle> continuationInvokeMethods
+        //Result<*> result
         //Object suspendObject
         val METHOD_DESC = "(" +
                 "[L$METHOD_HANDLE_INTERNAL_CLASS_NAME;" +
                 "[I" +
                 "I" +
-                "L$FUNCTION_INTERNAL_CLASS_NAME;" +
+                "L$BI_FUNCTION_INTERNAL_CLASS_NAME;" +
                 "L$OBJECT_INTERNAL_CLASS_NAME;" +
                 "L$OBJECT_INTERNAL_CLASS_NAME;" +
                 ")L$OBJECT_INTERNAL_CLASS_NAME;"
@@ -66,41 +67,23 @@ class DecoroutinatorClassBodyGeneratorImpl: DecoroutinatorClassBodyGenerator {
                 name = methodName
                 desc = METHOD_DESC
             }
-
-            val beforeInvokeNextStacktraceMethodLabel = LabelNode()
-            val afterInvokeNextStacktraceMethodLabel = LabelNode()
-            val exceptionInInvokeNextStacktraceMethodLabel = LabelNode()
             methodNode.instructions.apply {
                 add(getStoreLineNumberInstructions())
 
-                val invokeContinuationLabel = LabelNode()
-                add(getGotoIfLastStepInstructions(invokeContinuationLabel))
+                val invokeFunctionLabel = LabelNode()
+                add(getGotoIfLastStepInstructions(invokeFunctionLabel))
 
                 val invalidLineNumberLabel = LabelNode()
-                add(beforeInvokeNextStacktraceMethodLabel)
                 add(getInvokeNextStacktraceMethodInstructions(invalidLineNumberLabel, lineNumbers))
-                add(afterInvokeNextStacktraceMethodLabel)
 
                 add(getReturnSuspendObjectIfResultIsSuspendObjectInstructions())
 
-                add(invokeContinuationLabel)
-                add(getInvokeContinuationAndReturnInstructions(invalidLineNumberLabel, lineNumbers))
+                add(invokeFunctionLabel)
+                add(getInvokeFunctionAndReturnInstructions(invalidLineNumberLabel, lineNumbers))
 
                 add(invalidLineNumberLabel)
                 add(getThrowInvalidLineNumberInstructions())
-
-                add(exceptionInInvokeNextStacktraceMethodLabel)
-                add(getStoreExceptionResultInstructions())
-                add(getGotoInstruction(invokeContinuationLabel))
             }
-
-            methodNode.tryCatchBlocks = listOf(TryCatchBlockNode(
-                beforeInvokeNextStacktraceMethodLabel,
-                afterInvokeNextStacktraceMethodLabel,
-                exceptionInInvokeNextStacktraceMethodLabel,
-                THROWABLE_INTERNAL_CLASS_NAME
-            ))
-
             methodNode
         }
 
@@ -126,7 +109,7 @@ class DecoroutinatorClassBodyGeneratorImpl: DecoroutinatorClassBodyGenerator {
     }
 
     private fun getInvokeNextStacktraceMethodInstructions(
-        invalidLineNumberLabel: LabelNode, lineNumbers: List<UInt>
+        invalidLineNumberLabel: LabelNode, lineNumbers: List<Int>
     ) = InsnList().apply {
         add(VarInsnNode(Opcodes.ALOAD, STACK_METHOD_HANDLERS_VAR_INDEX))
         add(VarInsnNode(Opcodes.ILOAD, NEXT_STEP_VAR_INDEX))
@@ -136,7 +119,7 @@ class DecoroutinatorClassBodyGeneratorImpl: DecoroutinatorClassBodyGenerator {
         add(VarInsnNode(Opcodes.ILOAD, NEXT_STEP_VAR_INDEX))
         add(InsnNode(Opcodes.ICONST_1))
         add(InsnNode(Opcodes.IADD))
-        add(VarInsnNode(Opcodes.ALOAD, CONTINUATION_METHOD_HANDLERS_FUNCTION_VAR_INDEX))
+        add(VarInsnNode(Opcodes.ALOAD, INVOKE_FUNCTION_VAR_INDEX))
         add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
         add(VarInsnNode(Opcodes.ALOAD, SUSPEND_OBJECT_VAR_INDEX))
         val invalidLabel = LabelNode()
@@ -160,19 +143,19 @@ class DecoroutinatorClassBodyGeneratorImpl: DecoroutinatorClassBodyGenerator {
 
     private fun InsnList.addByLineNumbers(
             invalidLineNumberLabel: LabelNode,
-            lineNumbers: List<UInt>,
+            lineNumbers: List<Int>,
             appendGotoEnd: Boolean = true,
-            action: InsnList.(lineNumber: UInt) -> Unit
+            action: InsnList.(lineNumber: Int) -> Unit
     ) {
-        val array = lineNumbers.toUIntArray()
+        val array = lineNumbers.toIntArray()
         val labels = Array(lineNumbers.size) { LabelNode() }
         val endLabel = if (appendGotoEnd) LabelNode() else null
         add(VarInsnNode(Opcodes.ILOAD, LINE_NUMBER_VAR_INDEX))
-        add(LookupSwitchInsnNode(invalidLineNumberLabel, array.asIntArray(), labels))
+        add(LookupSwitchInsnNode(invalidLineNumberLabel, array, labels))
         array.forEachIndexed { index, lineNumber ->
             val label = labels[index]
             add(label)
-            add(LineNumberNode(lineNumber.toInt(), label))
+            add(LineNumberNode(lineNumber, label))
             action(lineNumber)
             if (endLabel != null && index < array.lastIndex) {
                 add(getGotoInstruction(endLabel))
@@ -181,12 +164,6 @@ class DecoroutinatorClassBodyGeneratorImpl: DecoroutinatorClassBodyGenerator {
         if (endLabel != null) {
             add(endLabel)
         }
-    }
-
-    private fun getStoreExceptionResultInstructions() = InsnList().apply {
-        add(MethodInsnNode(Opcodes.INVOKESTATIC, "kotlin/ResultKt", "createFailure",
-            "(L$THROWABLE_INTERNAL_CLASS_NAME;)L$OBJECT_INTERNAL_CLASS_NAME;"))
-        add(VarInsnNode(Opcodes.ASTORE, RESULT_VAR_INDEX))
     }
 
     private fun getGotoInstruction(label: LabelNode) = JumpInsnNode(Opcodes.GOTO, label)
@@ -219,27 +196,23 @@ class DecoroutinatorClassBodyGeneratorImpl: DecoroutinatorClassBodyGenerator {
         add(endLabel)
     }
 
-    private fun getInvokeContinuationAndReturnInstructions(
-        invalidLineNumberLabel: LabelNode, lineNumbers: List<UInt>
+    private fun getInvokeFunctionAndReturnInstructions(
+        invalidLineNumberLabel: LabelNode, lineNumbers: List<Int>
     ) = InsnList().apply {
-        add(VarInsnNode(Opcodes.ALOAD, CONTINUATION_METHOD_HANDLERS_FUNCTION_VAR_INDEX))
+        add(VarInsnNode(Opcodes.ALOAD, INVOKE_FUNCTION_VAR_INDEX))
         add(VarInsnNode(Opcodes.ILOAD, NEXT_STEP_VAR_INDEX))
-        add(InsnNode(Opcodes.ICONST_1))
-        add(InsnNode(Opcodes.ISUB))
         add(MethodInsnNode(Opcodes.INVOKESTATIC, INTEGER_INTERNAL_CLASS_NAME, "valueOf",
             "(I)L$INTEGER_INTERNAL_CLASS_NAME;"))
-        add(MethodInsnNode(Opcodes.INVOKEINTERFACE, FUNCTION_INTERNAL_CLASS_NAME, "apply",
-            "(L$OBJECT_INTERNAL_CLASS_NAME;)L$OBJECT_INTERNAL_CLASS_NAME;"))
-        add(TypeInsnNode(Opcodes.CHECKCAST, METHOD_HANDLE_INTERNAL_CLASS_NAME))
         add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
         val invalidLabel = LabelNode()
         addByLineNumbers(invalidLabel, lineNumbers) {
-            add(MethodInsnNode(Opcodes.INVOKEVIRTUAL, METHOD_HANDLE_INTERNAL_CLASS_NAME, "invokeExact",
-                "(L$OBJECT_INTERNAL_CLASS_NAME;)L$OBJECT_INTERNAL_CLASS_NAME;"))
+            add(MethodInsnNode(Opcodes.INVOKEINTERFACE, BI_FUNCTION_INTERNAL_CLASS_NAME, "apply",
+                "(L$OBJECT_INTERNAL_CLASS_NAME;L$OBJECT_INTERNAL_CLASS_NAME;)L$OBJECT_INTERNAL_CLASS_NAME;"))
         }
         add(InsnNode(Opcodes.ARETURN))
         add(invalidLabel)
         add(InsnNode(Opcodes.POP2))
+        add(InsnNode(Opcodes.POP))
         add(getGotoInstruction(invalidLineNumberLabel))
     }
 }

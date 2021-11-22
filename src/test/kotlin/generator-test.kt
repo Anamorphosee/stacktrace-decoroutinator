@@ -1,5 +1,6 @@
 package dev.reformator.stacktracedecoroutinator.generator
 
+import checkStacktrace
 import dev.reformator.stacktracedecoroutinator.analyzer.DecoroutinatorClassSpec
 import dev.reformator.stacktracedecoroutinator.analyzer.DecoroutinatorMethodSpec
 import dev.reformator.stacktracedecoroutinator.util.callStack
@@ -7,7 +8,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verifySequence
 import java.util.function.BiFunction
-import kotlin.RuntimeException
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -129,13 +129,5 @@ class GeneratorTest {
             continuationMock.apply(4, "test4")
             continuationMock.apply(3, depth4Exception)
         }
-    }
-}
-
-fun checkStacktrace(vararg elements: StackTraceElement) {
-    RuntimeException().stackTrace.toList().also { stacktrace ->
-        val startIndex = stacktrace.indexOf(elements[0])
-        val checkedStacktrace = stacktrace.subList(startIndex, startIndex + elements.size)
-        assertEquals(elements.toList(), checkedStacktrace)
     }
 }

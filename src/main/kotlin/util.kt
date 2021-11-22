@@ -48,3 +48,10 @@ private val pairComparator: Comparator<Pair<Comparable<Any>, Comparable<Any>>> =
 
 @Suppress("UNCHECKED_CAST")
 fun <T1: Comparable<T1>, T2: Comparable<T2>> pairComparator() = pairComparator as Comparator<Pair<T1, T2>>
+
+internal abstract class ResultValueRetriever {
+    abstract fun retrieveResultValue(result: Result<*>): Any?
+}
+
+val Result<*>.value: Any?
+    inline get() = ResultValueRetrieverImpl.instance.retrieveResultValue(this)

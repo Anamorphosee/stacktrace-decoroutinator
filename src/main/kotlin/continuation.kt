@@ -8,12 +8,12 @@ import dev.reformator.stacktracedecoroutinator.util.getStackTraceElementHandle
 import dev.reformator.stacktracedecoroutinator.util.probeCoroutineResumedHandle
 import java.io.Serializable
 import java.lang.invoke.MethodHandle
-import java.lang.invoke.MethodHandles
 import java.lang.reflect.Field
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.BiFunction
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import dev.reformator.stacktracedecoroutinator.util.value
 
 data class DecoroutinatorContinuationSpec(
     val handle: MethodHandle,
@@ -22,7 +22,7 @@ data class DecoroutinatorContinuationSpec(
 )
 
 internal abstract class BaseContinuationImpl(
-    val completion: Continuation<Any?>
+    val completion: Continuation<Any?>?
 ): Continuation<Any?>, CoroutineStackFrame, Serializable {
     companion object {
         var analyzer: DecoroutinatorClassAnalyzer = DecoroutinatorClassAnalyzerImpl()
@@ -41,7 +41,7 @@ internal abstract class BaseContinuationImpl(
                     break
                 }
                 add(lastContinuationVal)
-                lastContinuation = lastContinuationVal.completion
+                lastContinuation = lastContinuationVal.completion!!
             }
             reverse()
         }
@@ -50,21 +50,22 @@ internal abstract class BaseContinuationImpl(
         val handles = fillStacktraceArrays(baseContinuations, lineNumbers, baseContinuations.lastIndex)
         val invokeHandleFunction = BiFunction { index: Int, result: Any? ->
             val continuation = baseContinuations[index]
-            probeCoroutineResumedHandle.invokeExact(continuation)
-            val outcome = try {
-                continuation.invokeSuspend(Result.success(result))
+            probeCoroutineResumedHandle.invokeExact(continuation as Continuation<*>)
+            val nextResult = try {
+                val nextResult = continuation.invokeSuspend(Result.success(result))
+                if (nextResult === COROUTINE_SUSPENDED) {
+                    return@BiFunction COROUTINE_SUSPENDED
+                }
+                Result.success(nextResult)
             } catch (e: Throwable) {
-                Result.failure<Any?>(e)
+                Result.failure(e)
             }
-            if (outcome !== COROUTINE_SUSPENDED) {
-                continuation.releaseIntercepted()
-            }
-            outcome
+            nextResult.value
         }
         val lastContinuationResult = callStack(handles, lineNumbers, invokeHandleFunction, result)
 
         if (lastContinuationResult !== COROUTINE_SUSPENDED) {
-            lastContinuation.resumeWith(Result.success(lastContinuation))
+            lastContinuation.resumeWith(Result.success(lastContinuationResult))
         }
     }
 

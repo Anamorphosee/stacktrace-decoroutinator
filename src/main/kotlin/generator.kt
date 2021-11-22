@@ -1,13 +1,13 @@
 package dev.reformator.stacktracedecoroutinator.generator
 
 import dev.reformator.stacktracedecoroutinator.analyzer.DecoroutinatorClassSpec
-import dev.reformator.stacktracedecoroutinator.util.pairComparator
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.lang.invoke.MethodHandle
 import java.util.function.BiFunction
+import dev.reformator.stacktracedecoroutinator.util.pairComparator
 
 typealias DecoroutinatorClassBodyGenerator = (className: String, spec: DecoroutinatorClassSpec) -> ByteArray
 

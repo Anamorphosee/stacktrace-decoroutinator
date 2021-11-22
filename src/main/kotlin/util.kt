@@ -11,6 +11,13 @@ import java.util.function.BiFunction
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
+internal val METHOD_HANDLE_INTERNAL_CLASS_NAME = org.objectweb.asm.Type.getInternalName(MethodHandle::class.java)
+internal val BI_FUNCTION_INTERNAL_CLASS_NAME = org.objectweb.asm.Type.getInternalName(BiFunction::class.java)
+internal val OBJECT_INTERNAL_CLASS_NAME = org.objectweb.asm.Type.getInternalName(Object::class.java)
+internal val INTEGER_INTERNAL_CLASS_NAME = org.objectweb.asm.Type.getInternalName(Integer::class.java)
+internal val STRING_BUILDER_INTERNAL_CLASS_NAME = org.objectweb.asm.Type.getInternalName(java.lang.StringBuilder::class.java)
+internal val STRING_INTERNAL_CLASS_NAME = org.objectweb.asm.Type.getInternalName(java.lang.String::class.java)
+
 fun callStack(
     stackHandlers: Array<MethodHandle>,
     stackLineNumbers: IntArray,
@@ -75,10 +82,10 @@ fun ClassLoader.loadClass(className: String, classBody: ByteArray): Class<*> {
     }
 }
 
-private val DECOROUTINATOR_RUNTIME_INTERNAL_CLASS_NAME = Type.getInternalName(DecoroutinatorRuntime::class.java)
-private val DECOROUTINATOR_RUNTIME_DESC = "L$DECOROUTINATOR_RUNTIME_INTERNAL_CLASS_NAME;"
+internal val DECOROUTINATOR_RUNTIME_INTERNAL_CLASS_NAME = Type.getInternalName(DecoroutinatorRuntime::class.java)
+internal val DECOROUTINATOR_RUNTIME_DESC = "L$DECOROUTINATOR_RUNTIME_INTERNAL_CLASS_NAME;"
 //not getting by generic because it has not to lead to load the class
-private const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
+internal val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 
 enum class DocoroutinatorRuntimeStates {
     NOT_LOADED, ENABLED, DISABLED

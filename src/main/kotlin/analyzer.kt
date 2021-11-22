@@ -1,5 +1,6 @@
 package dev.reformator.stacktracedecoroutinator.analyzer
 
+import dev.reformator.stacktracedecoroutinator.util.OBJECT_INTERNAL_CLASS_NAME
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
@@ -22,7 +23,7 @@ interface ClassBodyResolver {
 
     fun getClassBody(className: String) = getClassBodies(className).let {
         if (it.size > 1) {
-            throw IllegalArgumentException("found more than 1 classes: ${it.size}")
+            throw IllegalArgumentException("found ${it.size} class bodies for class $className")
         }
         it.singleOrNull()
     }
@@ -55,6 +56,14 @@ class DecoroutinatorClassAnalyzerImpl(
 ): DecoroutinatorClassAnalyzer {
     companion object {
         private val intTypeDescriptor = Type.INT_TYPE.descriptor
+        private val baseContinuationSuperClassesInternalNames = setOf(
+            "kotlin/coroutines/jvm/internal/BaseContinuationImpl",
+            "kotlin/coroutines/jvm/internal/ContinuationImpl",
+            "kotlin/coroutines/jvm/internal/RestrictedContinuationImpl",
+            "kotlin/coroutines/jvm/internal/RestrictedSuspendLambda",
+            "kotlin/coroutines/jvm/internal/SuspendLambda",
+            "kotlinx/coroutines/flow/internal/SafeCollector"
+        )
     }
 
     constructor(): this(DefaultClassBodyResolver())
@@ -62,16 +71,15 @@ class DecoroutinatorClassAnalyzerImpl(
     override fun getDecoroutinatorClassSpec(className: String): DecoroutinatorClassSpec {
         val classNode = getClassNode(className) ?: throw IllegalArgumentException("class $className is not found")
         val continuationClassName2Method = classNode.methods.asSequence()
-            .filter { it.desc.endsWith("Lkotlin/coroutines/Continuation;)Ljava/lang/Object;") }
-            .mapNotNull { methodNode: MethodNode ->
-                val continuationInternalClassName = getContinuationInternalClassName(methodNode) ?:
+            .mapNotNull { methodNode ->
+                val continuationInternalClassName = getContinuationInternalClassName(classNode, methodNode) ?:
                         return@mapNotNull null
                 val lineNumbers = getLineNumbers(methodNode.instructions)
                 val label2LineNumber = mutableMapOf<Int, Int>()
                 for (instruction in methodNode.instructions) {
                     if (instruction !is FieldInsnNode || instruction.opcode != Opcodes.PUTFIELD ||
-                            instruction.owner != continuationInternalClassName || instruction.name != "label" ||
-                            instruction.desc != intTypeDescriptor) {
+                        instruction.owner != continuationInternalClassName || instruction.name != "label" ||
+                        instruction.desc != intTypeDescriptor) {
                         continue
                     }
                     val previousInstruction = getPreviousInstruction(instruction)
@@ -86,16 +94,14 @@ class DecoroutinatorClassAnalyzerImpl(
                 }
                 val continuationClassName = continuationInternalClassName.replace('/', '.')
                 continuationClassName to DecoroutinatorMethodSpec(methodNode.name, label2LineNumber)
-            }.toMap()
+            }
+            .toMap()
         return DecoroutinatorClassSpec(classNode.sourceFile, continuationClassName2Method)
     }
 
     override fun getClassNameByContinuationClassName(coroutineClassName: String): String {
         val classNode = getClassNode(coroutineClassName) ?:
-                throw IllegalArgumentException("class [$coroutineClassName] is not found")
-        if (classNode.superName != "kotlin/coroutines/jvm/internal/ContinuationImpl") {
-            throw IllegalArgumentException("class [$coroutineClassName] is not continuation")
-        }
+                throw IllegalArgumentException("class $coroutineClassName is not found")
         val resumeMethod = classNode.methods.asSequence()
             .filter { it.name == "invokeSuspend" && it.desc == "(Ljava/lang/Object;)Ljava/lang/Object;" }
             .first()
@@ -106,7 +112,13 @@ class DecoroutinatorClassAnalyzerImpl(
             }
             candidate
         }
-        return invokeSuspendedMethodInstruction.owner.replace('/', '.')
+        return invokeSuspendedMethodInstruction.owner.let {
+            if (it == "java/lang/IllegalStateException") {
+                coroutineClassName
+            } else {
+                it.replace('/', '.')
+            }
+        }
     }
 
     private fun getClassNode(className: String): ClassNode? {
@@ -123,27 +135,39 @@ class DecoroutinatorClassAnalyzerImpl(
         return argumentsSizeWithThis - (if (static) 2U else 1U)
     }
 
-    private fun getContinuationInternalClassName(methodNode: MethodNode): String? {
-        val continuationVarIndex = getContinuationVarIndex(methodNode)
-        methodNode.instructions[0].also {
-            if (it !is VarInsnNode) {
-                return null
+    private fun getContinuationInternalClassName(classNode: ClassNode, methodNode: MethodNode): String? {
+        return if (
+            methodNode.access and Opcodes.ACC_STATIC == 0 &&
+                methodNode.name == "invokeSuspend" &&
+                methodNode.desc == "(L$OBJECT_INTERNAL_CLASS_NAME;)L$OBJECT_INTERNAL_CLASS_NAME;" &&
+                classNode.superName in baseContinuationSuperClassesInternalNames) {
+            classNode.name
+        } else if (
+            methodNode.desc.endsWith("Lkotlin/coroutines/Continuation;)Ljava/lang/Object;")
+        ) {
+            val continuationVarIndex = getContinuationVarIndex(methodNode)
+            methodNode.instructions[0].also {
+                if (it !is VarInsnNode) {
+                    return null
+                }
+                if (it.`var`.toUInt() != continuationVarIndex) {
+                    return null
+                }
+                if (it.opcode != Opcodes.ALOAD) {
+                    return null
+                }
             }
-            if (it.`var`.toUInt() != continuationVarIndex) {
-                return null
+            methodNode.instructions[1].let {
+                if (it !is TypeInsnNode) {
+                    return null
+                }
+                if (it.opcode != Opcodes.INSTANCEOF) {
+                    return null
+                }
+                it.desc
             }
-            if (it.opcode != Opcodes.ALOAD) {
-                return null
-            }
-        }
-        methodNode.instructions[1].also {
-            if (it !is TypeInsnNode) {
-                return null
-            }
-            if (it.opcode != Opcodes.INSTANCEOF) {
-                return null
-            }
-            return it.desc
+        } else {
+            null
         }
     }
 

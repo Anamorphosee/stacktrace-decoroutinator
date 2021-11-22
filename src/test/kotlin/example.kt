@@ -1,12 +1,3 @@
-# Stacktrace-decoroutinator
-Library for recovering stack trace in exceptions thrown in Kotlin coroutines.
-
-Supports JVM(not Android) versions 1.8 or higher.
-
-To enable it you should call method `DocoroutinatorRuntime.enableDecoroutinatorRuntime()` before creating any coroutine.
-
-Usage example:
-```kotlin
 import dev.reformator.stacktracedecoroutinator.util.DocoroutinatorRuntime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -30,4 +21,3 @@ fun main() {
         e.printStackTrace() // print full stack trace with 10 recursive calls
     }
 }
-```

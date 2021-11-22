@@ -88,7 +88,7 @@ internal abstract class BaseContinuationImpl(
 
     private fun getContinuationSpec(continuationClazz: Class<*>) =
         continuationClass2Spec[continuationClazz] ?: run {
-            val continuationClassName = continuationClazz.canonicalName
+            val continuationClassName = continuationClazz.typeName
             val className = analyzer.getClassNameByContinuationClassName(continuationClassName)
             val analyzerSpec = analyzer.getDecoroutinatorClassSpec(className)
             val methodName2StacktraceHandle: Map<String, MethodHandle> =

@@ -8,3 +8,7 @@ internal data class DecoroutinatorContinuationSpec(
     val labelField: Field,
     val label2LineNumber: Map<Int, Int>
 )
+
+@Target(AnnotationTarget.CLASS)
+@Retention
+internal annotation class DecoroutinatorRuntime

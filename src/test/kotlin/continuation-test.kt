@@ -1,12 +1,14 @@
 package dev.reformator.stacktracedecoroutinator.continuation
 
 import checkStacktrace
+import dev.reformator.stacktracedecoroutinator.util.DocoroutinatorRuntime
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionStage
 import kotlin.random.Random
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -31,13 +33,13 @@ class ContinuationTest {
         } else {
             val previousMessage = try {
                 val previousMessage = when (lineNumbers[index]) {
-                    34 -> rec(lineNumbers, future, index + 1)
-                    35 -> rec(lineNumbers, future, index + 1)
-
+                    36 -> rec(lineNumbers, future, index + 1)
                     37 -> rec(lineNumbers, future, index + 1)
-                    38 -> rec(lineNumbers, future, index + 1)
 
+                    39 -> rec(lineNumbers, future, index + 1)
                     40 -> rec(lineNumbers, future, index + 1)
+
+                    42 -> rec(lineNumbers, future, index + 1)
 
                     else -> throw IllegalArgumentException("invalid line number: ${lineNumbers[index]} on index $index")
                 }
@@ -59,7 +61,12 @@ class ContinuationTest {
         }
     }
 
-    private val allowedLineNumber = listOf(34, 35, 37, 38, 40)
+    private val allowedLineNumber = listOf(36, 37, 39, 40, 42)
+
+    @BeforeTest
+    fun setup() {
+        DocoroutinatorRuntime().enableDecoroutinatorRuntime()
+    }
 
     @Test
     fun basic() = runBlocking {

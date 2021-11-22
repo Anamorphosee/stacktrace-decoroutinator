@@ -3,9 +3,11 @@ package kotlin.coroutines.jvm.internal
 import dev.reformator.stacktracedecoroutinator.analyzer.DecoroutinatorClassAnalyzer
 import dev.reformator.stacktracedecoroutinator.analyzer.DecoroutinatorClassAnalyzerImpl
 import dev.reformator.stacktracedecoroutinator.continuation.DecoroutinatorContinuationSpec
+import dev.reformator.stacktracedecoroutinator.continuation.DecoroutinatorRuntime
 import dev.reformator.stacktracedecoroutinator.generator.DecoroutinatorClassLoader
 import dev.reformator.stacktracedecoroutinator.util.JavaUtilImpl
 import dev.reformator.stacktracedecoroutinator.util.callStack
+import dev.reformator.stacktracedecoroutinator.util.classLoader
 import java.io.Serializable
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.ConcurrentHashMap
@@ -14,6 +16,7 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import dev.reformator.stacktracedecoroutinator.util.value
 
+@DecoroutinatorRuntime
 internal abstract class BaseContinuationImpl(
     val completion: Continuation<Any?>?
 ): Continuation<Any?>, CoroutineStackFrame, Serializable {
@@ -89,9 +92,9 @@ internal abstract class BaseContinuationImpl(
             val className = analyzer.getClassNameByContinuationClassName(continuationClassName)
             val analyzerSpec = analyzer.getDecoroutinatorClassSpec(className)
             val methodName2StacktraceHandle: Map<String, MethodHandle> =
-                classLoader.getMethodName2StacktraceHandlerMap(className, analyzerSpec)
+                BaseContinuationImpl.classLoader.getMethodName2StacktraceHandlerMap(className, analyzerSpec)
             analyzerSpec.continuationClassName2Method.forEach { (continuationClassName, methodSpec) ->
-                val continuationClass = Class.forName(continuationClassName)
+                val continuationClass = this.classLoader!!.loadClass(continuationClassName)
                 val stacktraceHandle = methodName2StacktraceHandle[methodSpec.methodName]!!
                 val labelField = continuationClass.getDeclaredField("label")
                 labelField.isAccessible = true

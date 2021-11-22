@@ -1,1 +1,1 @@
-rootProject.name = "runtime"
+rootProject.name = "stacktrace-decoroutinator"

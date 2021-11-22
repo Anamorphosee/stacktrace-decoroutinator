@@ -17,7 +17,16 @@ data class DecoroutinatorClassSpec(
     val continuationClassName2Method: Map<String, DecoroutinatorMethodSpec>
 )
 
-typealias ClassBodyResolver = (className: String) -> ByteArray?
+interface ClassBodyResolver {
+    fun getClassBodies(className: String): List<ByteArray>
+
+    fun getClassBody(className: String) = getClassBodies(className).let {
+        if (it.size > 1) {
+            throw IllegalArgumentException("found more than 1 classes: ${it.size}")
+        }
+        it.singleOrNull()
+    }
+}
 
 interface DecoroutinatorClassAnalyzer {
     fun getDecoroutinatorClassSpec(className: String): DecoroutinatorClassSpec
@@ -30,10 +39,13 @@ class DefaultClassBodyResolver: ClassBodyResolver {
         private val separator: String = FileSystems.getDefault().separator
     }
 
-    override fun invoke(className: String): ByteArray? {
+    override fun getClassBodies(className: String): List<ByteArray> {
         val path = className.replace(regex, separator) + ".class"
-        (ClassLoader.getSystemResourceAsStream(path) ?: return null).use {
-            return it.readBytes()
+        val enumerator = ClassLoader.getSystemResources(path)
+        return buildList {
+            while (enumerator.hasMoreElements()) {
+                add(enumerator.nextElement().openStream().readBytes())
+            }
         }
     }
 }
@@ -98,7 +110,7 @@ class DecoroutinatorClassAnalyzerImpl(
     }
 
     private fun getClassNode(className: String): ClassNode? {
-        val classBody = classBodyResolver(className) ?: return null
+        val classBody = classBodyResolver.getClassBody(className) ?: return null
         val classNode = ClassNode()
         val classReader = ClassReader(classBody)
         classReader.accept(classNode, ClassReader.SKIP_FRAMES)

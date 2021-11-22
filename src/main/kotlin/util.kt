@@ -8,20 +8,6 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.jvm.internal.BaseContinuationImpl
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
-val publicLookup: MethodHandles.Lookup = MethodHandles.publicLookup()
-
-val getStackTraceElementHandle: MethodHandle = publicLookup.findStatic(
-    Class.forName("kotlin.coroutines.jvm.internal.DebugMetadataKt"),
-    "getStackTraceElement",
-    MethodType.methodType(StackTraceElement::class.java, BaseContinuationImpl::class.java)
-)
-
-val probeCoroutineResumedHandle: MethodHandle = publicLookup.findStatic(
-    Class.forName("kotlin.coroutines.jvm.internal.DebugProbesKt"),
-    "probeCoroutineResumed",
-    MethodType.methodType(Void.TYPE, Continuation::class.java)
-)
-
 fun callStack(
     stackHandlers: Array<MethodHandle>,
     stackLineNumbers: IntArray,
@@ -49,9 +35,13 @@ private val pairComparator: Comparator<Pair<Comparable<Any>, Comparable<Any>>> =
 @Suppress("UNCHECKED_CAST")
 fun <T1: Comparable<T1>, T2: Comparable<T2>> pairComparator() = pairComparator as Comparator<Pair<T1, T2>>
 
-internal abstract class ResultValueRetriever {
+abstract class JavaUtil {
     abstract fun retrieveResultValue(result: Result<*>): Any?
 }
 
 val Result<*>.value: Any?
-    inline get() = ResultValueRetrieverImpl.instance.retrieveResultValue(this)
+    inline get() = JavaUtilImpl.instance.retrieveResultValue(this)
+
+inline fun probeCoroutineResumed(frame: Continuation<*>) {
+    JavaUtilImpl.probeCoroutineResumed(frame)
+}

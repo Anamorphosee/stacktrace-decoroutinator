@@ -32,7 +32,7 @@ class DecoroutinatorClassBodyGeneratorImpl: DecoroutinatorClassBodyGenerator {
         //int[] stackLineNumbers
         //int nextStep
         //BiFunction<Integer, Result<*>, MethodHandle> continuationInvokeMethods
-        //Result<*> result
+        //Object result
         //Object suspendObject
         val METHOD_DESC = "(" +
                 "[L$METHOD_HANDLE_INTERNAL_CLASS_NAME;" +

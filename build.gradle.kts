@@ -32,6 +32,7 @@ tasks.withType<KotlinCompile> {
 
 java {
     withSourcesJar()
+    withJavadocJar()
 }
 
 publishing {

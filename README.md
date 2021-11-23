@@ -31,3 +31,4 @@ fun main() {
     }
 }
 ```
+Available on [Maven Central](https://search.maven.org/artifact/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator/1.0.0/jar)

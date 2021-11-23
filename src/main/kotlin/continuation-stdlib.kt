@@ -80,8 +80,10 @@ internal abstract class BaseContinuationImpl(
         return Array(size) { index ->
             val continuation = baseContinuations[index]
             val spec = continuationClass2Spec[continuation.javaClass]!!
-            val label = spec.labelField[continuation] as Int
-            lineNumbers[index] = spec.label2LineNumber[label]!!
+            lineNumbers[index] = spec.singleLineNumber ?: run {
+                val label = spec.labelField[continuation] as Int
+                spec.label2LineNumber[label]!!
+            }
             spec.handle
         }
     }

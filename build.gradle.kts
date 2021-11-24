@@ -66,6 +66,7 @@ publishing {
     }
     repositories {
         maven {
+            name = "sonatype"
             val releaseRepoUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
             val snapshotRepoUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
             url = if (version.toString().endsWith("SNAPSHOT")) {
@@ -74,8 +75,16 @@ publishing {
                 releaseRepoUrl
             }
             credentials {
-                username = properties["sonatype.username"] as String
-                password = properties["sonatype.password"] as String
+                username = properties["sonatype.username"] as String?
+                password = properties["sonatype.password"] as String?
+            }
+        }
+        maven {
+            name = "github"
+            url = uri("https://maven.pkg.github.com/Anamorphosee/stacktrace-decoroutinator")
+            credentials {
+                username = properties["github.username"] as String?
+                password = properties["github.password"] as String?
             }
         }
     }

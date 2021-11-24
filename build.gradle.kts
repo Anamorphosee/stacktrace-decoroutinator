@@ -17,7 +17,7 @@ dependencies {
     implementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
 
     testImplementation(kotlin("test"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinVersion"]}")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
     testImplementation("io.mockk:mockk:${properties["mockkVersion"]}")
 }
 

@@ -1,25 +1,19 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.6.0"
+    kotlin("jvm")
     `maven-publish`
     signing
 }
-
-group = "dev.reformator.stacktracedecoroutinator"
-version = "1.0.0"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-common"))
-    implementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
+    //implementation("com.linkedin.dexmaker:dexmaker:${properties["dexmakerVersion"]}")
 
     testImplementation(kotlin("test"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
-    testImplementation("io.mockk:mockk:${properties["mockkVersion"]}")
 }
 
 tasks.test {

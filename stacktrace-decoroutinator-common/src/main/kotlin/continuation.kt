@@ -1,0 +1,5 @@
+package dev.reformator.stacktracedecoroutinator.continuation
+
+@Target(AnnotationTarget.CLASS)
+@Retention
+annotation class DecoroutinatorRuntimeMarker

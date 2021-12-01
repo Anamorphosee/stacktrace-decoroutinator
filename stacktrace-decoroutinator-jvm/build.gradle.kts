@@ -1,13 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.6.0"
+    kotlin("jvm")
     `maven-publish`
     signing
 }
-
-group = "dev.reformator.stacktracedecoroutinator"
-version = "1.0.0"
 
 repositories {
     mavenCentral()
@@ -19,7 +16,6 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
-    testImplementation("io.mockk:mockk:${properties["mockkVersion"]}")
 }
 
 tasks.test {
@@ -28,7 +24,6 @@ tasks.test {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
-    kotlinOptions.freeCompilerArgs += listOf("-Xallow-kotlin-package")
 }
 
 java {

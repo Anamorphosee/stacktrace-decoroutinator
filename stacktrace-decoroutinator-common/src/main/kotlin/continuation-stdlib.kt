@@ -1,7 +1,6 @@
 package kotlin.coroutines.jvm.internal
 
 import dev.reformator.stacktracedecoroutinator.continuation.DecoroutinatorRuntimeMarker
-import dev.reformator.stacktracedecoroutinator.registry.MethodKey
 import dev.reformator.stacktracedecoroutinator.registry.decoroutinatorRegistry
 import dev.reformator.stacktracedecoroutinator.utils.JavaUtilImpl
 import dev.reformator.stacktracedecoroutinator.utils.callStacktraceHandles
@@ -73,36 +72,20 @@ internal abstract class BaseContinuationImpl(
         stacktraceHandles: Array<MethodHandle>,
         stacktraceLineNumbers: IntArray
     ) {
-        val stacktraceElements = baseContinuations.asSequence()
-            .take(stacktraceDepth)
-            .map(decoroutinatorRegistry.continuationStacktraceElementRegistry::getStacktraceElement)
-            .toList()
-        val methodKey2PossibleLineNumbers = stacktraceElements.asSequence()
-            .filterNotNull()
-            .groupBy {
-                MethodKey(
-                    className = it.className,
-                    fileName = it.fileName,
-                    methodName = it.methodName
-                )
-            }
-            .mapValues { (_, stacktraceElements) ->
-                stacktraceElements.asSequence()
-                    .flatMap { it.possibleLineNumbers }
-                    .toSet()
-            }
-        val methodKey2StacktraceMethodHandle =
-            decoroutinatorRegistry.stacktraceMethodHandleRegistry.getStacktraceMethodHandles(methodKey2PossibleLineNumbers)
-        stacktraceElements.forEachIndexed { index, element ->
+        val stacktraceElements = decoroutinatorRegistry.continuationStacktraceElementRegistry.getStacktraceElements(
+            baseContinuations.subList(0, stacktraceDepth)
+        )
+        val stacktraceElement2StacktraceMethodHandle = decoroutinatorRegistry.stacktraceMethodHandleRegistry.getStacktraceMethodHandles(
+            stacktraceElements.possibleElements
+        )
+
+        (0 until stacktraceDepth).forEach { index ->
+            val continuation = baseContinuations[index]
+            val element = stacktraceElements.continuation2Element[continuation]
             if (element == null) {
                 stacktraceHandles[index] = unknownStacktraceMethodHandle
             } else {
-                val methodKey = MethodKey(
-                    className = element.className,
-                    fileName = element.fileName,
-                    methodName = element.methodName
-                )
-                stacktraceHandles[index] = methodKey2StacktraceMethodHandle[methodKey]!!
+                stacktraceHandles[index] = stacktraceElement2StacktraceMethodHandle[element]!!
                 stacktraceLineNumbers[index] = element.lineNumber
             }
         }

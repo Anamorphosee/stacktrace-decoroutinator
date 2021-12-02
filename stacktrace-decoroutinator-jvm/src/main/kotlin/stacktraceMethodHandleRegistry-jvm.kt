@@ -1,6 +1,6 @@
-package dev.reformator.stacktracedecoroutinator.generator
+package dev.reformator.stacktracedecoroutinator.registry
 
-import dev.reformator.stacktracedecoroutinator.registry.DecoroutinatorStacktraceClassGenerator
+import dev.reformator.stacktracedecoroutinator.generator.DecoroutinatorClassLoader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
@@ -9,7 +9,8 @@ import java.lang.invoke.MethodHandle
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.BiFunction
 
-internal object DecoroutinatorStacktraceClassGeneratorImpl: DecoroutinatorStacktraceClassGenerator {
+
+object DecoroutinatorStacktraceMethodHandleRegistryImpl: BaseDecoroutinatorStacktraceMethodHandleRegistry() {
     private val STACK_METHOD_HANDLERS_VAR_INDEX = 0
     private val LINE_NUMBERS_VAR_INDEX = 1
     private val NEXT_STEP_VAR_INDEX = 2
@@ -42,7 +43,7 @@ internal object DecoroutinatorStacktraceClassGeneratorImpl: DecoroutinatorStackt
 
     private val classLoaderByRevision: MutableList<DecoroutinatorClassLoader> = CopyOnWriteArrayList()
 
-    override fun invoke(
+    override fun generateStacktraceClass(
         className: String,
         fileName: String?,
         classRevision: Int,
@@ -136,9 +137,9 @@ internal object DecoroutinatorStacktraceClassGeneratorImpl: DecoroutinatorStackt
         addByLineNumbers(invalidLabel, lineNumbers, false) {
             add(
                 MethodInsnNode(
-                Opcodes.INVOKEVIRTUAL, METHOD_HANDLE_INTERNAL_CLASS_NAME, "invokeExact",
-                METHOD_DESC
-            )
+                    Opcodes.INVOKEVIRTUAL, METHOD_HANDLE_INTERNAL_CLASS_NAME, "invokeExact",
+                    METHOD_DESC
+                )
             )
             add(getGotoInstruction(endLabel))
         }
@@ -188,23 +189,23 @@ internal object DecoroutinatorStacktraceClassGeneratorImpl: DecoroutinatorStackt
         add(
             MethodInsnNode(
                 Opcodes.INVOKESPECIAL, STRING_BUILDER_INTERNAL_CLASS_NAME, "<init>",
-            "(L$STRING_INTERNAL_CLASS_NAME;)V")
+                "(L$STRING_INTERNAL_CLASS_NAME;)V")
         )
         add(VarInsnNode(Opcodes.ILOAD, LINE_NUMBER_VAR_INDEX))
         add(
             MethodInsnNode(
                 Opcodes.INVOKEVIRTUAL, STRING_BUILDER_INTERNAL_CLASS_NAME, "append",
-            "(I)L$STRING_BUILDER_INTERNAL_CLASS_NAME;")
+                "(I)L$STRING_BUILDER_INTERNAL_CLASS_NAME;")
         )
         add(
             MethodInsnNode(
                 Opcodes.INVOKEVIRTUAL, STRING_BUILDER_INTERNAL_CLASS_NAME, "toString",
-            "()L$STRING_INTERNAL_CLASS_NAME;")
+                "()L$STRING_INTERNAL_CLASS_NAME;")
         )
         add(
             MethodInsnNode(
                 Opcodes.INVOKESPECIAL, "java/lang/IllegalArgumentException", "<init>",
-            "(L$STRING_INTERNAL_CLASS_NAME;)V")
+                "(L$STRING_INTERNAL_CLASS_NAME;)V")
         )
         add(InsnNode(Opcodes.ATHROW))
     }
@@ -227,7 +228,7 @@ internal object DecoroutinatorStacktraceClassGeneratorImpl: DecoroutinatorStackt
         add(
             MethodInsnNode(
                 Opcodes.INVOKESTATIC, INTEGER_INTERNAL_CLASS_NAME, "valueOf",
-            "(I)L$INTEGER_INTERNAL_CLASS_NAME;")
+                "(I)L$INTEGER_INTERNAL_CLASS_NAME;")
         )
         add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
         val invalidLabel = LabelNode()
@@ -235,7 +236,7 @@ internal object DecoroutinatorStacktraceClassGeneratorImpl: DecoroutinatorStackt
             add(
                 MethodInsnNode(
                     Opcodes.INVOKEINTERFACE, BI_FUNCTION_INTERNAL_CLASS_NAME, "apply",
-                "(L$OBJECT_INTERNAL_CLASS_NAME;L$OBJECT_INTERNAL_CLASS_NAME;)L$OBJECT_INTERNAL_CLASS_NAME;")
+                    "(L$OBJECT_INTERNAL_CLASS_NAME;L$OBJECT_INTERNAL_CLASS_NAME;)L$OBJECT_INTERNAL_CLASS_NAME;")
             )
         }
         add(InsnNode(Opcodes.ARETURN))
@@ -245,4 +246,3 @@ internal object DecoroutinatorStacktraceClassGeneratorImpl: DecoroutinatorStackt
         add(getGotoInstruction(invalidLineNumberLabel))
     }
 }
-

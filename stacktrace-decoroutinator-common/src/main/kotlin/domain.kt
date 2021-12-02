@@ -1,11 +1,8 @@
 package dev.reformator.stacktracedecoroutinator
 
-data class DecoroutinatorMethodSpec(
+data class DecoroutinatorStacktraceElement(
+    val className: String,
+    val fileName: String?,
     val methodName: String,
-    val label2LineNumber: Map<Int, Int>
-)
-
-data class DecoroutinatorClassSpec(
-    val sourceFileName: String?,
-    val continuationClassName2Method: Map<String, DecoroutinatorMethodSpec>
+    val lineNumber: Int
 )

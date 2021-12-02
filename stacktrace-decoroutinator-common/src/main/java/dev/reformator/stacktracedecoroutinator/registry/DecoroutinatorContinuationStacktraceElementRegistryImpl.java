@@ -1,76 +1,116 @@
 package dev.reformator.stacktracedecoroutinator.registry;
 
+import dev.reformator.stacktracedecoroutinator.DecoroutinatorStacktraceElement;
+import kotlin.Pair;
 import kotlin.coroutines.Continuation;
 import kotlin.coroutines.jvm.internal.DebugMetadata;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class DecoroutinatorContinuationStacktraceElementRegistryImpl
         implements DecoroutinatorContinuationStacktraceElementRegistry {
 
-    private final HashMap<Class<?>, ContinuationClassSpec> continuationClass2Spec = new HashMap<>();
-
-    @Nullable
-    @Override
-    public ContinuationStacktraceElement getStacktraceElement(@NotNull Continuation<?> continuation) throws IllegalAccessException {
-        Class<?> continuationClass = continuation.getClass();
-        ContinuationClassSpec classSpec = continuationClass2Spec.computeIfAbsent(continuationClass, (continuationClassCopy) -> {
-            DebugMetadata metadata = continuationClassCopy.getAnnotation(DebugMetadata.class);
-            if (metadata == null) {
-                return null;
-            }
-            try {
-                return new ContinuationClassSpec(continuationClassCopy, metadata);
-            } catch (NoSuchFieldException e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        if (classSpec == null) {
+    private final ConcurrentHashMap<Class<?>, ContinuationClassSpec> continuationClass2Spec = new ConcurrentHashMap<>();
+    private final Function<Class<?>, ContinuationClassSpec> continuationClass2SpecFun = continuationClass -> {
+        DebugMetadata metadata = continuationClass.getAnnotation(DebugMetadata.class);
+        if (metadata == null) {
             return null;
         }
+        try {
+            return new ContinuationClassSpec(continuationClass, metadata);
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+    };
+    private final Function<Class<?>, ContinuationClassSpec> continuationClass2SpecCachedFun = continuationClass ->
+            continuationClass2Spec.computeIfAbsent(continuationClass, continuationClass2SpecFun);
 
-        return classSpec.getStacktraceElement(continuation);
+    @NotNull
+    @Override
+    public DecoroutinatorContinuationStacktraceElements getStacktraceElements(
+            @NotNull Collection<? extends Continuation<?>> continuations
+    ) {
+        Map<Class<?>, ContinuationClassSpec> continuationClass2Spec = continuations.stream()
+                .map(Object::getClass)
+                .distinct()
+                .map(continuationClass2SpecCachedFun)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(ContinuationClassSpec::getContinuationClass, Function.identity()));
+
+        Map<Continuation<?>, DecoroutinatorStacktraceElement> continuation2Element = continuations.stream()
+                .map(continuation -> {
+                    ContinuationClassSpec spec = continuationClass2Spec.get(continuation.getClass());
+                    if (spec == null) {
+                        return null;
+                    }
+                    DecoroutinatorStacktraceElement element = null;
+                    try {
+                        element = spec.getElement(continuation);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return new Pair<>(continuation, element);
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+
+        Set<DecoroutinatorStacktraceElement> possibleElements = continuationClass2Spec.values().stream()
+                .flatMap(spec -> Arrays.stream(spec.getLabelIndex2element()))
+                .collect(Collectors.toSet());
+
+        return new DecoroutinatorContinuationStacktraceElements(
+                continuation2Element,
+                possibleElements
+        );
     }
 }
 
 class ContinuationClassSpec {
-    private final ContinuationStacktraceElementSummary summary;
+    private final Class<?> continuationClass;
     private final Field field;
-    private final ContinuationStacktraceElement[] labelIndex2stacktraceElement;
+    private final DecoroutinatorStacktraceElement[] labelIndex2element;
 
     ContinuationClassSpec(Class<?> continuationClass, DebugMetadata debugMetadata) throws NoSuchFieldException {
-        summary = new ContinuationStacktraceElementSummary(
-                debugMetadata.c(),
-                debugMetadata.f(),
-                debugMetadata.m(),
-                Arrays.stream(debugMetadata.l()).boxed().collect(Collectors.toSet())
-        );
+        this.continuationClass = continuationClass;
+        labelIndex2element = new DecoroutinatorStacktraceElement[debugMetadata.l().length];
+        for (int i = 0; i < debugMetadata.l().length; i++) {
+            int lineNumber = debugMetadata.l()[i];
+            labelIndex2element[i] = new DecoroutinatorStacktraceElement(
+                    debugMetadata.c(),
+                    debugMetadata.f(),
+                    debugMetadata.m(),
+                    lineNumber
+            );
+        }
         if (debugMetadata.l().length == 1) {
             field = null;
-            labelIndex2stacktraceElement = new ContinuationStacktraceElement[] {
-                    new ContinuationStacktraceElement(summary, summary.getPossibleLineNumbers().iterator().next())
-            };
         } else {
             field = continuationClass.getDeclaredField("label");
             field.setAccessible(true);
-            labelIndex2stacktraceElement = Arrays.stream(debugMetadata.l())
-                    .mapToObj(lineNumber -> new ContinuationStacktraceElement(summary, lineNumber))
-                    .toArray(ContinuationStacktraceElement[]::new);
         }
     }
 
-    ContinuationStacktraceElement getStacktraceElement(Continuation<?> continuation) throws IllegalAccessException {
-        if (labelIndex2stacktraceElement.length == 1) {
-            return labelIndex2stacktraceElement[0];
+    Class<?> getContinuationClass() {
+        return continuationClass;
+    }
+
+    DecoroutinatorStacktraceElement[] getLabelIndex2element() {
+        return labelIndex2element;
+    }
+
+    DecoroutinatorStacktraceElement getElement(Continuation<?> continuation) throws IllegalAccessException {
+        int labelIndex;
+        if (labelIndex2element.length == 1) {
+            labelIndex = 0;
         } else {
-            int labelIndex = field.getInt(continuation) - 1;
-            return labelIndex2stacktraceElement[labelIndex];
+            labelIndex = field.getInt(continuation) - 1;
         }
+        return labelIndex2element[labelIndex];
     }
 }

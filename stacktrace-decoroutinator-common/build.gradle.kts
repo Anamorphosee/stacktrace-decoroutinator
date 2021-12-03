@@ -11,8 +11,6 @@ repositories {
 }
 
 dependencies {
-    //implementation("com.linkedin.dexmaker:dexmaker:${properties["dexmakerVersion"]}")
-
     testImplementation(kotlin("test"))
 }
 

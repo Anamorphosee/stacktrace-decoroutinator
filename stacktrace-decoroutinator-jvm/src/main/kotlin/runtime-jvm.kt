@@ -6,6 +6,7 @@ import dev.reformator.stacktracedecoroutinator.utils.classLoader
 import dev.reformator.stacktracedecoroutinator.utils.getClassIfLoaded
 import dev.reformator.stacktracedecoroutinator.utils.loadClass
 import org.objectweb.asm.ClassReader
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import java.nio.file.FileSystems
@@ -64,7 +65,7 @@ object DecoroutinatorRuntime {
             val classBody = classBodyUrls.nextElement().openStream().readBytes()
 
             val classReader = ClassReader(classBody)
-            val classNode = ClassNode()
+            val classNode = ClassNode(Opcodes.ASM9)
             classReader.accept(classNode, ClassReader.SKIP_CODE or ClassReader.SKIP_FRAMES
                     or ClassReader.SKIP_DEBUG)
 
@@ -83,4 +84,3 @@ object DecoroutinatorRuntime {
                 "annotation [${DecoroutinatorRuntimeMarker::class}] was not found")
     }
 }
-//

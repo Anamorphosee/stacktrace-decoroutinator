@@ -11,13 +11,13 @@ import java.util.function.BiFunction
 
 
 object DecoroutinatorStacktraceMethodHandleRegistryImpl: BaseDecoroutinatorStacktraceMethodHandleRegistry() {
-    private val STACK_METHOD_HANDLERS_VAR_INDEX = 0
-    private val LINE_NUMBERS_VAR_INDEX = 1
-    private val NEXT_STEP_VAR_INDEX = 2
-    private val INVOKE_FUNCTION_VAR_INDEX = 3
-    private val RESULT_VAR_INDEX = 4
-    private val SUSPEND_OBJECT_VAR_INDEX = 5
-    private val LINE_NUMBER_VAR_INDEX = 6
+    private const val STACK_METHOD_HANDLERS_VAR_INDEX = 0
+    private const val LINE_NUMBERS_VAR_INDEX = 1
+    private const val NEXT_STEP_VAR_INDEX = 2
+    private const val INVOKE_FUNCTION_VAR_INDEX = 3
+    private const val RESULT_VAR_INDEX = 4
+    private const val SUSPEND_OBJECT_VAR_INDEX = 5
+    private const val LINE_NUMBER_VAR_INDEX = 6
 
     private val METHOD_HANDLE_INTERNAL_CLASS_NAME = Type.getInternalName(MethodHandle::class.java)
     private val BI_FUNCTION_INTERNAL_CLASS_NAME = Type.getInternalName(BiFunction::class.java)
@@ -63,7 +63,7 @@ object DecoroutinatorStacktraceMethodHandleRegistryImpl: BaseDecoroutinatorStack
         fileName: String?,
         methodName2LineNumbers: Map<String, Set<Int>>
     ): ByteArray {
-        val classNode = ClassNode().apply {
+        val classNode = ClassNode(Opcodes.ASM9).apply {
             version = Opcodes.V1_8
             access = Opcodes.ACC_PUBLIC or Opcodes.ACC_FINAL or Opcodes.ACC_SUPER
             name = className.replace('.', '/')

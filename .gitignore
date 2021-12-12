@@ -1,3 +1,5 @@
 .gradle
 .idea
 build
+local.properties
+/stacktrace-decoroutinator-android/src/main/resources/decoroutinatorBaseContinuation.dex

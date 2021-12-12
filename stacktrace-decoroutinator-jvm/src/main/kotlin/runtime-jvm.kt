@@ -38,9 +38,8 @@ enum class DecoroutinatorRuntimeState {
 private const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 
 object DecoroutinatorRuntime {
-    val state: DecoroutinatorRuntimeState
-    get() {
-        val baseContinuationClass = classLoader!!.getClassIfLoaded(BASE_CONTINUATION_CLASS_NAME)
+    fun getState(loader: ClassLoader = classLoader!!): DecoroutinatorRuntimeState {
+        val baseContinuationClass = loader.getClassIfLoaded(BASE_CONTINUATION_CLASS_NAME)
         return when {
             baseContinuationClass == null -> DecoroutinatorRuntimeState.NOT_LOADED
             baseContinuationClass.getAnnotation(DecoroutinatorRuntimeMarker::class.java) == null -> DecoroutinatorRuntimeState.UNAVAILABLE
@@ -49,8 +48,8 @@ object DecoroutinatorRuntime {
         }
     }
 
-    fun load() {
-        when (state) {
+    fun load(loader: ClassLoader = classLoader!!) {
+        when (getState(loader)) {
             DecoroutinatorRuntimeState.UNAVAILABLE -> throw IllegalStateException(
                 "Cannot load stacktrace-decoroutinator runtime cause class [$BASE_CONTINUATION_CLASS_NAME] was already loaded"
             )
@@ -75,7 +74,7 @@ object DecoroutinatorRuntime {
                 } != null
 
             if (decoroutinatorRuntimeMarker) {
-                classLoader!!.loadClass(BASE_CONTINUATION_CLASS_NAME, classBody)
+                loader.loadClass(BASE_CONTINUATION_CLASS_NAME, classBody)
                 return
             }
         }

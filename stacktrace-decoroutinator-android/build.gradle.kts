@@ -31,13 +31,13 @@ repositories {
 
 dependencies {
     implementation(project(":stacktrace-decoroutinator-common"))
-    //implementation("")
+    implementation("com.jakewharton.android.repackaged:dalvik-dx:${properties["dalvikDxVersion"]}")
 
     testImplementation("junit:junit:4.+")
 
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
-    androidTestImplementation(kotlin("test"))
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
 }
 
 val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {

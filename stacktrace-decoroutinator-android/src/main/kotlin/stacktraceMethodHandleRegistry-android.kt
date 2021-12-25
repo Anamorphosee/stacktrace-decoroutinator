@@ -17,6 +17,7 @@ import dalvik.system.InMemoryDexClassLoader
 import java.io.StringWriter
 import java.lang.reflect.Modifier
 import java.nio.ByteBuffer
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.BiFunction
 
 object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinatorStacktraceMethodHandleRegistry() {
@@ -55,6 +56,8 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
     private val auxString = RegisterSpec.make(1, Type.STRING)
     private val auxStringBuilder = RegisterSpec.make(2, stringBuilderType)
     private val auxIllegalArgumentException = RegisterSpec.make(2, illegalArgumentExceptionType)
+
+    private val loadersCache = CopyOnWriteArrayList<InMemoryDexClassLoader>()
 
     override fun generateStacktraceClass(
         className: String,
@@ -127,7 +130,9 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
             }
         }
 
-        return InMemoryDexClassLoader(ByteBuffer.wrap(body), ClassLoader.getSystemClassLoader()).loadClass(className)
+        return InMemoryDexClassLoader(ByteBuffer.wrap(body), ClassLoader.getSystemClassLoader()).also {
+            loadersCache.add(it)
+        }.loadClass(className)
     }
 
     private fun OutputFinisher.addStoreLineNumberInstructions() {

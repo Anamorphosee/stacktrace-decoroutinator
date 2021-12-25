@@ -42,19 +42,19 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
             Type.OBJECT.descriptor
     )
 
-    private val stacktraceHandlers = RegisterSpec.make(0, Type.METHOD_HANDLE.arrayType)
-    private val stacktraceLineNumbers = RegisterSpec.make(1, Type.INT_ARRAY)
-    private val stacktraceNextStepIndex = RegisterSpec.make(2, Type.INT)
-    private val invokeCoroutineFunc = RegisterSpec.make(3, biFunctionType)
-    private val coroutineResult = RegisterSpec.make(4, Type.OBJECT)
-    private val suspendCoroutineConst = RegisterSpec.make(5, Type.OBJECT)
-    private val lineNumber = RegisterSpec.make(6, Type.INT)
-    private val auxInt = RegisterSpec.make(7, Type.INT)
-    private val auxHandler = RegisterSpec.make(8, Type.METHOD_HANDLE)
-    private val auxInteger = RegisterSpec.make(7, Type.INTEGER_CLASS)
-    private val auxString = RegisterSpec.make(7, Type.STRING)
-    private val auxStringBuilder = RegisterSpec.make(8, stringBuilderType)
-    private val auxIllegalArgumentException = RegisterSpec.make(8, illegalArgumentExceptionType)
+    private val stacktraceHandlers = RegisterSpec.make(2, Type.METHOD_HANDLE.arrayType)
+    private val stacktraceLineNumbers = RegisterSpec.make(3, Type.INT_ARRAY)
+    private val stacktraceNextStepIndex = RegisterSpec.make(4, Type.INT)
+    private val invokeCoroutineFunc = RegisterSpec.make(5, biFunctionType)
+    private val coroutineResult = RegisterSpec.make(6, Type.OBJECT)
+    private val suspendCoroutineConst = RegisterSpec.make(7, Type.OBJECT)
+    private val lineNumber = RegisterSpec.make(0, Type.INT)
+    private val auxInt = RegisterSpec.make(1, Type.INT)
+    private val auxHandler = RegisterSpec.make(1, Type.METHOD_HANDLE)
+    private val auxInteger = RegisterSpec.make(1, Type.INTEGER_CLASS)
+    private val auxString = RegisterSpec.make(1, Type.STRING)
+    private val auxStringBuilder = RegisterSpec.make(2, stringBuilderType)
+    private val auxIllegalArgumentException = RegisterSpec.make(2, illegalArgumentExceptionType)
 
     override fun generateStacktraceClass(
         className: String,
@@ -81,7 +81,7 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
 
         methodName2LineNumbers.forEach { (methodName, lineNumbers) ->
             val context = MethodContext(fileNameCstString, lineNumbers)
-            val outputFinisher = OutputFinisher(dexOptions, 0, 9, 6).apply {
+            val outputFinisher = OutputFinisher(dexOptions, 0, 8, 6).apply {
                 addStoreLineNumberInstructions()
                 val invokeSuspendCoroutineLabel = CodeAddress(SourcePosition.NO_INFO)
                 addGotoIfLastFrameInstructions(invokeSuspendCoroutineLabel)
@@ -118,12 +118,16 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
 
         val body = StringWriter().use { output ->
             dexFile.toDex(output, true).also {
-                Log.i("DEXOUT", output.toString())
+                output.toString().lineSequence()
+                    .chunked(20)
+                    .forEach {
+                        Log.i("DEXOUT", it.joinToString(separator = "\n"))
+                    }
+
             }
         }
 
-        return InMemoryDexClassLoader(ByteBuffer.wrap(body), ClassLoader.getSystemClassLoader())
-            .loadClass(className)
+        return InMemoryDexClassLoader(ByteBuffer.wrap(body), ClassLoader.getSystemClassLoader()).loadClass(className)
     }
 
     private fun OutputFinisher.addStoreLineNumberInstructions() {
@@ -157,17 +161,17 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
     }
 
     private fun OutputFinisher.addInvokeNextFrameInstructions(context: MethodContext) {
-        add(CstInsn(
-            Dops.ADD_INT_LIT8,
-            SourcePosition.NO_INFO,
-            RegisterSpecList.make(auxInt, stacktraceNextStepIndex),
-            CstInteger.VALUE_1
-        ))
-
         add(SimpleInsn(
             Dops.AGET_OBJECT,
             SourcePosition.NO_INFO,
             RegisterSpecList.make(auxHandler, stacktraceHandlers, stacktraceNextStepIndex)
+        ))
+
+        add(CstInsn(
+            Dops.ADD_INT_LIT8,
+            SourcePosition.NO_INFO,
+            RegisterSpecList.make(stacktraceNextStepIndex, stacktraceNextStepIndex),
+            CstInteger.VALUE_1
         ))
 
         instructionsByLineNumbers(context) { sourcePosition ->
@@ -178,7 +182,7 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
                     this[0] = auxHandler
                     this[1] = stacktraceHandlers
                     this[2] = stacktraceLineNumbers
-                    this[3] = auxInt
+                    this[3] = stacktraceNextStepIndex
                     this[4] = invokeCoroutineFunc
                     this[5] = coroutineResult
                     this[6] = suspendCoroutineConst
@@ -200,6 +204,13 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
                 Dops.MOVE_RESULT_OBJECT,
                 sourcePosition,
                 RegisterSpecList.make(coroutineResult)
+            ))
+
+            add(CstInsn(
+                Dops.ADD_INT_LIT8,
+                SourcePosition.NO_INFO,
+                RegisterSpecList.make(stacktraceNextStepIndex, stacktraceNextStepIndex),
+                CstInteger.VALUE_M1
             ))
         }
     }
@@ -421,7 +432,7 @@ private data class MethodContext private constructor(
     ): this(
         fileName = fileName,
         lineNumbers = IntList(lineNumbers.size).apply {
-            lineNumbers.forEach { lineNumber ->
+            lineNumbers.asSequence().sorted().forEach { lineNumber ->
                 add(lineNumber)
             }
             setImmutable()

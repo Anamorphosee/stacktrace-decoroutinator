@@ -1,6 +1,5 @@
 package dev.reformator.stacktracedecoroutinator.registry
 
-import android.util.Log
 import com.android.dex.DexFormat
 import com.android.dx.dex.DexOptions
 import com.android.dx.dex.code.*
@@ -14,7 +13,6 @@ import com.android.dx.rop.type.StdTypeList
 import com.android.dx.rop.type.Type
 import com.android.dx.util.IntList
 import dalvik.system.InMemoryDexClassLoader
-import java.io.StringWriter
 import java.lang.reflect.Modifier
 import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList
@@ -119,16 +117,7 @@ object DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl: BaseDecoroutinat
 
         dexFile.add(classDef)
 
-        val body = StringWriter().use { output ->
-            dexFile.toDex(output, true).also {
-                output.toString().lineSequence()
-                    .chunked(20)
-                    .forEach {
-                        Log.i("DEXOUT", it.joinToString(separator = "\n"))
-                    }
-
-            }
-        }
+        val body = dexFile.toDex(null, false)
 
         return InMemoryDexClassLoader(ByteBuffer.wrap(body), ClassLoader.getSystemClassLoader()).also {
             loadersCache.add(it)

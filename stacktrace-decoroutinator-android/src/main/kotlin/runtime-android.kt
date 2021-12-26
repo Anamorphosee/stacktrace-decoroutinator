@@ -1,5 +1,6 @@
 package dev.reformator.stacktracedecoroutinator.runtime
 
+import android.app.Application
 import dalvik.system.BaseDexClassLoader
 import dalvik.system.InMemoryDexClassLoader
 import dev.reformator.stacktracedecoroutinator.continuation.DecoroutinatorRuntimeMarker
@@ -8,6 +9,13 @@ import java.nio.ByteBuffer
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
+
+class DecoroutinatorApplication: Application() {
+    override fun onCreate() {
+        DecoroutinatorRuntime.load()
+        super.onCreate()
+    }
+}
 
 object DecoroutinatorRuntime {
     private val instrumentedClassLoaders = HashSet<ClassLoader>()

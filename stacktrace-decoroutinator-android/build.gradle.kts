@@ -1,13 +1,12 @@
 plugins {
     id("com.android.library")
     id("kotlin-android")
-    //kotlin("jvm")
     `maven-publish`
     signing
 }
 
 android {
-    compileSdk = 31
+    compileSdk = 26
 
     defaultConfig {
         minSdk = 26

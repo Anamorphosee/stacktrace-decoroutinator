@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
 
-class DecoroutinatorApplication: Application() {
+open class DecoroutinatorApplication: Application() {
     override fun onCreate() {
         DecoroutinatorRuntime.load()
         super.onCreate()

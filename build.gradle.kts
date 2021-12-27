@@ -9,5 +9,7 @@ buildscript {
     }
 }
 
-group = "dev.reformator.stacktracedecoroutinator"
-version = "1.0.0"
+subprojects {
+    group = "dev.reformator.stacktracedecoroutinator"
+    version = "2.0.0-SNAPSHOT"
+}

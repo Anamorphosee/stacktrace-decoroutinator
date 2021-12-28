@@ -12,7 +12,7 @@ interface DecoroutinatorRegistry {
     get() = System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
 }
 
-internal val decoroutinatorRegistry =
+val decoroutinatorRegistry =
     Class.forName("dev.reformator.stacktracedecoroutinator.registry.DecoroutinatorRegistryImpl")
         .getField("INSTANCE")
         .get(null) as DecoroutinatorRegistry

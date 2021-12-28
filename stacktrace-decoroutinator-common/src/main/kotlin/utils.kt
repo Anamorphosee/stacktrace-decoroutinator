@@ -5,7 +5,7 @@ import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.util.function.BiFunction
 
-internal abstract class JavaUtil {
+abstract class JavaUtil {
     abstract fun retrieveResultValue(result: Result<*>): Any?
 }
 
@@ -21,13 +21,13 @@ internal val invokeStacktraceMethodType: MethodType = MethodType.methodType(
     Object::class.java //COROUTINE_SUSPENDED
 )
 
-internal val unknownStacktraceMethodHandle: MethodHandle = lookup.findStatic(
+val unknownStacktraceMethodHandle: MethodHandle = lookup.findStatic(
     Class.forName("UnknownKt"),
     "unknown",
     invokeStacktraceMethodType
 )
 
-internal inline fun callStacktraceHandles(
+inline fun callStacktraceHandles(
     stacktraceHandles: Array<MethodHandle>,
     lineNumbers: IntArray,
     nextStepIndex: Int,

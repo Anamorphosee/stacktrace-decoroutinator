@@ -1,2 +1,7 @@
 rootProject.name = "stacktrace-decoroutinator"
-include("stacktrace-decoroutinator-common", "stacktrace-decoroutinator-jvm", "stacktrace-decoroutinator-android")
+include(
+    "stacktrace-decoroutinator-common",
+    "stacktrace-decoroutinator-stdlib",
+    "stacktrace-decoroutinator-jvm",
+    "stacktrace-decoroutinator-android"
+)

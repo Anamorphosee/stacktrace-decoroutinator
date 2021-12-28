@@ -48,7 +48,7 @@ val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
                 "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
                 "--min-api", "26",
                 "--output", folder,
-                "${project(":stacktrace-decoroutinator-common").buildDir}/classes/kotlin/main/kotlin/coroutines/jvm/internal/BaseContinuationImpl.class"
+                "${project(":stacktrace-decoroutinator-stdlib").buildDir}/classes/kotlin/main/kotlin/coroutines/jvm/internal/BaseContinuationImpl.class"
             )
         }
         copy {
@@ -59,7 +59,7 @@ val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
         }
         delete("$folder/classes.dex")
     }
-    dependsOn(":stacktrace-decoroutinator-common:compileKotlin")
+    dependsOn(":stacktrace-decoroutinator-stdlib:compileKotlin")
 }
 
 tasks.named("preBuild") {

@@ -1,28 +1,29 @@
-[![Maven Central](https://img.shields.io/maven-central/v/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22dev.reformator.stacktracedecoroutinator%22%20AND%20a:%22stacktrace-decoroutinator%22)
-
+[![Maven Central](https://img.shields.io/maven-central/v/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator-jvm.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22dev.reformator.stacktracedecoroutinator%22%20AND%20a:%22stacktrace-decoroutinator-jvm%22)
 # Stacktrace-decoroutinator
 Library for recovering stack trace in exceptions thrown in Kotlin coroutines.
 
-Supports JVM(not Android) versions 1.8 or higher.
+Supports JVM 1.8 or higher and Android API 26 or higher.
 
-To enable it you should call method `DocoroutinatorRuntime.enableDecoroutinatorRuntime()` before creating any coroutine.
+###JVM
+
+To enable Stacktrace-decoroutinator for JVM you should add dependency `stacktrace-decoroutinator-jvm` and call method `DecoroutinatorRuntime.load()`.
 
 Usage example:
 ```kotlin
-import dev.reformator.stacktracedecoroutinator.util.DocoroutinatorRuntime
+import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 suspend fun rec(depth: Int) {
     if (depth == 0) {
         delay(100)
-        throw Exception("exception in ${System.currentTimeMillis()}")
+        throw Exception("exception at ${System.currentTimeMillis()}")
     }
     rec(depth - 1)
 }
 
 fun main() {
-    DocoroutinatorRuntime().enableDecoroutinatorRuntime() // enable stacktrace-decoroutinator runtime
+    DecoroutinatorRuntime.load() // enable stacktrace-decoroutinator runtime
 
     try {
         runBlocking {
@@ -33,4 +34,9 @@ fun main() {
     }
 }
 ```
-Available on [Maven Central](https://search.maven.org/artifact/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator/1.0.0/jar)
+
+###Android
+
+To enable Stacktrace-decoroutinator for Android you should add dependency `stacktrace-decoroutinator-android` in your Android application.
+
+If you override `android:name` attribute for the application in your `AndroidManifest.xml` then your should call method `DecoroutinatorRuntime.load()`  in `Application.onCreate()` method.

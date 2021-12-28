@@ -4,7 +4,7 @@ Library for recovering stack trace in exceptions thrown in Kotlin coroutines.
 
 Supports JVM 1.8 or higher and Android API 26 or higher.
 
-###JVM
+### JVM
 
 To enable Stacktrace-decoroutinator for JVM you should add dependency `stacktrace-decoroutinator-jvm` and call method `DecoroutinatorRuntime.load()`.
 
@@ -35,7 +35,7 @@ fun main() {
 }
 ```
 
-###Android
+### Android
 
 To enable Stacktrace-decoroutinator for Android you should add dependency `stacktrace-decoroutinator-android` in your Android application.
 

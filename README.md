@@ -1,4 +1,5 @@
 [![Maven Central](https://img.shields.io/maven-central/v/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator-jvm.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22dev.reformator.stacktracedecoroutinator%22%20AND%20a:%22stacktrace-decoroutinator-jvm%22)
+[![Gitter](https://badges.gitter.im/stacktrace-decoroutinator/community.svg)](https://gitter.im/stacktrace-decoroutinator/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 # Stacktrace-decoroutinator
 Library for recovering stack trace in exceptions thrown in Kotlin coroutines.
 
@@ -40,3 +41,6 @@ fun main() {
 To enable Stacktrace-decoroutinator for Android you should add dependency `stacktrace-decoroutinator-android` in your Android application.
 
 If you override `android:name` attribute for the application in your `AndroidManifest.xml` then your should call method `DecoroutinatorRuntime.load()`  in `Application.onCreate()` method.
+
+### Communication
+Feel free to ask any question at [Gitter](https://gitter.im/stacktrace-decoroutinator/community).

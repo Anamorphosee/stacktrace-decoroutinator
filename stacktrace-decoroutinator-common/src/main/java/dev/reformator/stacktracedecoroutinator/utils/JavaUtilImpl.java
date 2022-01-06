@@ -1,5 +1,6 @@
 package dev.reformator.stacktracedecoroutinator.utils;
 
+import kotlin.Result;
 import kotlin.coroutines.Continuation;
 import kotlin.coroutines.jvm.internal.BaseContinuationImpl;
 import kotlin.coroutines.jvm.internal.DebugMetadataKt;
@@ -17,6 +18,12 @@ public class JavaUtilImpl extends JavaUtil {
     @Override
     public Object retrieveResultValue(@Nullable Object result) {
         return result;
+    }
+
+    @NotNull
+    @Override
+    public Throwable retrieveResultThrowable(@NotNull Object result) {
+        return ((Result.Failure) result).exception;
     }
 
     public static void probeCoroutineResumed(@NotNull Continuation<?> frame) {

@@ -7,6 +7,7 @@ import java.util.function.BiFunction
 
 abstract class JavaUtil {
     abstract fun retrieveResultValue(result: Result<*>): Any?
+    abstract fun retrieveResultThrowable(result: Result<*>): Throwable
 }
 
 internal val lookup: MethodHandles.Lookup = MethodHandles.publicLookup()

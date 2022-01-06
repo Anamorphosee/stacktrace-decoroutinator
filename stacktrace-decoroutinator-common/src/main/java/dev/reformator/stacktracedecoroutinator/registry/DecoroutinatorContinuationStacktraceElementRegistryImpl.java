@@ -75,6 +75,7 @@ class ContinuationClassSpec {
     private final Class<?> continuationClass;
     private final Field field;
     private final DecoroutinatorStacktraceElement[] labelIndex2element;
+    private final DecoroutinatorStacktraceElement noLineNumberElement;
 
     ContinuationClassSpec(Class<?> continuationClass, DebugMetadata debugMetadata) throws NoSuchFieldException {
         this.continuationClass = continuationClass;
@@ -88,12 +89,14 @@ class ContinuationClassSpec {
                     lineNumber
             );
         }
-        if (debugMetadata.l().length == 1) {
-            field = null;
-        } else {
-            field = continuationClass.getDeclaredField("label");
-            field.setAccessible(true);
-        }
+        field = continuationClass.getDeclaredField("label");
+        field.setAccessible(true);
+        noLineNumberElement = new DecoroutinatorStacktraceElement(
+                debugMetadata.c(),
+                debugMetadata.f(),
+                debugMetadata.m(),
+                -1
+        );
     }
 
     Class<?> getContinuationClass() {
@@ -105,12 +108,11 @@ class ContinuationClassSpec {
     }
 
     DecoroutinatorStacktraceElement getElement(Continuation<?> continuation) throws IllegalAccessException {
-        int labelIndex;
-        if (labelIndex2element.length == 1) {
-            labelIndex = 0;
+        int labelIndex = field.getInt(continuation) - 1;
+        if (labelIndex < 0) {
+            return noLineNumberElement;
         } else {
-            labelIndex = field.getInt(continuation) - 1;
+            return labelIndex2element[labelIndex];
         }
-        return labelIndex2element[labelIndex];
     }
 }

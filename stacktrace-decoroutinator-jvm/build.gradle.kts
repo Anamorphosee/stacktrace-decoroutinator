@@ -21,6 +21,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("kotlinx.coroutines.stacktrace.recovery", "false")
 }
 
 tasks.withType<KotlinCompile> {

@@ -1,6 +1,7 @@
 package kotlin.coroutines.jvm.internal
 
 import dev.reformator.stacktracedecoroutinator.continuation.DecoroutinatorRuntimeMarker
+import dev.reformator.stacktracedecoroutinator.registry.DecoroutinatorContinuationStacktraceElements
 import dev.reformator.stacktracedecoroutinator.registry.decoroutinatorRegistry
 import dev.reformator.stacktracedecoroutinator.utils.JavaUtilImpl
 import dev.reformator.stacktracedecoroutinator.utils.callStacktraceHandles
@@ -36,7 +37,9 @@ internal abstract class BaseContinuationImpl(
         val stacktraceDepth = baseContinuations.lastIndex
         val stacktraceHandles = Array<MethodHandle?>(stacktraceDepth) { null } as Array<MethodHandle>
         val stacktraceLineNumbers = IntArray(stacktraceDepth)
-        fillStacktraceArrays(baseContinuations, stacktraceDepth, stacktraceHandles, stacktraceLineNumbers)
+        val stacktraceElements =
+            decoroutinatorRegistry.continuationStacktraceElementRegistry.getStacktraceElements(baseContinuations)
+        fillStacktraceArrays(baseContinuations, stacktraceElements, stacktraceDepth, stacktraceHandles, stacktraceLineNumbers)
         val invokeCoroutineFunction = BiFunction { index: Int, result: Any? ->
             val continuation = baseContinuations[index]
             JavaUtilImpl.probeCoroutineResumed(continuation)
@@ -51,6 +54,10 @@ internal abstract class BaseContinuationImpl(
             }
             continuation.releaseIntercepted()
             JavaUtilImpl.instance.retrieveResultValue(newResult)
+        }
+        if (result.isFailure && decoroutinatorRegistry.recoveryExplicitStacktrace) {
+            val exception = JavaUtilImpl.instance.retrieveResultThrowable(result)
+            recoveryExplicitStacktrace(exception, baseContinuations, stacktraceElements)
         }
         val bottomResult = callStacktraceHandles(
             stacktraceHandles = stacktraceHandles,
@@ -68,28 +75,52 @@ internal abstract class BaseContinuationImpl(
 
     private fun fillStacktraceArrays(
         baseContinuations: List<BaseContinuationImpl>,
+        stacktraceElements: DecoroutinatorContinuationStacktraceElements,
         stacktraceDepth: Int,
         stacktraceHandles: Array<MethodHandle>,
         stacktraceLineNumbers: IntArray
     ) {
-        val stacktraceElements = decoroutinatorRegistry.continuationStacktraceElementRegistry.getStacktraceElements(
-            baseContinuations.subList(0, stacktraceDepth)
-        )
         val stacktraceElement2StacktraceMethodHandle = decoroutinatorRegistry.stacktraceMethodHandleRegistry.getStacktraceMethodHandles(
             stacktraceElements.possibleElements
         )
-
         (0 until stacktraceDepth).forEach { index ->
             val continuation = baseContinuations[index]
             val element = stacktraceElements.continuation2Element[continuation]
             if (element == null) {
                 stacktraceHandles[index] = unknownStacktraceMethodHandle
+                stacktraceLineNumbers[index] = -1
             } else {
                 stacktraceHandles[index] = stacktraceElement2StacktraceMethodHandle[element]!!
                 stacktraceLineNumbers[index] = element.lineNumber
             }
         }
     }
+
+    private fun recoveryExplicitStacktrace(
+        exception: Throwable,
+        baseContinuations: List<BaseContinuationImpl>,
+        stacktraceElements: DecoroutinatorContinuationStacktraceElements
+    ) {
+        val recoveredStacktrace = Array(exception.stackTrace.size + baseContinuations.size + 1) {
+            when {
+                it < baseContinuations.size -> {
+                    val continuation = baseContinuations[baseContinuations.lastIndex - it]
+                    val element = stacktraceElements.continuation2Element[continuation]
+                    if (element == null) {
+                        artificialFrame("unknown")
+                    } else {
+                        StackTraceElement(element.className, element.methodName, element.fileName, element.lineNumber)
+                    }
+                }
+                it == baseContinuations.size -> artificialFrame("boundary")
+                else -> exception.stackTrace[it - baseContinuations.size - 1]
+            }
+        }
+        exception.stackTrace = recoveredStacktrace
+    }
+
+    private fun artificialFrame(message: String) =
+        StackTraceElement("\b\b\b($message", "\b", "\b", -1)
 
     // further code was copied from stdlib coroutine implementation
 

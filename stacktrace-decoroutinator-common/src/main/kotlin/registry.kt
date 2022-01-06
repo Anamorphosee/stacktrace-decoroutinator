@@ -10,6 +10,9 @@ interface DecoroutinatorRegistry {
 
     val enabled: Boolean
     get() = System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
+
+    val recoveryExplicitStacktrace: Boolean
+    get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true").toBoolean()
 }
 
 val decoroutinatorRegistry =

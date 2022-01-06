@@ -7,14 +7,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
+
+private const val fileName = "runtime-test-android.kt"
 
 class TestException(message: String): Exception(message)
 
@@ -55,6 +60,41 @@ class RuntimeTest {
         overload("")
     }
 
+    @Test
+    fun resumeWithException() {
+        try {
+            runBlocking {
+                resumeWithExceptionRec(10)
+            }
+        } catch (e: RuntimeException) {
+            e.printStackTrace()
+            (1..10).forEach {
+                assertEquals(StackTraceElement(
+                    RuntimeTest::class.java.typeName,
+                    "resumeWithExceptionRec",
+                    fileName,
+                    resumeWithExceptionRecBaseLineNumber + 8
+                ), e.stackTrace[it])
+            }
+        }
+    }
+
+    private var resumeWithExceptionRecBaseLineNumber: Int = 0
+
+    private suspend fun resumeWithExceptionRec(depth: Int) {
+        resumeWithExceptionRecBaseLineNumber = getLineNumber()
+        if (depth == 0) {
+            suspendCancellableCoroutine<Unit> { continuation ->
+                ForkJoinPool.commonPool().execute {
+                    continuation.resumeWithException(RuntimeException("test"))
+                }
+            }
+        } else {
+            resumeWithExceptionRec(depth - 1)
+        }
+        tailCallDeoptimize()
+    }
+
     private val feature = AtomicReference<CompletableFuture<Unit>?>()
     private var recBaseLineNumber: Int = 0
     private val allowedLineNumberOffsets = listOf(0, 1, 3, 4, 6)
@@ -64,7 +104,7 @@ class RuntimeTest {
             StackTraceElement(
                 RuntimeTest::class.java.typeName,
                 "rec",
-                "runtime-test.kt",
+                fileName,
                 recBaseLineNumber + it
             )
         }.toTypedArray()
@@ -115,7 +155,7 @@ class RuntimeTest {
         suspendResumeAndCheckStack(StackTraceElement(
             RuntimeTest::class.java.typeName,
             "overload",
-            "runtime-test.kt",
+            fileName,
             lineNumber
         ))
         tailCallDeoptimize()
@@ -126,7 +166,7 @@ class RuntimeTest {
         suspendResumeAndCheckStack(StackTraceElement(
             RuntimeTest::class.java.typeName,
             "overload",
-            "runtime-test.kt",
+            fileName,
             lineNumber
         ))
         tailCallDeoptimize()

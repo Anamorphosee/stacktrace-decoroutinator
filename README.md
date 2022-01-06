@@ -7,7 +7,7 @@ Supports JVM 1.8 or higher and Android API 26 or higher.
 
 ### JVM
 
-To enable Stacktrace-decoroutinator for JVM you should add dependency `stacktrace-decoroutinator-jvm` and call method `DecoroutinatorRuntime.load()`.
+To enable Stacktrace-decoroutinator for JVM you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.1.0` and call method `DecoroutinatorRuntime.load()`.
 
 Usage example:
 ```kotlin
@@ -38,7 +38,7 @@ fun main() {
 
 ### Android
 
-To enable Stacktrace-decoroutinator for Android you should add dependency `stacktrace-decoroutinator-android` in your Android application.
+To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.1.0` in your Android application.
 
 If you override `android:name` attribute for the application in your `AndroidManifest.xml` then your should call method `DecoroutinatorRuntime.load()`  in `Application.onCreate()` method.
 

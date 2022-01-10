@@ -70,6 +70,9 @@ Some examples of suffering from this problem:
 - https://stackoverflow.com/questions/69226016/how-to-get-full-exception-stacktrace-when-using-await-on-completablefuture
 - https://gitanswer.com/kotlinx-coroutines-stack-trace-recovery-kotlin-236882832
 
+The Kotlin team are known about the problem and has come up with a [solution](https://github.com/Kotlin/kotlinx.coroutines/blob/master/docs/topics/debugging.md#stacktrace-recovery), but it solves just a part of the cases.
+For example, the exception from the above example still lacks some calls.
+
 ### Solution
 Stacktrace-decoroutinator replaces the coroutine awakening implementation.
 

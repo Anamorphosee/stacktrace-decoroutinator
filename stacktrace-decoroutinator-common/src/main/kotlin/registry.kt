@@ -2,6 +2,10 @@ package dev.reformator.stacktracedecoroutinator.registry
 
 internal val continuationStacktraceElementRegistryImpl = DecoroutinatorContinuationStacktraceElementRegistryImpl()
 
+const val DECOROUTINATOR_ENABLED_PROPERTY = "dev.reformator.stacktracedecoroutinator.enabled"
+const val DECOROUTINATOR_RECOVERY_EXPLICIT_STACKTRACE_PROPERTY =
+    "dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace"
+
 interface DecoroutinatorRegistry {
     val stacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry
 
@@ -9,10 +13,10 @@ interface DecoroutinatorRegistry {
     get() = continuationStacktraceElementRegistryImpl
 
     val enabled: Boolean
-    get() = System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
+    get() = System.getProperty(DECOROUTINATOR_ENABLED_PROPERTY, "true").toBoolean()
 
     val recoveryExplicitStacktrace: Boolean
-    get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true").toBoolean()
+    get() = System.getProperty(DECOROUTINATOR_RECOVERY_EXPLICIT_STACKTRACE_PROPERTY, "true").toBoolean()
 }
 
 val decoroutinatorRegistry =

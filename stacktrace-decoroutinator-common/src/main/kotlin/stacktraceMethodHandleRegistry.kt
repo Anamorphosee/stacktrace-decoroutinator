@@ -14,6 +14,7 @@ interface DecoroutinatorStacktraceMethodHandleRegistry {
 
 abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry {
     private val className2Spec = ConcurrentHashMap<String, ClassSpec>()
+    private var notSynchronizedClassName2Spec = emptyMap<String, NotSynchronizedClassSpec>()
 
     override fun getStacktraceMethodHandles(elements: Collection<DecoroutinatorStacktraceElement>):
             Map<DecoroutinatorStacktraceElement, MethodHandle> {
@@ -23,6 +24,7 @@ abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorS
 
         if (missingElements.isNotEmpty()) {
             regenerateClassesForMissingElements(missingElements)
+            updateNotSynchronizedClassName2Spec()
 
             missingElements.groupBy { it.className }.forEach { (className, missingElements) ->
                 val classSpec = className2Spec[className]!!
@@ -50,7 +52,7 @@ abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorS
         result: MutableMap<DecoroutinatorStacktraceElement, MethodHandle>
     ) = buildSet {
         elements.groupBy { it.className }.forEach classForEach@{ (className, elements) ->
-            val classSpec = className2Spec[className]
+            val classSpec = notSynchronizedClassName2Spec[className]
             if (classSpec == null) {
                 addAll(elements)
                 return@classForEach
@@ -146,6 +148,19 @@ abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorS
             }
         }
     }
+
+    private fun updateNotSynchronizedClassName2Spec() {
+        while (true) {
+            try {
+                notSynchronizedClassName2Spec = className2Spec.asSequence()
+                    .map { (className, spec) ->
+                        className to NotSynchronizedClassSpec(spec.fileName, HashMap(spec.methodName2Spec))
+                    }
+                    .toMap(HashMap())
+                return
+            } catch (e: ConcurrentModificationException) { }
+        }
+    }
 }
 
 private class ClassSpec(
@@ -155,7 +170,12 @@ private class ClassSpec(
     val methodName2Spec = ConcurrentHashMap<String, MethodSpec>()
 }
 
-private data class MethodSpec(
+private class MethodSpec(
     val lineNumbers: Set<Int>,
     val handle: MethodHandle
+)
+
+private class NotSynchronizedClassSpec(
+    val fileName: String?,
+    val methodName2Spec: Map<String, MethodSpec>
 )

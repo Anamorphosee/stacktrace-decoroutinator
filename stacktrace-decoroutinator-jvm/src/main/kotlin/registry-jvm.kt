@@ -1,6 +1,6 @@
 package dev.reformator.stacktracedecoroutinator.registry
 
-internal object DecoroutinatorRegistryImpl: DecoroutinatorRegistry {
+internal object DecoroutinatorRegistryImpl: BaseDecoroutinatorRegistry() {
     override val stacktraceMethodHandleRegistry
     get() = DecoroutinatorStacktraceMethodHandleRegistryImpl
 }

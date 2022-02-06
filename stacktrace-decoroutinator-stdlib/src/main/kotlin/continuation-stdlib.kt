@@ -37,8 +37,8 @@ internal abstract class BaseContinuationImpl(
         val stacktraceDepth = baseContinuations.lastIndex
         val stacktraceHandles = Array<MethodHandle?>(stacktraceDepth) { null } as Array<MethodHandle>
         val stacktraceLineNumbers = IntArray(stacktraceDepth)
-        val stacktraceElements =
-            decoroutinatorRegistry.continuationStacktraceElementRegistry.getStacktraceElements(baseContinuations)
+        val stacktraceElements = decoroutinatorRegistry.continuationStacktraceElementRegistry
+            .getStacktraceElements(baseContinuations)
         fillStacktraceArrays(baseContinuations, stacktraceElements, stacktraceDepth, stacktraceHandles, stacktraceLineNumbers)
         val invokeCoroutineFunction = BiFunction { index: Int, result: Any? ->
             val continuation = baseContinuations[index]
@@ -80,9 +80,8 @@ internal abstract class BaseContinuationImpl(
         stacktraceHandles: Array<MethodHandle>,
         stacktraceLineNumbers: IntArray
     ) {
-        val stacktraceElement2StacktraceMethodHandle = decoroutinatorRegistry.stacktraceMethodHandleRegistry.getStacktraceMethodHandles(
-            stacktraceElements.possibleElements
-        )
+        val stacktraceElement2StacktraceMethodHandle = decoroutinatorRegistry.stacktraceMethodHandleRegistry
+            .getStacktraceMethodHandles(stacktraceElements.possibleElements)
         (0 until stacktraceDepth).forEach { index ->
             val continuation = baseContinuations[index]
             val element = stacktraceElements.continuation2Element[continuation]

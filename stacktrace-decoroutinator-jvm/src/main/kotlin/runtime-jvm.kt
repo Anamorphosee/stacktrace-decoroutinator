@@ -29,7 +29,7 @@ enum class DecoroutinatorRuntimeState {
     ENABLED,
 
     /**
-     * Stacktrace-decoroutinator runtime was loaded but disabled by the system property.
+     * Stacktrace-decoroutinator runtime was loaded but disabled.
      */
     DISABLED
 }

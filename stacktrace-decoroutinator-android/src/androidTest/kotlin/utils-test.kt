@@ -1,5 +1,7 @@
 package dev.reformator.stacktracedecoroutinator.utils
 
+import android.app.Application
+import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import org.junit.Assert.assertTrue
 
 fun checkStacktrace(vararg elements: StackTraceElement) {
@@ -26,3 +28,9 @@ fun getLineNumber(): Int {
     return stacktrace[stacktraceIndex].lineNumber
 }
 
+class DecoroutinatorApplication: Application() {
+    override fun onCreate() {
+        DecoroutinatorRuntime.load()
+        super.onCreate()
+    }
+}

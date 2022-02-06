@@ -3,13 +3,13 @@ package dev.reformator.stacktracedecoroutinator.performancetest
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.thread
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.BeforeTest
+import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
 private val log = KotlinLogging.logger { }
 
@@ -187,8 +187,11 @@ private fun Random.getMocks(depth: Int) = List(depth) { mocks.random(this) }
 fun tailCallDeoptimize() { }
 
 class PerformanceTest {
+    private val startTime = ThreadLocal<Long>()
+
     @BeforeTest
     fun setup() {
+        //System.setProperty("dev.reformator.stacktracedecoroutinator.enabled", "false")
         DecoroutinatorRuntime.load()
     }
 
@@ -215,20 +218,32 @@ class PerformanceTest {
     private fun resumeWithDepth(depth: Int) {
         val mocks = Random(1402).getMocks(depth)
         runBlocking {
-            repeat(10) { index ->
+            val times = mutableListOf<Long>()
+            repeat(100) { index ->
                 callTraceInline(mocks) {
-                    val startResumeTime = AtomicLong()
-                    suspendCoroutine<Unit> { continuation ->
+                    var startResumeTime = 0L
+                    suspendCoroutineUninterceptedOrReturn<Unit> { continuation ->
                         thread {
-                            startResumeTime.set(System.currentTimeMillis())
+                            Thread.sleep(10)
+                            startResumeTime = System.nanoTime()
                             continuation.resume(Unit)
                         }
+                        COROUTINE_SUSPENDED
                     }
-                    val endTime = System.currentTimeMillis()
+                    val endTime = System.nanoTime()
+                    val time = endTime - startResumeTime
                     log.info {
-                        "resume time for depth $depth #$index: ${endTime - startResumeTime.get()} ms"
+                        "resume time for depth $depth #$index: $time ns"
                     }
+                    times.add(time)
                 }
+            }
+            times.sort()
+            log.info {
+                "average time for depth $depth: ${times.sum() / times.size.toDouble()} ns"
+            }
+            log.info {
+                "median time for depth $depth: ${(times[times.size / 2] + times[times.lastIndex / 2]) / 2.0} ns"
             }
         }
     }

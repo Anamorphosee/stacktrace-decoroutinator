@@ -1,21 +1,14 @@
 package dev.reformator.stacktracedecoroutinator.runtime
 
-import android.app.Application
 import dalvik.system.BaseDexClassLoader
 import dalvik.system.InMemoryDexClassLoader
 import dev.reformator.stacktracedecoroutinator.continuation.DecoroutinatorRuntimeMarker
 import dev.reformator.stacktracedecoroutinator.utils.classLoader
+import java.lang.reflect.Field
 import java.nio.ByteBuffer
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-
-open class DecoroutinatorApplication: Application() {
-    override fun onCreate() {
-        DecoroutinatorRuntime.load()
-        super.onCreate()
-    }
-}
 
 object DecoroutinatorRuntime {
     private val instrumentedClassLoaders = HashSet<ClassLoader>()
@@ -23,17 +16,13 @@ object DecoroutinatorRuntime {
 
     fun load(loader: ClassLoader = classLoader!!) {
         if (!isLoaderInstrumented(loader)) {
-            val pathListField = BaseDexClassLoader::class.java.getDeclaredField("pathList").also {
-                it.isAccessible = true
-            }
+            val pathListField: Field = BaseDexClassLoader::class.java.getDeclaredField("pathList")
+            pathListField.isAccessible = true
 
             val pathList = pathListField[loader]
 
-            val dexElementsField = Class.forName("dalvik.system.DexPathList").let {
-                it.getDeclaredField("dexElements")
-            }.also {
-                it.isAccessible = true
-            }
+            val dexElementsField: Field = Class.forName("dalvik.system.DexPathList").getDeclaredField("dexElements")
+            dexElementsField.isAccessible = true
 
             val dexElements = dexElementsField[pathList] as Array<Any>
 

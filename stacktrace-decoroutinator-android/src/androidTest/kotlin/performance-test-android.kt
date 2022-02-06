@@ -7,10 +7,10 @@ import kotlinx.coroutines.runBlocking
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.thread
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 import kotlin.random.Random
 
 sealed interface Mock {
@@ -219,19 +219,27 @@ class PerformanceTest {
     private fun resumeWithDepth(depth: Int) {
         val mocks = Random(1402).getMocks(depth)
         runBlocking {
-            repeat(10) { index ->
+            val times = mutableListOf<Long>()
+            repeat(100) { index ->
                 callTraceInline(mocks) {
-                    val startResumeTime = AtomicLong()
-                    suspendCoroutine<Unit> { continuation ->
+                    var startResumeTime = 0L
+                    suspendCoroutineUninterceptedOrReturn<Unit> { continuation ->
                         thread {
-                            startResumeTime.set(System.currentTimeMillis())
+                            Thread.sleep(10)
+                            startResumeTime = System.nanoTime()
                             continuation.resume(Unit)
                         }
+                        COROUTINE_SUSPENDED
                     }
-                    val endTime = System.currentTimeMillis()
-                    Log.i("ptest", "resume time for depth $depth #$index: ${endTime - startResumeTime.get()} ms")
+                    val endTime = System.nanoTime()
+                    val time = endTime - startResumeTime
+                    Log.i("ptest", "resume time for depth $depth #$index: $time ns")
+                    times.add(time)
                 }
             }
+            times.sort()
+            Log.i("ptest", "average time for depth $depth: ${times.sum() / times.size.toDouble()} ns")
+            Log.i("ptest", "median time for depth $depth: ${(times[times.size / 2] + times[times.lastIndex / 2]) / 2.0} ns")
         }
     }
 }

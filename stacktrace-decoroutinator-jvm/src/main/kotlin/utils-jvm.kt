@@ -16,7 +16,7 @@ fun ClassLoader.getClassIfLoaded(className: String): Class<*>? {
 
 fun ClassLoader.loadClass(className: String, classBody: ByteArray): Class<*> {
     val method = ClassLoader::class.java.getDeclaredMethod("defineClass", String::class.java,
-        ByteArray::class.java, Integer.TYPE, Integer.TYPE)!!
+        ByteArray::class.java, Integer.TYPE, Integer.TYPE)
     method.isAccessible = true
     return synchronized(getClassLoadingLock(className)) {
         method.invoke(this, className, classBody, 0, classBody.size) as Class<*>

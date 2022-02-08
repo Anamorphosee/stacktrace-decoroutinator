@@ -1,7 +1,6 @@
 package dev.reformator.stacktracedecoroutinator.registry
 
 import dev.reformator.stacktracedecoroutinator.DecoroutinatorStacktraceElement
-import dev.reformator.stacktracedecoroutinator.utils.classLoader
 import dev.reformator.stacktracedecoroutinator.utils.invokeStacktraceMethodType
 import dev.reformator.stacktracedecoroutinator.utils.lookup
 import java.lang.invoke.MethodHandle
@@ -52,8 +51,9 @@ abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorS
         elements: Collection<DecoroutinatorStacktraceElement>,
         result: MutableMap<DecoroutinatorStacktraceElement, MethodHandle>
     ) = buildSet {
+        val className2Spec = notSynchronizedClassName2Spec
         elements.groupBy { it.className }.forEach classForEach@{ (className, elements) ->
-            val classSpec = notSynchronizedClassName2Spec[className]
+            val classSpec = className2Spec[className]
             if (classSpec == null) {
                 addAll(elements)
                 return@classForEach
@@ -159,7 +159,7 @@ abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorS
                     }
                     .toMap(HashMap(className2Spec.size))
                 return
-            } catch (e: ConcurrentModificationException) { }
+            } catch (_: ConcurrentModificationException) { }
         }
     }
 }

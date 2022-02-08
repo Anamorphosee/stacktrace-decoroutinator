@@ -187,8 +187,6 @@ private fun Random.getMocks(depth: Int) = List(depth) { mocks.random(this) }
 fun tailCallDeoptimize() { }
 
 class PerformanceTest {
-    private val startTime = ThreadLocal<Long>()
-
     @BeforeTest
     fun setup() {
         //System.setProperty("dev.reformator.stacktracedecoroutinator.enabled", "false")

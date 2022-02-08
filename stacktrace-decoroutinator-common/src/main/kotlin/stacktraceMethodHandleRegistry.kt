@@ -14,6 +14,7 @@ interface DecoroutinatorStacktraceMethodHandleRegistry {
 
 abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry {
     private val className2Spec = ConcurrentHashMap<String, ClassSpec>()
+    @Volatile
     private var notSynchronizedClassName2Spec = emptyMap<String, NotSynchronizedClassSpec>()
 
     override fun getStacktraceMethodHandles(elements: Collection<DecoroutinatorStacktraceElement>):
@@ -156,7 +157,7 @@ abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorS
                     .map { (className, spec) ->
                         className to NotSynchronizedClassSpec(spec.fileName, HashMap(spec.methodName2Spec))
                     }
-                    .toMap(HashMap())
+                    .toMap(HashMap(className2Spec.size))
                 return
             } catch (e: ConcurrentModificationException) { }
         }

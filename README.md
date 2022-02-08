@@ -83,7 +83,7 @@ These classes don't do anything except call each other in the coroutine call sta
 Thus, if the coroutine throws an exception, they mimic the real call stack of the coroutine during the creation of the exception stacktrace.
 
 ### JVM
-To enable Stacktrace-decoroutinator for JVM you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.2.0` and call method `DecoroutinatorRuntime.load()`.
+To enable Stacktrace-decoroutinator for JVM you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.2.1` and call method `DecoroutinatorRuntime.load()`.
 
 Usage example:
 ```kotlin
@@ -113,7 +113,8 @@ fun main() {
 ```
 
 ### Android
-To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.2.0` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
+To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.2.1` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
+
 It's recomended to add `DecoroutinatorRuntime.load()` call in your `Application.onCreate()` method. Example:
 ```kotlin
 class MyApp: Application() {

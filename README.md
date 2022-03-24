@@ -126,4 +126,4 @@ class MyApp: Application() {
 ```
 
 ### Communication
-Feel free to ask any question at [Gitter](https://gitter.im/stacktrace-decoroutinator/community).
+Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions) or at [Gitter](https://gitter.im/stacktrace-decoroutinator/community).

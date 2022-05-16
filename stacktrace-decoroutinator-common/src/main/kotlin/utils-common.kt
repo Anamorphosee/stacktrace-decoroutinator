@@ -1,18 +1,27 @@
-package dev.reformator.stacktracedecoroutinator.utils
+package dev.reformator.stacktracedecoroutinator.common
 
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.util.function.BiFunction
 
-abstract class JavaUtil {
-    abstract fun retrieveResultValue(result: Result<*>): Any?
-    abstract fun retrieveResultThrowable(result: Result<*>): Throwable
+//not getting by reflection because it has not to lead to loading the class
+const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
+val DECOROUTINATOR_MARKER_CLASS_NAME = DecoroutinatorMarker::class.java.name
+
+@Target(AnnotationTarget.CLASS)
+@Retention
+//has to be internal, but must be visible in 'stacktrace-decoroutinator-stdlib'
+annotation class DecoroutinatorMarker
+
+interface JavaUtil {
+    fun retrieveResultValue(result: Result<*>): Any?
+    fun retrieveResultThrowable(result: Result<*>): Throwable
 }
 
-internal val lookup: MethodHandles.Lookup = MethodHandles.publicLookup()
+val lookup: MethodHandles.Lookup = MethodHandles.publicLookup()
 
-internal val invokeStacktraceMethodType: MethodType = MethodType.methodType(
+val invokeStacktraceMethodType: MethodType = MethodType.methodType(
     Object::class.java,
     Array<MethodHandle>::class.java, //stacktrace handles
     IntArray::class.java, //line numbers
@@ -57,3 +66,9 @@ inline fun callStacktraceHandles(
 
 inline val Any.classLoader: ClassLoader?
     get() = javaClass.classLoader
+
+inline val Class<*>.isDecoroutinatorBaseContinuation: Boolean
+    get() = isAnnotationPresent(DecoroutinatorMarker::class.java)
+
+fun getFileClass(func: () -> Unit): Class<*> =
+    func.javaClass.enclosingClass

@@ -40,26 +40,33 @@ dependencies {
 }
 
 val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
-    val folder = "$projectDir/src/main/resources"
+    dependsOn(":stacktrace-decoroutinator-stdlib:jar")
     doLast {
+        val destFolder = "$projectDir/src/main/resources"
+        val jarFile = project(":stacktrace-decoroutinator-stdlib")
+            .tasks
+            .named<Jar>("jar")
+            .get()
+            .outputs
+            .files
+            .singleFile
         exec {
-            file(folder).mkdir()
+            file(destFolder).mkdir()
             setCommandLine(
                 "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
                 "--min-api", "26",
-                "--output", folder,
-                "${project(":stacktrace-decoroutinator-stdlib").buildDir}/classes/kotlin/main/kotlin/coroutines/jvm/internal/BaseContinuationImpl.class"
+                "--output", destFolder,
+                jarFile.absolutePath
             )
         }
         copy {
-            from(folder)
-            into(folder)
+            from(destFolder)
+            into(destFolder)
             include("classes.dex")
             rename("classes.dex", "decoroutinatorBaseContinuation.dex")
         }
-        delete("$folder/classes.dex")
+        delete("$destFolder/classes.dex")
     }
-    dependsOn(":stacktrace-decoroutinator-stdlib:compileKotlin")
 }
 
 tasks.named("preBuild") {
@@ -133,14 +140,6 @@ afterEvaluate {
                 credentials {
                     username = properties["sonatype.username"] as String?
                     password = properties["sonatype.password"] as String?
-                }
-            }
-            maven {
-                name = "github"
-                url = uri("https://maven.pkg.github.com/Anamorphosee/stacktrace-decoroutinator")
-                credentials {
-                    username = properties["github.username"] as String?
-                    password = properties["github.password"] as String?
                 }
             }
         }

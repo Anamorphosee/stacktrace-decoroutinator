@@ -1,8 +1,5 @@
-package dev.reformator.stacktracedecoroutinator.registry
+package dev.reformator.stacktracedecoroutinator.common
 
-import dev.reformator.stacktracedecoroutinator.DecoroutinatorStacktraceElement
-import dev.reformator.stacktracedecoroutinator.utils.invokeStacktraceMethodType
-import dev.reformator.stacktracedecoroutinator.utils.lookup
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.ConcurrentHashMap
 
@@ -92,7 +89,9 @@ abstract class BaseDecoroutinatorStacktraceMethodHandleRegistry: DecoroutinatorS
 
         val classSpec = className2Spec.computeIfAbsent(className) { ClassSpec(fileName) }
         if (classSpec.fileName != fileName) {
-            throw IllegalStateException("different file names for class [$className]: [${classSpec.fileName}] and [$fileName]")
+            throw IllegalStateException(
+                "different file names for class [$className]: [${classSpec.fileName}] and [$fileName]"
+            )
         }
 
         synchronized(classSpec) {

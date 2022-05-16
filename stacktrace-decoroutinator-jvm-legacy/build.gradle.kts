@@ -11,11 +11,19 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":stacktrace-decoroutinator-stdlib"))
+    implementation(project(":stacktrace-decoroutinator-common"))
+    implementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
+
     testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
+    testImplementation("io.github.microutils:kotlin-logging-jvm:${properties["kotlinLoggingJvmVersion"]}")
+    testRuntimeOnly("ch.qos.logback:logback-classic:${properties["logbackClassicVersion"]}")
 }
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("kotlinx.coroutines.stacktrace.recovery", "false")
 }
 
 tasks.withType<KotlinCompile> {

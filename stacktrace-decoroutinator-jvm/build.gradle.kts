@@ -11,9 +11,8 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-stdlib"))
-    implementation(project(":stacktrace-decoroutinator-common"))
-    implementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
+    implementation(project(":stacktrace-decoroutinator-jvm-agent-lib"))
+    implementation("net.bytebuddy:byte-buddy-agent:${properties["byteBuddyVersion"]}")
 
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
@@ -21,9 +20,26 @@ dependencies {
     testRuntimeOnly("ch.qos.logback:logback-classic:${properties["logbackClassicVersion"]}")
 }
 
+val generateDecoroutinatorAgentBinTask = task("generateDecoroutinatorAgentBin") {
+    dependsOn(":stacktrace-decoroutinator-jvm-agent:shadowJar")
+    val folder = "$projectDir/src/main/resources"
+    doLast {
+        file(folder).mkdir()
+        copy {
+            from("${project(":stacktrace-decoroutinator-jvm-agent").buildDir}/libs")
+            include("stacktrace-decoroutinator-jvm-agent-*-all.jar")
+            into(folder)
+            rename(".*", "decoroutinatorAgentJar.bin")
+        }
+    }
+}
+
+tasks.named("classes") {
+    dependsOn(generateDecoroutinatorAgentBinTask)
+}
+
 tasks.test {
     useJUnitPlatform()
-    systemProperty("kotlinx.coroutines.stacktrace.recovery", "false")
 }
 
 tasks.withType<KotlinCompile> {
@@ -79,14 +95,6 @@ publishing {
             credentials {
                 username = properties["sonatype.username"] as String?
                 password = properties["sonatype.password"] as String?
-            }
-        }
-        maven {
-            name = "github"
-            url = uri("https://maven.pkg.github.com/Anamorphosee/stacktrace-decoroutinator")
-            credentials {
-                username = properties["github.username"] as String?
-                password = properties["github.password"] as String?
             }
         }
     }

@@ -11,6 +11,11 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":stacktrace-decoroutinator-common"))
+    implementation(project(":stacktrace-decoroutinator-jvm-common"))
+
+    implementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
+
     testImplementation(kotlin("test"))
 }
 

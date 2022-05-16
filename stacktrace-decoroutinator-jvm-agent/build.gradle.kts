@@ -1,7 +1,8 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    kotlin("jvm")
+    java
+    id("com.github.johnrengelman.shadow")
     `maven-publish`
     signing
 }
@@ -11,15 +12,26 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
+    implementation(project(":stacktrace-decoroutinator-common")) {
+        exclude(group = "org.jetbrains.kotlin")
+    }
+    implementation(project(":stacktrace-decoroutinator-jvm-agent-common")) {
+        exclude(group = "org.jetbrains.kotlin")
+    }
+}
+
+tasks.named<ShadowJar>("shadowJar") {
+    manifest {
+        attributes(mapOf(
+            "Premain-Class" to "dev.reformator.stacktracedecoroutinator.jvmagent.DecoroutinatorAgent"
+        ))
+    }
+    relocate("org.objectweb.asm", "dev.reformator.asmrepack")
 }
 
 tasks.test {
+    dependsOn(":jvm-agent-tests:test")
     useJUnitPlatform()
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
 }
 
 java {

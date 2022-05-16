@@ -1,9 +1,9 @@
-package dev.reformator.stacktracedecoroutinator.registry;
+package dev.reformator.stacktracedecoroutinator.common;
 
-import dev.reformator.stacktracedecoroutinator.DecoroutinatorStacktraceElement;
 import kotlin.Pair;
 import kotlin.coroutines.Continuation;
 import kotlin.coroutines.jvm.internal.DebugMetadata;
+import kotlin.jvm.internal.Ref;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
@@ -15,7 +15,12 @@ import java.util.stream.Collectors;
 public class DecoroutinatorContinuationStacktraceElementRegistryImpl
         implements DecoroutinatorContinuationStacktraceElementRegistry {
 
-    private final ConcurrentHashMap<Class<?>, ContinuationClassSpec> continuationClass2Spec = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Class<?>, ContinuationClassSpec> continuationClass2Spec =
+            new ConcurrentHashMap<>();
+
+    private volatile Map<Class<?>, ContinuationClassSpec> notSynchronizedContinuationClass2Spec =
+            Collections.emptyMap();
+
     private final Function<Class<?>, ContinuationClassSpec> continuationClass2SpecFun = continuationClass -> {
         DebugMetadata metadata = continuationClass.getAnnotation(DebugMetadata.class);
         if (metadata == null) {
@@ -27,20 +32,34 @@ public class DecoroutinatorContinuationStacktraceElementRegistryImpl
             throw new RuntimeException(e);
         }
     };
-    private final Function<Class<?>, ContinuationClassSpec> continuationClass2SpecCachedFun = continuationClass ->
-            continuationClass2Spec.computeIfAbsent(continuationClass, continuationClass2SpecFun);
 
     @NotNull
     @Override
     public DecoroutinatorContinuationStacktraceElements getStacktraceElements(
             @NotNull Collection<? extends Continuation<?>> continuations
     ) {
+        Map<Class<?>, ContinuationClassSpec> cachedClass2Spec = notSynchronizedContinuationClass2Spec;
+        Ref.BooleanRef needUpdateClass2Spec = new Ref.BooleanRef();
         Map<Class<?>, ContinuationClassSpec> continuationClass2Spec = continuations.stream()
                 .map(Object::getClass)
                 .distinct()
-                .map(continuationClass2SpecCachedFun)
+                .map(continuationClass -> {
+                    ContinuationClassSpec spec = cachedClass2Spec.get(continuationClass);
+                    if (spec == null) {
+                        spec = this.continuationClass2Spec.computeIfAbsent(
+                                continuationClass,
+                                continuationClass2SpecFun
+                        );
+                        needUpdateClass2Spec.element = true;
+                    }
+                    return spec;
+                })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(ContinuationClassSpec::getContinuationClass, Function.identity()));
+
+        if (needUpdateClass2Spec.element) {
+            updateContinuationClass2Spec();
+        }
 
         Map<Continuation<?>, DecoroutinatorStacktraceElement> continuation2Element = continuations.stream()
                 .map(continuation -> {
@@ -67,6 +86,15 @@ public class DecoroutinatorContinuationStacktraceElementRegistryImpl
                 continuation2Element,
                 possibleElements
         );
+    }
+
+    private void updateContinuationClass2Spec() {
+        while (true) {
+            try {
+                notSynchronizedContinuationClass2Spec = new HashMap<>(continuationClass2Spec);
+                return;
+            } catch (ConcurrentModificationException e) { }
+        }
     }
 }
 

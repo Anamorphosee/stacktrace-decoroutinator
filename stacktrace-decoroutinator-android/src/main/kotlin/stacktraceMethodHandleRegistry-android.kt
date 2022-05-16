@@ -1,4 +1,4 @@
-package dev.reformator.stacktracedecoroutinator.registry
+package dev.reformator.stacktracedecoroutinator.common
 
 import com.android.dex.DexFormat
 import com.android.dx.dex.DexOptions

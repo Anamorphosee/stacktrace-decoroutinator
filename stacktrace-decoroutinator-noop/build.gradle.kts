@@ -29,8 +29,6 @@ java {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-dependencies { }
-
 publishing {
     publications {
         create<MavenPublication>("maven") {
@@ -73,14 +71,6 @@ publishing {
             credentials {
                 username = properties["sonatype.username"] as String?
                 password = properties["sonatype.password"] as String?
-            }
-        }
-        maven {
-            name = "github"
-            url = uri("https://maven.pkg.github.com/Anamorphosee/stacktrace-decoroutinator")
-            credentials {
-                username = properties["github.username"] as String?
-                password = properties["github.password"] as String?
             }
         }
     }

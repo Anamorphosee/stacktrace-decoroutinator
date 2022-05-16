@@ -11,6 +11,8 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":stacktrace-decoroutinator-common"))
+    implementation(project(":stacktrace-decoroutinator-stdlib"))
     testImplementation(kotlin("test"))
 }
 

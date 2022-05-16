@@ -1,7 +1,13 @@
-package dev.reformator.stacktracedecoroutinator.registry
+package dev.reformator.stacktracedecoroutinator.common
 
-import dev.reformator.stacktracedecoroutinator.DecoroutinatorStacktraceElement
 import kotlin.coroutines.Continuation
+
+data class DecoroutinatorStacktraceElement(
+    val className: String,
+    val fileName: String?,
+    val methodName: String,
+    val lineNumber: Int
+)
 
 data class DecoroutinatorContinuationStacktraceElements(
     val continuation2Element: Map<Continuation<*>, DecoroutinatorStacktraceElement>,

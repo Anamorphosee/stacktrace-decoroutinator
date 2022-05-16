@@ -1,14 +1,17 @@
-package dev.reformator.stacktracedecoroutinator.utils;
+package dev.reformator.stacktracedecoroutinator.common;
 
 import kotlin.Result;
 import kotlin.coroutines.Continuation;
 import kotlin.coroutines.jvm.internal.BaseContinuationImpl;
+import kotlin.coroutines.jvm.internal.DebugMetadata;
 import kotlin.coroutines.jvm.internal.DebugMetadataKt;
 import kotlin.coroutines.jvm.internal.DebugProbesKt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class JavaUtilImpl extends JavaUtil {
+public class JavaUtilImpl implements JavaUtil {
+    public static final @NotNull String DEBUG_METADATA_ANNOTATION_CLASS_NAME = DebugMetadata.class.getName();
+
     private JavaUtilImpl() { }
 
     @NotNull

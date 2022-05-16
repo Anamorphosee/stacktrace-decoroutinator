@@ -78,14 +78,6 @@ publishing {
                 password = properties["sonatype.password"] as String?
             }
         }
-        maven {
-            name = "github"
-            url = uri("https://maven.pkg.github.com/Anamorphosee/stacktrace-decoroutinator")
-            credentials {
-                username = properties["github.username"] as String?
-                password = properties["github.password"] as String?
-            }
-        }
     }
 }
 

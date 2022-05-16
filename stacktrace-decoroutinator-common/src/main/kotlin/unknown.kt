@@ -1,4 +1,4 @@
-import dev.reformator.stacktracedecoroutinator.utils.callStacktraceHandles
+import dev.reformator.stacktracedecoroutinator.common.callStacktraceHandles
 import java.lang.invoke.MethodHandle
 import java.util.function.BiFunction
 

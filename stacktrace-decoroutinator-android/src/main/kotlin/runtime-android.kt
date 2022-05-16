@@ -2,8 +2,8 @@ package dev.reformator.stacktracedecoroutinator.runtime
 
 import dalvik.system.BaseDexClassLoader
 import dalvik.system.InMemoryDexClassLoader
-import dev.reformator.stacktracedecoroutinator.continuation.DecoroutinatorRuntimeMarker
-import dev.reformator.stacktracedecoroutinator.utils.classLoader
+import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorRuntimeMarker
+import dev.reformator.stacktracedecoroutinator.common.classLoader
 import java.lang.reflect.Field
 import java.nio.ByteBuffer
 import java.util.concurrent.locks.ReentrantReadWriteLock

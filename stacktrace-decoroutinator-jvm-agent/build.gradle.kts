@@ -15,6 +15,9 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-common")) {
         exclude(group = "org.jetbrains.kotlin")
     }
+    implementation(project(":stacktrace-decoroutinator-stdlib")) {
+        exclude(group = "org.jetbrains.kotlin")
+    }
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common")) {
         exclude(group = "org.jetbrains.kotlin")
     }

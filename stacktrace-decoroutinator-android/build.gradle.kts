@@ -39,10 +39,18 @@ dependencies {
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
 }
 
+val baseContinuationDexFile =
+    projectDir
+        .resolve("src")
+        .resolve("main")
+        .resolve("resources")
+        .resolve("decoroutinatorBaseContinuation.dex")
+
 val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
     dependsOn(":stacktrace-decoroutinator-stdlib:jar")
     doLast {
-        val destFolder = "$projectDir/src/main/resources"
+        val destFolder = baseContinuationDexFile.parent
+        val tmpDir = temporaryDir
         val jarFile = project(":stacktrace-decoroutinator-stdlib")
             .tasks
             .named<Jar>("jar")
@@ -55,18 +63,21 @@ val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
             setCommandLine(
                 "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
                 "--min-api", "26",
-                "--output", destFolder,
+                "--output", tmpDir.absolutePath,
                 jarFile.absolutePath
             )
         }
         copy {
-            from(destFolder)
+            from(tmpDir)
             into(destFolder)
             include("classes.dex")
-            rename("classes.dex", "decoroutinatorBaseContinuation.dex")
+            rename("classes.dex", baseContinuationDexFile.name)
         }
-        delete("$destFolder/classes.dex")
     }
+}
+
+tasks.clean {
+    delete(baseContinuationDexFile)
 }
 
 tasks.named("preBuild") {

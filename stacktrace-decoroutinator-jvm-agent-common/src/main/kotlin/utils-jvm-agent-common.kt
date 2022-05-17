@@ -17,3 +17,13 @@ internal annotation class DecoroutinatorAgentTransformedMarker(
 
 val Class<*>.isDecoroutinatorAgentTransformed: Boolean
     get() = isAnnotationPresent(DecoroutinatorAgentTransformedMarker::class.java)
+
+internal interface JavaUtils {
+    fun getDebugMetadataInfo(className: String): DebugMetadataInfo?
+}
+
+internal data class DebugMetadataInfo(
+    val internalClassName: String,
+    val methodName: String,
+    val lineNumbers: Set<Int>
+)

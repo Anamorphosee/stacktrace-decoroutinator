@@ -62,10 +62,10 @@ private fun getClassBody(classNode: ClassNode): ByteArray {
     return writer.toByteArray()
 }
 
-private fun getClassNode(classBody: ByteArray, skipCode: Boolean = false): ClassNode {
+private fun getClassNode(classBody: ByteArray): ClassNode {
     val classReader = ClassReader(classBody)
     val classNode = ClassNode(Opcodes.ASM9)
-    classReader.accept(classNode, if (skipCode) ClassReader.SKIP_CODE else 0)
+    classReader.accept(classNode, 0)
     return classNode
 }
 
@@ -121,18 +121,11 @@ private fun MethodNode.getDebugMetadataInfo(): DebugMetadataInfo? {
             }
         }
         if (isAloadContinuation && continuationInternalClassName != null) {
-            return getClassNode(continuationInternalClassName, true)?.getDebugMetadataInfo()
+            val continuationClassName = continuationInternalClassName.replace('/', '.');
+            return JavaUtilsImpl.instance.getDebugMetadataInfo(continuationClassName)
         }
     }
     return null
-}
-
-private fun getClassNode(internalClassName: String, skipCode: Boolean = false): ClassNode? {
-    val path = internalClassName.replace("/", FileSystems.getDefault().separator) + ".class"
-    val classBody = ClassLoader.getSystemResourceAsStream(path)?.use {
-        it.readBytes()
-    } ?: return null
-    return getClassNode(classBody, skipCode)
 }
 
 private fun ClassNode.getDebugMetadataInfo(): DebugMetadataInfo? {
@@ -250,9 +243,3 @@ private fun ClassNode.getOrCreateClinitMethod(): MethodNode {
 private val MethodNode.isStatic: Boolean
     get() = access and Opcodes.ACC_STATIC != 0
 
-
-private data class DebugMetadataInfo(
-    val internalClassName: String,
-    val methodName: String,
-    val lineNumbers: Set<Int>
-)

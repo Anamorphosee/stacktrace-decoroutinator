@@ -3,5 +3,3 @@
 build
 local.properties
 /stacktrace-decoroutinator-android/src/main/resources/decoroutinatorBaseContinuation.dex
-/stacktrace-decoroutinator-jvm-agent/src/main/resources/baseContinuationImplClass.bin
-/stacktrace-decoroutinator-jvm/src/main/resources/decoroutinatorAgentJar.bin

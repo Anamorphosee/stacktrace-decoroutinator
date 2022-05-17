@@ -2,8 +2,9 @@ package dev.reformator.stacktracedecoroutinator.runtime
 
 import dalvik.system.BaseDexClassLoader
 import dalvik.system.InMemoryDexClassLoader
-import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorRuntimeMarker
+import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.common.classLoader
+import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
 import java.lang.reflect.Field
 import java.nio.ByteBuffer
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -44,8 +45,8 @@ object DecoroutinatorRuntime {
                 }
             }
         }
-        val baseContinuationClass = loader.loadClass("kotlin.coroutines.jvm.internal.BaseContinuationImpl")
-        if (baseContinuationClass.getAnnotation(DecoroutinatorRuntimeMarker::class.java) == null) {
+        val baseContinuationClass = loader.loadClass(BASE_CONTINUATION_CLASS_NAME)
+        if (!baseContinuationClass.isDecoroutinatorBaseContinuation) {
             throw IllegalStateException(
                 "Stacktrace-decoroutinator runtime can not be loaded because BaseContinuationImpl was already loaded."
             )

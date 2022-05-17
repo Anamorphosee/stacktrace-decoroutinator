@@ -1,15 +1,10 @@
 package dev.reformator.stacktracedecoroutinator.runtime
 
-import dev.reformator.stacktracedecoroutinator.continuation.DecoroutinatorRuntimeMarker
-import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorRegistryImpl
-import dev.reformator.stacktracedecoroutinator.utils.classLoader
-import dev.reformator.stacktracedecoroutinator.utils.getClassIfLoaded
-import dev.reformator.stacktracedecoroutinator.utils.loadClass
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.tree.ClassNode
-import java.nio.file.FileSystems
+import dev.reformator.stacktracedecoroutinator.common.*
+import dev.reformator.stacktracedecoroutinator.jvmcommon.loadDecoroutinatorBaseContinuationClassBody
+import dev.reformator.stacktracedecoroutinator.jvmlegacy.getClassIfLoaded
+import dev.reformator.stacktracedecoroutinator.jvmlegacy.loadClass
+import dev.reformator.stacktracedecoroutinator.jvmlegacycommon.DecoroutinatorJvmLegacyStacktraceMethodHandleRegistry
 
 enum class DecoroutinatorRuntimeState {
     /**
@@ -34,33 +29,34 @@ enum class DecoroutinatorRuntimeState {
     DISABLED
 }
 
-
-
-
 object DecoroutinatorRuntime {
+    init {
+        decoroutinatorRegistry = object: BaseDecoroutinatorRegistry() {
+            override val stacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry
+                get() = DecoroutinatorJvmLegacyStacktraceMethodHandleRegistry
+        }
+    }
+
     fun getState(loader: ClassLoader = classLoader!!): DecoroutinatorRuntimeState {
         val baseContinuationClass = loader.getClassIfLoaded(BASE_CONTINUATION_CLASS_NAME)
         return when {
             baseContinuationClass == null -> DecoroutinatorRuntimeState.NOT_LOADED
-            baseContinuationClass.getAnnotation(DecoroutinatorRuntimeMarker::class.java) == null -> DecoroutinatorRuntimeState.UNAVAILABLE
-            DecoroutinatorRegistryImpl.enabled -> DecoroutinatorRuntimeState.ENABLED
+            !baseContinuationClass.isDecoroutinatorBaseContinuation -> DecoroutinatorRuntimeState.UNAVAILABLE
+            decoroutinatorRegistry.enabled -> DecoroutinatorRuntimeState.ENABLED
             else -> DecoroutinatorRuntimeState.DISABLED
         }
     }
 
-    fun load(loader: ClassLoader = classLoader!!) {
-        when (getState(loader)) {
+    fun load(loader: ClassLoader = classLoader!!): DecoroutinatorRuntimeState {
+        when (val state = getState(loader)) {
             DecoroutinatorRuntimeState.UNAVAILABLE -> throw IllegalStateException(
-                "Cannot load stacktrace-decoroutinator runtime cause class [$BASE_CONTINUATION_CLASS_NAME] was already loaded"
+                "Cannot load stacktrace-decoroutinator runtime cause " +
+                        "class [$BASE_CONTINUATION_CLASS_NAME] was already loaded"
             )
             DecoroutinatorRuntimeState.NOT_LOADED -> Unit
-            else -> return
+            else -> return state
         }
-
-
-
-        loader.loadClass(BASE_CONTINUATION_CLASS_NAME, classBody)
-
-
+        loader.loadClass(BASE_CONTINUATION_CLASS_NAME, loadDecoroutinatorBaseContinuationClassBody())
+        return getState(loader)
     }
 }

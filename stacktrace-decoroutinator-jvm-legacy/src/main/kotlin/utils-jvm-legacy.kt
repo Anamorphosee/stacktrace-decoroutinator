@@ -1,4 +1,4 @@
-package dev.reformator.stacktracedecoroutinator.utils
+package dev.reformator.stacktracedecoroutinator.jvmlegacy
 
 fun ClassLoader.getClassLoadingLock(className: String): Any {
     val method = ClassLoader::class.java.getDeclaredMethod("getClassLoadingLock", String::class.java)

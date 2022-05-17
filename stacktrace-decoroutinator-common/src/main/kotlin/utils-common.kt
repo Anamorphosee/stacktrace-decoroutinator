@@ -7,11 +7,9 @@ import java.util.function.BiFunction
 
 //not getting by reflection because it has not to lead to loading the class
 const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
-val DECOROUTINATOR_MARKER_CLASS_NAME = DecoroutinatorMarker::class.java.name
 
 @Target(AnnotationTarget.CLASS)
 @Retention
-//has to be internal, but must be visible in 'stacktrace-decoroutinator-stdlib'
 annotation class DecoroutinatorMarker
 
 interface JavaUtils {
@@ -37,6 +35,7 @@ val unknownStacktraceMethodHandle: MethodHandle = lookup.findStatic(
     invokeStacktraceMethodType
 )
 
+@Suppress("NOTHING_TO_INLINE")
 inline fun callStacktraceHandles(
     stacktraceHandles: Array<MethodHandle>,
     lineNumbers: IntArray,

@@ -1,4 +1,4 @@
-package dev.reformator.stacktracedecoroutinator.generator;
+package dev.reformator.stacktracedecoroutinator.jvmlegacycommon;
 
 import org.jetbrains.annotations.NotNull;
 

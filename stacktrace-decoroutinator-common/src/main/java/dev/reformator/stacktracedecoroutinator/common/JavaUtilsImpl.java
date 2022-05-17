@@ -9,13 +9,13 @@ import kotlin.coroutines.jvm.internal.DebugProbesKt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class JavaUtilImpl implements JavaUtil {
+public class JavaUtilsImpl implements JavaUtils {
     public static final @NotNull String DEBUG_METADATA_ANNOTATION_CLASS_NAME = DebugMetadata.class.getName();
 
-    private JavaUtilImpl() { }
+    private JavaUtilsImpl() { }
 
     @NotNull
-    public static final JavaUtil instance = new JavaUtilImpl();
+    public static final JavaUtils instance = new JavaUtilsImpl();
 
     @Nullable
     @Override

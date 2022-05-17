@@ -29,7 +29,7 @@ internal fun BaseContinuationImpl.decoroutinatorResumeWith(
     fillStacktraceArrays(baseContinuations, stacktraceElements, stacktraceDepth, stacktraceHandles, stacktraceLineNumbers)
     val invokeCoroutineFunction = BiFunction { index: Int, result: Any? ->
         val continuation = baseContinuations[index]
-        JavaUtilImpl.probeCoroutineResumed(continuation)
+        JavaUtilsImpl.probeCoroutineResumed(continuation)
         val newResult = try {
             val newResult = continuation.invokeSuspendFunc(Result.success(result))
             if (newResult === COROUTINE_SUSPENDED) {
@@ -40,10 +40,10 @@ internal fun BaseContinuationImpl.decoroutinatorResumeWith(
             Result.failure(e)
         }
         continuation.releaseInterceptedFunc()
-        JavaUtilImpl.instance.retrieveResultValue(newResult)
+        JavaUtilsImpl.instance.retrieveResultValue(newResult)
     }
     if (result.isFailure && decoroutinatorRegistry.recoveryExplicitStacktrace) {
-        val exception = JavaUtilImpl.instance.retrieveResultThrowable(result)
+        val exception = JavaUtilsImpl.instance.retrieveResultThrowable(result)
         recoveryExplicitStacktrace(exception, baseContinuations, stacktraceElements)
     }
     val bottomResult = callStacktraceHandles(
@@ -51,7 +51,7 @@ internal fun BaseContinuationImpl.decoroutinatorResumeWith(
         lineNumbers = stacktraceLineNumbers,
         nextStepIndex = 0,
         invokeCoroutineFunction = invokeCoroutineFunction,
-        result = JavaUtilImpl.instance.retrieveResultValue(result),
+        result = JavaUtilsImpl.instance.retrieveResultValue(result),
         coroutineSuspend = COROUTINE_SUSPENDED
     )
     if (bottomResult === COROUTINE_SUSPENDED) {

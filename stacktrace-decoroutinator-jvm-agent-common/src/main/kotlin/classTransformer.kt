@@ -1,6 +1,5 @@
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 
-import dev.reformator.stacktracedecoroutinator.common.JavaUtilImpl
 import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
 import dev.reformator.stacktracedecoroutinator.jvmcommon.buildStacktraceMethodNode
 import dev.reformator.stacktracedecoroutinator.jvmcommon.loadDecoroutinatorBaseContinuationClassBody
@@ -14,8 +13,7 @@ import java.lang.invoke.MethodHandles
 import java.nio.file.FileSystems
 import java.security.ProtectionDomain
 
-private val debugMetadataAnnotationClassDescriptor =
-    "L${JavaUtilImpl.DEBUG_METADATA_ANNOTATION_CLASS_NAME.replace('.', '/')};"
+private val debugMetadataAnnotationClassDescriptor = Type.getDescriptor(JavaUtilsImpl.metadataAnnotationClass)
 
 object DecoroutinatorClassFileTransformer: ClassFileTransformer {
     override fun transform(
@@ -79,7 +77,7 @@ private fun ClassNode.isTransformed(): Boolean =
 private fun getSuspendFuncName2LineNumbersMap(classNode: ClassNode): Map<String, Set<Int>> {
     val result = mutableMapOf<String, MutableSet<Int>>()
     val check = { info: DebugMetadataInfo? ->
-        if (info != null && info.internalClassName == classNode.name) {
+        if (info != null && info.internalClassName == classNode.name && info.lineNumbers.isNotEmpty()) {
             val currentLineNumbers = result.computeIfAbsent(info.methodName) {
                 mutableSetOf()
             }
@@ -89,39 +87,44 @@ private fun getSuspendFuncName2LineNumbersMap(classNode: ClassNode): Map<String,
     check(classNode.getDebugMetadataInfo())
     classNode.methods.orEmpty().forEach { method ->
         if (method.hasCode && method.isSuspend) {
-            val continuationIndex = run {
-                var continuationIndex = 0
-                if (!method.isStatic) {
-                    continuationIndex++
-                }
-                val arguments = Type.getArgumentTypes(method.desc)
-                arguments.asSequence()
-                    .take(arguments.size - 1)
-                    .forEach { continuationIndex += it.size }
-                continuationIndex
-            }
-            val firstInstructions: List<AbstractInsnNode> = method.instructions.asSequence()
-                .filter { it.opcode != -1 && it.opcode != Opcodes.NOP }
-                .take(2)
-                .toList()
-            if (firstInstructions.size == 2) {
-                val isAloadContinuation = firstInstructions[0].let {
-                    it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex
-                }
-                val continuationInternalClassName = firstInstructions[1].let {
-                    if (it is TypeInsnNode && it.opcode == Opcodes.INSTANCEOF) {
-                        it.desc
-                    } else {
-                        null
-                    }
-                }
-                if (isAloadContinuation && continuationInternalClassName != null) {
-                    check(getClassNode(continuationInternalClassName, true)?.getDebugMetadataInfo())
-                }
-            }
+            check(method.getDebugMetadataInfo())
         }
     }
     return result
+}
+
+private fun MethodNode.getDebugMetadataInfo(): DebugMetadataInfo? {
+    val continuationIndex = run {
+        var continuationIndex = 0
+        if (!isStatic) {
+            continuationIndex++
+        }
+        val arguments = Type.getArgumentTypes(desc)
+        arguments.asSequence()
+            .take(arguments.size - 1)
+            .forEach { continuationIndex += it.size }
+        continuationIndex
+    }
+    val firstInstructions: List<AbstractInsnNode> = instructions.asSequence()
+        .filter { it.opcode != -1 && it.opcode != Opcodes.NOP }
+        .take(2)
+        .toList()
+    if (firstInstructions.size == 2) {
+        val isAloadContinuation = firstInstructions[0].let {
+            it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex
+        }
+        val continuationInternalClassName = firstInstructions[1].let {
+            if (it is TypeInsnNode && it.opcode == Opcodes.INSTANCEOF) {
+                it.desc
+            } else {
+                null
+            }
+        }
+        if (isAloadContinuation && continuationInternalClassName != null) {
+            return getClassNode(continuationInternalClassName, true)?.getDebugMetadataInfo()
+        }
+    }
+    return null
 }
 
 private fun getClassNode(internalClassName: String, skipCode: Boolean = false): ClassNode? {
@@ -131,12 +134,6 @@ private fun getClassNode(internalClassName: String, skipCode: Boolean = false): 
     } ?: return null
     return getClassNode(classBody, skipCode)
 }
-
-private data class DebugMetadataInfo(
-    val internalClassName: String,
-    val methodName: String,
-    val lineNumbers: Set<Int>
-)
 
 private fun ClassNode.getDebugMetadataInfo(): DebugMetadataInfo? {
     visibleAnnotations.orEmpty().forEach { annotation ->
@@ -252,3 +249,10 @@ private fun ClassNode.getOrCreateClinitMethod(): MethodNode {
 
 private val MethodNode.isStatic: Boolean
     get() = access and Opcodes.ACC_STATIC != 0
+
+
+private data class DebugMetadataInfo(
+    val internalClassName: String,
+    val methodName: String,
+    val lineNumbers: Set<Int>
+)

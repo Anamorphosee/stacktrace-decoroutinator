@@ -14,7 +14,7 @@ val DECOROUTINATOR_MARKER_CLASS_NAME = DecoroutinatorMarker::class.java.name
 //has to be internal, but must be visible in 'stacktrace-decoroutinator-stdlib'
 annotation class DecoroutinatorMarker
 
-interface JavaUtil {
+interface JavaUtils {
     fun retrieveResultValue(result: Result<*>): Any?
     fun retrieveResultThrowable(result: Result<*>): Throwable
 }

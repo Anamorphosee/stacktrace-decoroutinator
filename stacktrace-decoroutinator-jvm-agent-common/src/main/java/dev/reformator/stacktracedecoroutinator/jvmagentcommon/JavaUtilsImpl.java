@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class JavaUtilsImpl implements JavaUtils {
+public class JavaUtilsImpl implements JavaUtils {
     private JavaUtilsImpl() { }
 
     public static JavaUtilsImpl instance = new JavaUtilsImpl();

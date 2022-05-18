@@ -10,6 +10,8 @@ import kotlin.coroutines.jvm.internal.BaseContinuationImpl;
 import java.lang.instrument.Instrumentation;
 
 public class DecoroutinatorAgent {
+    private DecoroutinatorAgent() { }
+
     public static void premain(String args, Instrumentation inst) {
         inst.addTransformer(DecoroutinatorClassFileTransformer.INSTANCE);
         BaseContinuationImpl.class.getName();

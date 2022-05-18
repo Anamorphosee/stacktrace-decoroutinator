@@ -114,8 +114,8 @@ afterEvaluate {
                 artifact(androidJavadocsJar)
                 artifact(androidSourcesJar)
                 pom {
-                    name.set("Stacktrace-decoroutinator")
-                    description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
+                    name.set("Stacktrace-decoroutinator Android.")
+                    description.set("Android library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
                     url.set("https://stacktracedecoroutinator.reformator.dev")
                     licenses {
                         license {

@@ -43,8 +43,8 @@ publishing {
         create<MavenPublication>("maven") {
             from(components["java"])
             pom {
-                name.set("Stacktrace-decoroutinator")
-                description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
+                name.set("Stacktrace-decoroutinator JVM.")
+                description.set("JVM library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
                 url.set("https://stacktracedecoroutinator.reformator.dev")
                 licenses {
                     license {

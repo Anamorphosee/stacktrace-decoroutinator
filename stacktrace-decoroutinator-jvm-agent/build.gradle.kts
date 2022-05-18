@@ -29,6 +29,7 @@ tasks.named<ShadowJar>("shadowJar") {
             "Premain-Class" to "dev.reformator.stacktracedecoroutinator.jvmagent.DecoroutinatorAgent"
         ))
     }
+    archiveClassifier.set("")
     relocate("org.objectweb.asm", "dev.reformator.asmrepack")
 }
 
@@ -47,10 +48,12 @@ java {
 publishing {
     publications {
         create<MavenPublication>("maven") {
-            from(components["java"])
+            shadow.component(this)
+            artifact(tasks.named("javadocJar"))
+            artifact(tasks.named("sourcesJar"))
             pom {
-                name.set("Stacktrace-decoroutinator")
-                description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
+                name.set("Stacktrace-decoroutinator JVM agent.")
+                description.set("JVM agent for recovering stack trace in exceptions thrown in Kotlin coroutines.")
                 url.set("https://stacktracedecoroutinator.reformator.dev")
                 licenses {
                     license {

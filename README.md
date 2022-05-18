@@ -1,5 +1,4 @@
 [![Maven Central](https://img.shields.io/maven-central/v/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator-jvm.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22dev.reformator.stacktracedecoroutinator%22%20AND%20a:%22stacktrace-decoroutinator-jvm%22)
-[![Gitter](https://badges.gitter.im/stacktrace-decoroutinator/community.svg)](https://gitter.im/stacktrace-decoroutinator/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 # Stacktrace-decoroutinator
 Library for recovering stack trace in exceptions thrown in Kotlin coroutines.
 
@@ -66,6 +65,7 @@ The stack trace doesn't represent the true coroutine call stack: calls of functi
 In complex systems, even more calls may be missing. This can make debugging much more difficult.
 
 Some examples of suffering from this problem:
+- https://github.com/arrow-kt/arrow/issues/2647
 - https://stackoverflow.com/questions/54349418/how-to-recover-the-coroutines-true-call-trace
 - https://stackoverflow.com/questions/69226016/how-to-get-full-exception-stacktrace-when-using-await-on-completablefuture
 - https://gitanswer.com/kotlinx-coroutines-stack-trace-recovery-kotlin-236882832
@@ -76,14 +76,17 @@ For example, the exception from the above example still lacks some calls.
 ### Solution
 Stacktrace-decoroutinator replaces the coroutine awakening implementation.
 
-It generates classes at runtime with names that match the entire coroutine call stack.
+It generates methods at runtime with names that match the entire coroutine call stack.
 
-These classes don't do anything except call each other in the coroutine call stack order.
+These methods don't do anything except call each other in the coroutine call stack order.
 
 Thus, if the coroutine throws an exception, they mimic the real call stack of the coroutine during the creation of the exception stacktrace.
 
 ### JVM
-To enable Stacktrace-decoroutinator for JVM you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.2.1` and call method `DecoroutinatorRuntime.load()`.
+There are three ways to enable Stacktrace-decoroutinator for JVM.
+1. (recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.0` and call method `DecoroutinatorRuntime.load()`.
+2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.0.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.0`.
+3. (less recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-legacy:2.3.0` and call method `DecoroutinatorRuntime.load()`. This method don't use Java instrumentation API unlike the way number 1.
 
 Usage example:
 ```kotlin
@@ -113,7 +116,7 @@ fun main() {
 ```
 
 ### Android
-To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.2.1` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
+To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.0` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
 
 It's recomended to add `DecoroutinatorRuntime.load()` call in your `Application.onCreate()` method. Example:
 ```kotlin
@@ -126,4 +129,4 @@ class MyApp: Application() {
 ```
 
 ### Communication
-Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions) or at [Gitter](https://gitter.im/stacktrace-decoroutinator/community).
+Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions).

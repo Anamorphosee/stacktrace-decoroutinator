@@ -11,31 +11,16 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-jvm-agent-lib"))
+    implementation(project(":stacktrace-decoroutinator-common"))
+    implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
+    implementation(project(":stacktrace-decoroutinator-jvm-legacy-common"))
+
     implementation("net.bytebuddy:byte-buddy-agent:${properties["byteBuddyVersion"]}")
 
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
     testImplementation("io.github.microutils:kotlin-logging-jvm:${properties["kotlinLoggingJvmVersion"]}")
     testRuntimeOnly("ch.qos.logback:logback-classic:${properties["logbackClassicVersion"]}")
-}
-
-val generateDecoroutinatorAgentBinTask = task("generateDecoroutinatorAgentBin") {
-    dependsOn(":stacktrace-decoroutinator-jvm-agent:shadowJar")
-    val folder = "$projectDir/src/main/resources"
-    doLast {
-        file(folder).mkdir()
-        copy {
-            from("${project(":stacktrace-decoroutinator-jvm-agent").buildDir}/libs")
-            include("stacktrace-decoroutinator-jvm-agent-*-all.jar")
-            into(folder)
-            rename(".*", "decoroutinatorAgentJar.bin")
-        }
-    }
-}
-
-tasks.named("classes") {
-    dependsOn(generateDecoroutinatorAgentBinTask)
 }
 
 tasks.test {

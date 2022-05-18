@@ -14,7 +14,5 @@ include(
 
     "stacktrace-decoroutinator-noop",
 
-    "jvm-agent-tests",
-
-    "stacktrace-decoroutinator-jvm-agent-lib", //TODO delete
+    "jvm-agent-tests"
 )

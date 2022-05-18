@@ -17,7 +17,7 @@ interface DecoroutinatorJvmAgentRegistry {
     fun getLookup(clazz: Class<*>): MethodHandles.Lookup
 
     fun retransform(clazz: Class<*>) {
-        throw IllegalStateException(
+        error(
             "Class retransformation is not allowed. " +
             "Didn't you forget to add JVM agent 'stacktrace-decoroutinator-jvm-agent' to your JVM command line."
         )

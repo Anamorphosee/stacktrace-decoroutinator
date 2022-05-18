@@ -10,7 +10,6 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.lang.instrument.ClassFileTransformer
 import java.lang.invoke.MethodHandles
-import java.nio.file.FileSystems
 import java.security.ProtectionDomain
 
 private val debugMetadataAnnotationClassDescriptor = Type.getDescriptor(JavaUtilsImpl.metadataAnnotationClass)

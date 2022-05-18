@@ -10,8 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class JavaUtilsImpl implements JavaUtils {
-    public static final @NotNull String DEBUG_METADATA_ANNOTATION_CLASS_NAME = DebugMetadata.class.getName();
-
     private JavaUtilsImpl() { }
 
     @NotNull

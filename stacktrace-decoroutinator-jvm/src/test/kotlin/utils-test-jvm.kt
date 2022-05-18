@@ -1,6 +1,9 @@
 package dev.reformator.stacktracedecoroutinator.utils
 
+import dev.reformator.stacktracedecoroutinator.common.getFileClass
 import kotlin.test.assertTrue
+
+private val className = getFileClass {  }.name
 
 fun checkStacktrace(vararg elements: StackTraceElement) {
     if (elements.isEmpty()) {
@@ -21,7 +24,7 @@ private infix fun StackTraceElement.eq(element: StackTraceElement) =
 fun getLineNumber(): Int {
     val stacktrace = Exception().stackTrace
     val stacktraceIndex = stacktrace.indexOfFirst {
-        it.className == "dev.reformator.stacktracedecoroutinator.utils.Utils_testKt"
+        it.className == className
     } + 1
     return stacktrace[stacktraceIndex].lineNumber
 }

@@ -20,4 +20,17 @@ abstract class BaseDecoroutinatorRegistry: DecoroutinatorRegistry {
             .toBoolean()
 }
 
-lateinit var decoroutinatorRegistry: DecoroutinatorRegistry
+var decoroutinatorRegistry: DecoroutinatorRegistry = object: DecoroutinatorRegistry {
+    override val stacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry
+        get() = decoroutinatorRuntimeNotLoaded()
+    override val continuationStacktraceElementRegistry: DecoroutinatorContinuationStacktraceElementRegistry
+        get() = decoroutinatorRuntimeNotLoaded()
+    override val enabled: Boolean
+        get() = decoroutinatorRuntimeNotLoaded()
+    override val recoveryExplicitStacktrace: Boolean
+        get() = decoroutinatorRuntimeNotLoaded()
+
+}
+
+private fun decoroutinatorRuntimeNotLoaded(): Nothing =
+    error("Decoroutinator registry is not set. Didn't you miss to call 'DecoroutinatorRuntime.load()'?")

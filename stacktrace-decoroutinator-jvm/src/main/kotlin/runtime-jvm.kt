@@ -1,28 +1,43 @@
 package dev.reformator.stacktracedecoroutinator.runtime
 
-import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorAgentRegistry
+import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.common.decoroutinatorRegistry
+import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
+import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmRegistry
+import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorRuntimeJvmAgentRegistry
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.DecoroutinatorClassFileTransformer
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.decoroutinatorJvmAgentRegistry
 import net.bytebuddy.agent.ByteBuddyAgent
-import java.nio.file.Files
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlin.io.path.createTempDirectory
 
 object DecoroutinatorRuntime {
     private val lock = ReentrantLock()
+    private var initialized = false
 
     fun load() {
         lock.withLock {
-            if (DecoroutinatorAgentRegistry.isDecoroutinatorAgentInstalled) {
+            if (initialized) {
                 return
             }
-            val agent = createTempDirectory().resolve("agent.jar")
-            ClassLoader.getSystemResource("decoroutinatorAgentJar.bin").openStream().use {
-                Files.copy(it, agent)
-            }
-            ByteBuddyAgent.attach(agent.toFile(), ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE)
+            val inst = ByteBuddyAgent.install()
+            decoroutinatorRegistry = DecoroutinatorJvmRegistry
+            decoroutinatorJvmAgentRegistry = DecoroutinatorRuntimeJvmAgentRegistry(inst)
+            Class.forName("kotlin.Unit")
+            inst.addTransformer(DecoroutinatorClassFileTransformer, inst.isRetransformClassesSupported)
+            initialized = true
         }
-        if (!DecoroutinatorAgentRegistry.isDecoroutinatorAgentInstalled) {
-            throw IllegalStateException("Failed to load DecoroutinatorRuntime.")
+        val baseContinuation = Class.forName(BASE_CONTINUATION_CLASS_NAME)
+        if (baseContinuation.isDecoroutinatorBaseContinuation) {
+            return
+        }
+        if (decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed) {
+            decoroutinatorJvmAgentRegistry.retransform(baseContinuation)
+        }
+        if (!baseContinuation.isDecoroutinatorBaseContinuation) {
+            error("Cannot load Decoroutinator runtime " +
+                    "because class [$BASE_CONTINUATION_CLASS_NAME] is already loaded " +
+                    "and class retransformations is not allowed.")
         }
     }
 }

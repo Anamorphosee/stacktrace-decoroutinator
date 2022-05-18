@@ -2,9 +2,8 @@ package dev.reformator.stacktracedecoroutinator.runtime
 
 import dalvik.system.BaseDexClassLoader
 import dalvik.system.InMemoryDexClassLoader
-import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.common.classLoader
-import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
+import dev.reformator.stacktracedecoroutinator.android.DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl
+import dev.reformator.stacktracedecoroutinator.common.*
 import java.lang.reflect.Field
 import java.nio.ByteBuffer
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -14,6 +13,13 @@ import kotlin.concurrent.write
 object DecoroutinatorRuntime {
     private val instrumentedClassLoaders = HashSet<ClassLoader>()
     private val instrumentedClassLoadersLock = ReentrantReadWriteLock()
+
+    init {
+        decoroutinatorRegistry = object: BaseDecoroutinatorRegistry() {
+            override val stacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry
+                get() = DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl
+        }
+    }
 
     fun load(loader: ClassLoader = classLoader!!) {
         if (!isLoaderInstrumented(loader)) {

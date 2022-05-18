@@ -63,19 +63,25 @@ class RuntimeTest {
     @Test
     fun resumeWithException() {
         try {
-            runBlocking {
-                resumeWithExceptionRec(10)
+            try {
+                runBlocking {
+                    resumeWithExceptionRec(10)
+                }
+            } catch (e: RuntimeException) {
+                e.printStackTrace()
+                (1..10).forEach {
+                    assertEquals(
+                        StackTraceElement(
+                            RuntimeTest::class.java.typeName,
+                            "resumeWithExceptionRec",
+                            fileName,
+                            resumeWithExceptionRecBaseLineNumber + 8
+                        ), e.stackTrace[it]
+                    )
+                }
             }
-        } catch (e: RuntimeException) {
+        } catch (e: Throwable) {
             e.printStackTrace()
-            (1..10).forEach {
-                assertEquals(StackTraceElement(
-                    RuntimeTest::class.java.typeName,
-                    "resumeWithExceptionRec",
-                    fileName,
-                    resumeWithExceptionRecBaseLineNumber + 8
-                ), e.stackTrace[it])
-            }
         }
     }
 

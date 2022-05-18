@@ -1,4 +1,4 @@
-package dev.reformator.stacktracedecoroutinator.common
+package dev.reformator.stacktracedecoroutinator.android
 
 import com.android.dex.DexFormat
 import com.android.dx.dex.DexOptions
@@ -13,6 +13,7 @@ import com.android.dx.rop.type.StdTypeList
 import com.android.dx.rop.type.Type
 import com.android.dx.util.IntList
 import dalvik.system.InMemoryDexClassLoader
+import dev.reformator.stacktracedecoroutinator.common.BaseDecoroutinatorStacktraceMethodHandleRegistry
 import java.lang.reflect.Modifier
 import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList

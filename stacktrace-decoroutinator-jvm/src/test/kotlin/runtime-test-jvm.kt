@@ -1,7 +1,12 @@
 package dev.reformator.stacktracedecoroutinator.runtime
 
+import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.common.classLoader
+import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
 import dev.reformator.stacktracedecoroutinator.utils.checkStacktrace
 import dev.reformator.stacktracedecoroutinator.utils.getLineNumber
+import dev.reformator.stacktracedecoroutinator.utils.getStdlibBaseContinuationClassBody
+import dev.reformator.stacktracedecoroutinator.utils.loadClass
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
@@ -9,17 +14,26 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ForkJoinPool
-import kotlin.test.Test
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
-import kotlin.test.BeforeTest
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 private const val fileName = "runtime-test-jvm.kt"
 
 class TestException(message: String): Exception(message)
+
+class ReloadBaseContinuationTest {
+    @Test
+    fun reloadBaseContinuation() {
+        val stdlibBaseContinuationClassBody = getStdlibBaseContinuationClassBody()
+        classLoader!!.loadClass(BASE_CONTINUATION_CLASS_NAME, stdlibBaseContinuationClassBody)
+        val baseContinuationClass = Class.forName(BASE_CONTINUATION_CLASS_NAME)
+        assertFalse(baseContinuationClass.isDecoroutinatorBaseContinuation)
+        DecoroutinatorRuntime.load()
+        assertTrue(baseContinuationClass.isDecoroutinatorBaseContinuation)
+    }
+}
 
 class RuntimeTest {
     @BeforeTest

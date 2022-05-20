@@ -20,6 +20,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
     testImplementation("io.github.microutils:kotlin-logging-jvm:${properties["kotlinLoggingJvmVersion"]}")
+    testImplementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
     testRuntimeOnly("ch.qos.logback:logback-classic:${properties["logbackClassicVersion"]}")
 }
 

@@ -71,7 +71,7 @@ Some examples of suffering from this problem:
 - https://gitanswer.com/kotlinx-coroutines-stack-trace-recovery-kotlin-236882832
 
 The Kotlin team are known about the problem and has come up with a [solution](https://github.com/Kotlin/kotlinx.coroutines/blob/master/docs/topics/debugging.md#stacktrace-recovery), but it solves just a part of the cases.
-For example, the exception from the above example still lacks some calls.
+For example, the exception from the example above still lacks some calls.
 
 ### Solution
 Stacktrace-decoroutinator replaces the coroutine awakening implementation.
@@ -84,9 +84,9 @@ Thus, if the coroutine throws an exception, they mimic the real call stack of th
 
 ### JVM
 There are three ways to enable Stacktrace-decoroutinator for JVM.
-1. (recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.0` and call method `DecoroutinatorRuntime.load()`.
-2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.0.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.0`.
-3. (less recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-legacy:2.3.0` and call method `DecoroutinatorRuntime.load()`. This method don't use Java instrumentation API unlike the way number 1.
+1. (recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.1` and call method `DecoroutinatorRuntime.load()`.
+2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.1.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.1`.
+3. (less recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-legacy:2.3.1` and call method `DecoroutinatorRuntime.load()`. This way doesn't use Java instrumentation API unlike the way number 1.
 
 Usage example:
 ```kotlin
@@ -104,7 +104,6 @@ suspend fun rec(depth: Int) {
 
 fun main() {
     DecoroutinatorRuntime.load() // enable stacktrace-decoroutinator runtime
-
     try {
         runBlocking {
             rec(10)
@@ -116,7 +115,7 @@ fun main() {
 ```
 
 ### Android
-To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.0` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
+To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.1` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
 
 It's recomended to add `DecoroutinatorRuntime.load()` call in your `Application.onCreate()` method. Example:
 ```kotlin

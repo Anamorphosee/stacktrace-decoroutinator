@@ -12,7 +12,6 @@ suspend fun rec(depth: Int) {
 
 fun main() {
     DecoroutinatorRuntime.load() // enable stacktrace-decoroutinator runtime
-
     try {
         runBlocking {
             rec(10)

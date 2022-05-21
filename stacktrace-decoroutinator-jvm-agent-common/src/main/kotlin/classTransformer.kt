@@ -12,9 +12,24 @@ import java.lang.instrument.ClassFileTransformer
 import java.lang.invoke.MethodHandles
 import java.security.ProtectionDomain
 
-private val debugMetadataAnnotationClassDescriptor = Type.getDescriptor(JavaUtilsImpl.metadataAnnotationClass)
+internal object DecoroutinatorBaseContinuationClassFileTransformer: ClassFileTransformer {
+    override fun transform(
+        loader: ClassLoader?,
+        internalClassName: String,
+        classBeingRedefined: Class<*>?,
+        protectionDomain: ProtectionDomain?,
+        classBody: ByteArray
+    ): ByteArray? = when {
+        internalClassName != BASE_CONTINUATION_INTERNAL_CLASS_NAME -> null
+        classBeingRedefined == null -> loadDecoroutinatorBaseContinuationClassBody()
+        classBeingRedefined.isDecoroutinatorBaseContinuation -> null
+        decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed ->
+            loadDecoroutinatorBaseContinuationClassBody()
+        else -> null
+    }
+}
 
-object DecoroutinatorClassFileTransformer: ClassFileTransformer {
+internal object DecoroutinatorClassFileTransformer: ClassFileTransformer {
     override fun transform(
         loader: ClassLoader?,
         internalClassName: String,
@@ -22,17 +37,11 @@ object DecoroutinatorClassFileTransformer: ClassFileTransformer {
         protectionDomain: ProtectionDomain?,
         classBody: ByteArray
     ): ByteArray? {
-        if (internalClassName.startsWith("java/")) {
+        if (
+            internalClassName.startsWith("java/")
+            || internalClassName == BASE_CONTINUATION_INTERNAL_CLASS_NAME
+        ) {
             return null
-        }
-        if (internalClassName == BASE_CONTINUATION_INTERNAL_CLASS_NAME) {
-            return when {
-                classBeingRedefined == null -> loadDecoroutinatorBaseContinuationClassBody()
-                classBeingRedefined.isDecoroutinatorBaseContinuation -> null
-                decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed ->
-                    loadDecoroutinatorBaseContinuationClassBody()
-                else -> null
-            }
         }
         if (classBeingRedefined != null) {
             if (
@@ -112,34 +121,15 @@ private fun MethodNode.getDebugMetadataInfo(): DebugMetadataInfo? {
         val isAloadContinuation = firstInstructions[0].let {
             it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex
         }
-        val continuationInternalClassName = firstInstructions[1].let {
+        val continuationClassName = firstInstructions[1].let {
             if (it is TypeInsnNode && it.opcode == Opcodes.INSTANCEOF) {
-                it.desc
+                it.desc.replace('/', '.')
             } else {
                 null
             }
         }
-        if (isAloadContinuation && continuationInternalClassName != null) {
-            val continuationClassName = continuationInternalClassName.replace('/', '.');
-            return JavaUtilsImpl.instance.getDebugMetadataInfo(continuationClassName)
-        }
-    }
-    return null
-}
-
-private fun ClassNode.getDebugMetadataInfo(): DebugMetadataInfo? {
-    visibleAnnotations.orEmpty().forEach { annotation ->
-        if (annotation.desc == debugMetadataAnnotationClassDescriptor) {
-            val parameters = annotation.values
-                .chunked(2) { it[0] as String to it[1] as Any }
-                .toMap()
-            val internalClassName = (parameters["c"] as String).replace('.', '/')
-            val methodName = parameters["m"] as String
-            val lineNumbers = (parameters["l"] as List<Int>).toSet()
-            if (lineNumbers.isEmpty()) {
-                return null
-            }
-            return DebugMetadataInfo(internalClassName, methodName, lineNumbers)
+        if (isAloadContinuation && continuationClassName != null) {
+            return decoroutinatorJvmAgentRegistry.metadataInfoResolver.getDebugMetadataInfo(continuationClassName)
         }
     }
     return null

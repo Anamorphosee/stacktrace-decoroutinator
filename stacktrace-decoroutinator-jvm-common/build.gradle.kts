@@ -12,7 +12,6 @@ repositories {
 
 dependencies {
     implementation(project(":stacktrace-decoroutinator-common"))
-    implementation(project(":stacktrace-decoroutinator-stdlib"))
 
     implementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
 
@@ -32,6 +31,41 @@ java {
     withJavadocJar()
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+val appendStdlibClassesTask = task("appendStdlibClasses") {
+    dependsOn(":stdlib:classes", "classes")
+    doLast {
+        val fromDir = project(":stdlib").buildDir
+            .resolve("classes")
+            .resolve("kotlin")
+            .resolve("main")
+        val intoDir = buildDir
+            .resolve("classes")
+            .resolve("kotlin")
+            .resolve("main")
+        copy {
+            from(fromDir)
+            into(intoDir)
+            exclude("META-INF/**")
+            exclude("kotlin/coroutines/jvm/internal/BaseContinuationImpl.class")
+        }
+        copy {
+            val baseCondinuationDir = fromDir
+                .resolve("kotlin")
+                .resolve("coroutines")
+                .resolve("jvm")
+                .resolve("internal")
+            from(baseCondinuationDir)
+            into(intoDir)
+            include("BaseContinuationImpl.class")
+            rename("BaseContinuationImpl.class", "decoroutinatorBaseContinuation.class")
+        }
+    }
+}
+
+tasks.named("jar") {
+    dependsOn(appendStdlibClassesTask)
 }
 
 publishing {

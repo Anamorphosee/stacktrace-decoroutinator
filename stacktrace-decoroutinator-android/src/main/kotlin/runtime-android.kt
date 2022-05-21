@@ -33,13 +33,13 @@ object DecoroutinatorRuntime {
 
             val dexElements = dexElementsField[pathList] as Array<Any>
 
-            val decoroutinatorDexElements = InMemoryDexClassLoader(
-                ByteBuffer.wrap(loader.getResourceAsStream("decoroutinatorBaseContinuation.dex").readBytes()),
-                null
-            ).let {
-                pathListField[it]
-            }.let {
-                dexElementsField[it] as Array<Any>
+            val decoroutinatorDexElements = run {
+                val dexBody = loader.getResourceAsStream("decoroutinatorBaseContinuation.dex").use{
+                    it.readBytes()
+                }
+                val dexClassLoader = InMemoryDexClassLoader(ByteBuffer.wrap(dexBody), null)
+                val pathList = pathListField[dexClassLoader]
+                dexElementsField[pathList] as Array<Any>
             }
 
             val newDexElements =  decoroutinatorDexElements plusArray dexElements

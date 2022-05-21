@@ -47,11 +47,11 @@ val baseContinuationDexFile =
         .resolve("decoroutinatorBaseContinuation.dex")
 
 val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
-    dependsOn(":stacktrace-decoroutinator-stdlib:jar")
+    dependsOn(":stdlib:jar")
     doLast {
         val destFolder = baseContinuationDexFile.parent
         val tmpDir = temporaryDir
-        val jarFile = project(":stacktrace-decoroutinator-stdlib")
+        val jarFile = project(":stdlib")
             .tasks
             .named<Jar>("jar")
             .get()
@@ -59,7 +59,6 @@ val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
             .files
             .singleFile
         exec {
-            file(destFolder).mkdir()
             setCommandLine(
                 "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
                 "--min-api", "26",

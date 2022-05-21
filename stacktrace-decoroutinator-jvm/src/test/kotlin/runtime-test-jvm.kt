@@ -1,12 +1,9 @@
 package dev.reformator.stacktracedecoroutinator.runtime
 
 import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.common.classLoader
 import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
 import dev.reformator.stacktracedecoroutinator.utils.checkStacktrace
 import dev.reformator.stacktracedecoroutinator.utils.getLineNumber
-import dev.reformator.stacktracedecoroutinator.utils.getStdlibBaseContinuationClassBody
-import dev.reformator.stacktracedecoroutinator.utils.loadClass
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
@@ -26,8 +23,6 @@ class TestException(message: String): Exception(message)
 class ReloadBaseContinuationTest {
     @Test
     fun reloadBaseContinuation() {
-        val stdlibBaseContinuationClassBody = getStdlibBaseContinuationClassBody()
-        classLoader!!.loadClass(BASE_CONTINUATION_CLASS_NAME, stdlibBaseContinuationClassBody)
         val baseContinuationClass = Class.forName(BASE_CONTINUATION_CLASS_NAME)
         assertFalse(baseContinuationClass.isDecoroutinatorBaseContinuation)
         DecoroutinatorRuntime.load()

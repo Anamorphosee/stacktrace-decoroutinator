@@ -1,9 +1,42 @@
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 
 import dev.reformator.stacktracedecoroutinator.common.getFileClass
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.ClassNode
 import java.lang.invoke.MethodHandles
+import java.nio.file.FileSystems
 import java.util.concurrent.ConcurrentHashMap
+
+enum class DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy: DecoroutinatorDebugMetadataInfoResolver {
+    SYSTEM_RESOURCE {
+        override fun getDebugMetadataInfo(className: String): DebugMetadataInfo? {
+            val path = className.replace("/", FileSystems.getDefault().separator) + ".class"
+            return ClassLoader.getSystemResourceAsStream(path)?.use { classBodyStream ->
+                val classBody = classBodyStream.readBytes()
+                val classReader = ClassReader(classBody)
+                val classNode = ClassNode(Opcodes.ASM9)
+                classReader.accept(classNode, ClassReader.SKIP_CODE)
+                classNode.getDebugMetadataInfo()
+            }
+        }
+    },
+
+    CLASS {
+        override fun getDebugMetadataInfo(className: String): DebugMetadataInfo? =
+            JavaUtilsImpl.instance.getDebugMetadataInfo(className)
+    },
+
+    SYSTEM_RESOURCE_AND_CLASS {
+        override fun getDebugMetadataInfo(className: String): DebugMetadataInfo? =
+            SYSTEM_RESOURCE.getDebugMetadataInfo(className) ?: CLASS.getDebugMetadataInfo(className)
+    }
+}
+
+interface DecoroutinatorDebugMetadataInfoResolver {
+    fun getDebugMetadataInfo(className: String): DebugMetadataInfo?
+}
 
 interface DecoroutinatorJvmAgentRegistry {
     val isBaseContinuationRetransformationAllowed: Boolean
@@ -22,6 +55,8 @@ interface DecoroutinatorJvmAgentRegistry {
             "Didn't you forget to add JVM agent 'stacktrace-decoroutinator-jvm-agent' to your JVM command line."
         )
     }
+
+    val metadataInfoResolver: DecoroutinatorDebugMetadataInfoResolver
 }
 
 var decoroutinatorJvmAgentRegistry: DecoroutinatorJvmAgentRegistry = DecoroutinatorJvmAgentRegistryImpl()
@@ -37,6 +72,14 @@ open class DecoroutinatorJvmAgentRegistryImpl: DecoroutinatorJvmAgentRegistry {
         class2Lookup[clazz] ?: run {
             clazz.getDeclaredMethod(REGISTER_LOOKUP_METHOD_NAME).invoke(null)
             class2Lookup[clazz]!!
+        }
+
+    override val metadataInfoResolver: DecoroutinatorDebugMetadataInfoResolver =
+        System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy",
+            DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy.SYSTEM_RESOURCE_AND_CLASS.name
+        ).let {
+            DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy.valueOf(it)
         }
 }
 

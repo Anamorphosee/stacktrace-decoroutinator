@@ -5,7 +5,7 @@ import dev.reformator.stacktracedecoroutinator.common.decoroutinatorRegistry
 import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
 import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmRegistry
 import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorRuntimeJvmAgentRegistry
-import dev.reformator.stacktracedecoroutinator.jvmagentcommon.DecoroutinatorClassFileTransformer
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.addDecoroutinatorClassFileTransformers
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.decoroutinatorJvmAgentRegistry
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.util.concurrent.locks.ReentrantLock
@@ -23,8 +23,7 @@ object DecoroutinatorRuntime {
             val inst = ByteBuddyAgent.install()
             decoroutinatorRegistry = DecoroutinatorJvmRegistry
             decoroutinatorJvmAgentRegistry = DecoroutinatorRuntimeJvmAgentRegistry(inst)
-            Class.forName("kotlin.Unit")
-            inst.addTransformer(DecoroutinatorClassFileTransformer, inst.isRetransformClassesSupported)
+            addDecoroutinatorClassFileTransformers(inst)
             initialized = true
         }
         val baseContinuation = Class.forName(BASE_CONTINUATION_CLASS_NAME)

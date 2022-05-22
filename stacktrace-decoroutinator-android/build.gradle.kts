@@ -49,6 +49,7 @@ val baseContinuationDexFile =
 val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
     dependsOn(":stdlib:jar")
     doLast {
+        baseContinuationDexFile.delete()
         val destFolder = baseContinuationDexFile.parent
         val tmpDir = temporaryDir
         val jarFile = project(":stdlib")

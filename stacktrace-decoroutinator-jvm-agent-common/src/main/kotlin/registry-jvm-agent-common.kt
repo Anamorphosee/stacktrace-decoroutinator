@@ -39,6 +39,12 @@ interface DecoroutinatorDebugMetadataInfoResolver {
 }
 
 interface DecoroutinatorJvmAgentRegistry {
+    val isBaseContinuationTransformationAllowed: Boolean
+        get() = true
+
+    val isTransformationAllowed: Boolean
+        get() = true
+
     val isBaseContinuationRetransformationAllowed: Boolean
         get() = false
 

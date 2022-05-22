@@ -19,13 +19,26 @@ internal object DecoroutinatorBaseContinuationClassFileTransformer: ClassFileTra
         classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain?,
         classBody: ByteArray
-    ): ByteArray? = when {
-        internalClassName != BASE_CONTINUATION_INTERNAL_CLASS_NAME -> null
-        classBeingRedefined == null -> loadDecoroutinatorBaseContinuationClassBody()
-        classBeingRedefined.isDecoroutinatorBaseContinuation -> null
-        decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed ->
-            loadDecoroutinatorBaseContinuationClassBody()
-        else -> null
+    ): ByteArray? {
+        if (internalClassName != BASE_CONTINUATION_INTERNAL_CLASS_NAME) {
+            return null
+        }
+        return if (classBeingRedefined == null) {
+            if (decoroutinatorJvmAgentRegistry.isBaseContinuationTransformationAllowed) {
+                loadDecoroutinatorBaseContinuationClassBody()
+            } else {
+                null
+            }
+        } else {
+            if (
+                !classBeingRedefined.isDecoroutinatorBaseContinuation
+                && decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed
+            ) {
+                loadDecoroutinatorBaseContinuationClassBody()
+            } else {
+                null
+            }
+        }
     }
 }
 
@@ -50,6 +63,8 @@ internal object DecoroutinatorClassFileTransformer: ClassFileTransformer {
             ) {
                 return null
             }
+        } else if (!decoroutinatorJvmAgentRegistry.isTransformationAllowed) {
+            return null
         }
         val classNode = getClassNode(classBody)
         if (classNode.isTransformed()) {

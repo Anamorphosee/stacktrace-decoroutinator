@@ -87,6 +87,11 @@ class RuntimeTest {
         }
     }
 
+    @Test
+    fun testLoadSelfDefinedClass() {
+        Class.forName("io.ktor.utils.io.ByteBufferChannel")
+    }
+
     private var resumeWithExceptionRecBaseLineNumber: Int = 0
 
     private suspend fun resumeWithExceptionRec(depth: Int) {

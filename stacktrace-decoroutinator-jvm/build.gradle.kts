@@ -21,6 +21,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
     testImplementation("io.github.microutils:kotlin-logging-jvm:${properties["kotlinLoggingJvmVersion"]}")
     testImplementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
+    testRuntimeOnly("io.ktor:ktor-io-jvm:${properties["ktorVersion"]}")
     testRuntimeOnly("ch.qos.logback:logback-classic:${properties["logbackClassicVersion"]}")
 }
 

@@ -26,7 +26,10 @@ tasks.test {
         .outputs
         .files
         .singleFile
-    jvmArgs("-javaagent:${agentJar.absolutePath}")
+    jvmArgs(
+        "-javaagent:${agentJar.absolutePath}",
+        "-Ddev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy=SYSTEM_RESOURCE"
+    )
 }
 
 tasks.withType<KotlinCompile> {

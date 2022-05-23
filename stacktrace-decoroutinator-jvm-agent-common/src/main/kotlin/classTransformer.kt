@@ -159,7 +159,7 @@ private val MethodNode.isSuspend: Boolean
 private fun ClassNode.transform(suspendFuncName2LineNumbers: Map<String, Set<Int>>) {
     version = maxOf(version, Opcodes.V1_8)
     suspendFuncName2LineNumbers.forEach { methodName, lineNumbers ->
-        methods.add(buildStacktraceMethodNode(methodName, lineNumbers))
+        methods.add(buildStacktraceMethodNode(methodName, lineNumbers, true))
     }
     methods.add(buildRegisterLookupMethod())
     val clinit = getOrCreateClinitMethod()

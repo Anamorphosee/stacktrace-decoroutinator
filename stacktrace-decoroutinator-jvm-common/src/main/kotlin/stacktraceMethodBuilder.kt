@@ -36,9 +36,10 @@ private val METHOD_DESC =
     "L$OBJECT_INTERNAL_CLASS_NAME;" +
     ")L$OBJECT_INTERNAL_CLASS_NAME;"
 
-fun buildStacktraceMethodNode(methodName: String, lineNumbers: Set<Int>): MethodNode {
+fun buildStacktraceMethodNode(methodName: String, lineNumbers: Set<Int>, makePrivate: Boolean): MethodNode {
     val result = MethodNode().apply {
-        access = Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
+        access = if (makePrivate) Opcodes.ACC_PRIVATE else Opcodes.ACC_PUBLIC
+        access = access or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
         name = methodName
         desc = METHOD_DESC
     }

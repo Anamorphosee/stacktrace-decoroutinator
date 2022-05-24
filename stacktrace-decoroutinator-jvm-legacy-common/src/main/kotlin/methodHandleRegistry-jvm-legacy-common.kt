@@ -37,9 +37,9 @@ object DecoroutinatorJvmLegacyStacktraceMethodHandleRegistry: BaseDecoroutinator
             sourceFile = fileName
         }
         classNode.methods = methodName2LineNumbers.entries.map { (methodName, lineNumbers) ->
-            buildStacktraceMethodNode(methodName, lineNumbers)
+            buildStacktraceMethodNode(methodName, lineNumbers, false)
         }
-        val writer = ClassWriter(ClassWriter.COMPUTE_MAXS or ClassWriter.COMPUTE_FRAMES)
+        val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
         classNode.accept(writer)
         return writer.toByteArray()
     }

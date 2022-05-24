@@ -25,6 +25,12 @@ class DecoroutinatorRuntimeJvmAgentRegistry(
             "false"
         ).toBoolean()
 
+    override val isTransformationAllowed: Boolean =
+        System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.isTransformationAllowed",
+            "true"
+        ).toBoolean()
+
     override val isBaseContinuationRetransformationAllowed: Boolean
         get() = _isBaseContinuationRetransformationAllowed && instrumentation.isRetransformClassesSupported
 

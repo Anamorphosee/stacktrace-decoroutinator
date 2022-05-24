@@ -2,6 +2,7 @@ package dev.reformator.stacktracedecoroutinator.runtime
 
 import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy
 import dev.reformator.stacktracedecoroutinator.utils.checkStacktrace
 import dev.reformator.stacktracedecoroutinator.utils.getLineNumber
 import kotlinx.coroutines.delay
@@ -33,6 +34,10 @@ class ReloadBaseContinuationTest {
 class RuntimeTest {
     @BeforeTest
     fun setup() {
+        System.setProperty(
+            "dev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy",
+            DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy.SYSTEM_RESOURCE.name
+        )
         DecoroutinatorRuntime.load()
     }
 
@@ -80,6 +85,11 @@ class RuntimeTest {
                 ), e.stackTrace[it])
             }
         }
+    }
+
+    @Test
+    fun testLoadSelfDefinedClass() {
+        Class.forName("io.ktor.utils.io.ByteBufferChannel")
     }
 
     private var resumeWithExceptionRecBaseLineNumber: Int = 0

@@ -58,9 +58,16 @@ object DecoroutinatorJvmAgentStacktraceMethodHandleRegistry: DecoroutinatorStack
 
     private fun calculateClassSpec(className: String): ClassSpec = className2Spec.computeIfAbsent(className) {
         val clazz = Class.forName(className)
-        val marker = clazz.getAnnotation(DecoroutinatorAgentTransformedMarker::class.java) ?: run {
-            decoroutinatorJvmAgentRegistry.retransform(clazz)
-            clazz.getAnnotation(DecoroutinatorAgentTransformedMarker::class.java)!!
+        val marker: DecoroutinatorAgentTransformedMarker? =
+            clazz.getAnnotation(DecoroutinatorAgentTransformedMarker::class.java)
+                ?: if (decoroutinatorJvmAgentRegistry.isRetransformationAllowed) {
+                    decoroutinatorJvmAgentRegistry.retransform(clazz)
+                    clazz.getAnnotation(DecoroutinatorAgentTransformedMarker::class.java)
+                } else {
+                    null
+                }
+        if (marker == null) {
+            error("The class [$className] was not transformed for Stacktrace-decoroutinator.")
         }
         val methodName2Spec = buildMap(marker.methodNames.size) {
             var lineNumberIndex = 0

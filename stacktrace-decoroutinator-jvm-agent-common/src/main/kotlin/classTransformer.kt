@@ -19,13 +19,26 @@ internal object DecoroutinatorBaseContinuationClassFileTransformer: ClassFileTra
         classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain?,
         classBody: ByteArray
-    ): ByteArray? = when {
-        internalClassName != BASE_CONTINUATION_INTERNAL_CLASS_NAME -> null
-        classBeingRedefined == null -> loadDecoroutinatorBaseContinuationClassBody()
-        classBeingRedefined.isDecoroutinatorBaseContinuation -> null
-        decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed ->
-            loadDecoroutinatorBaseContinuationClassBody()
-        else -> null
+    ): ByteArray? {
+        if (internalClassName != BASE_CONTINUATION_INTERNAL_CLASS_NAME) {
+            return null
+        }
+        return if (classBeingRedefined == null) {
+            if (decoroutinatorJvmAgentRegistry.isBaseContinuationTransformationAllowed) {
+                loadDecoroutinatorBaseContinuationClassBody()
+            } else {
+                null
+            }
+        } else {
+            if (
+                !classBeingRedefined.isDecoroutinatorBaseContinuation
+                && decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed
+            ) {
+                loadDecoroutinatorBaseContinuationClassBody()
+            } else {
+                null
+            }
+        }
     }
 }
 
@@ -50,6 +63,8 @@ internal object DecoroutinatorClassFileTransformer: ClassFileTransformer {
             ) {
                 return null
             }
+        } else if (!decoroutinatorJvmAgentRegistry.isTransformationAllowed) {
+            return null
         }
         val classNode = getClassNode(classBody)
         if (classNode.isTransformed()) {
@@ -65,7 +80,7 @@ internal object DecoroutinatorClassFileTransformer: ClassFileTransformer {
 }
 
 private fun getClassBody(classNode: ClassNode): ByteArray {
-    val writer = ClassWriter(ClassWriter.COMPUTE_MAXS or ClassWriter.COMPUTE_FRAMES)
+    val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
     classNode.accept(writer)
     return writer.toByteArray()
 }
@@ -144,7 +159,7 @@ private val MethodNode.isSuspend: Boolean
 private fun ClassNode.transform(suspendFuncName2LineNumbers: Map<String, Set<Int>>) {
     version = maxOf(version, Opcodes.V1_8)
     suspendFuncName2LineNumbers.forEach { methodName, lineNumbers ->
-        methods.add(buildStacktraceMethodNode(methodName, lineNumbers))
+        methods.add(buildStacktraceMethodNode(methodName, lineNumbers, true))
     }
     methods.add(buildRegisterLookupMethod())
     val clinit = getOrCreateClinitMethod()

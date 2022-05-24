@@ -13,6 +13,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
     testImplementation("io.github.microutils:kotlin-logging-jvm:${properties["kotlinLoggingJvmVersion"]}")
+    testRuntimeOnly("io.ktor:ktor-io-jvm:${properties["ktorVersion"]}")
     testRuntimeOnly("ch.qos.logback:logback-classic:${properties["logbackClassicVersion"]}")
 }
 
@@ -26,7 +27,10 @@ tasks.test {
         .outputs
         .files
         .singleFile
-    jvmArgs("-javaagent:${agentJar.absolutePath}")
+    jvmArgs(
+        "-javaagent:${agentJar.absolutePath}",
+        "-Ddev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy=SYSTEM_RESOURCE"
+    )
 }
 
 tasks.withType<KotlinCompile> {

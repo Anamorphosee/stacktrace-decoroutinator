@@ -56,9 +56,10 @@ fun buildStacktraceMethodNode(methodName: String, lineNumbers: Set<Int>, makePri
         add(getReturnSuspendObjectIfResultIsSuspendObjectInstructions())
 
         add(invokeFunctionLabel)
-        add(getInvokeFunctionAndReturnInstructions(invalidLineNumberLabel, sortedLineNumbers))
+        add(getInvokeFunctionAndReturnInstructions(sortedLineNumbers))
 
         add(invalidLineNumberLabel)
+        add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
         add(getThrowInvalidLineNumberInstructions())
     }
     return result
@@ -98,6 +99,29 @@ private fun getInvokeNextStacktraceMethodInstructions(
     val invalidLabel = LabelNode()
     val endLabel = LabelNode()
     addByLineNumbers(invalidLabel, lineNumbers, false) {
+        add(FrameNode(
+            Opcodes.F_FULL,
+            7,
+            arrayOf(
+                "[L$METHOD_HANDLE_INTERNAL_CLASS_NAME;",
+                "[I",
+                Opcodes.INTEGER,
+                BI_FUNCTION_INTERNAL_CLASS_NAME,
+                OBJECT_INTERNAL_CLASS_NAME,
+                OBJECT_INTERNAL_CLASS_NAME,
+                Opcodes.INTEGER
+            ),
+            7,
+            arrayOf(
+                METHOD_HANDLE_INTERNAL_CLASS_NAME,
+                "[L$METHOD_HANDLE_INTERNAL_CLASS_NAME;",
+                "[I",
+                Opcodes.INTEGER,
+                BI_FUNCTION_INTERNAL_CLASS_NAME,
+                OBJECT_INTERNAL_CLASS_NAME,
+                OBJECT_INTERNAL_CLASS_NAME
+            )
+        ))
         add(
             MethodInsnNode(
                 Opcodes.INVOKEVIRTUAL, METHOD_HANDLE_INTERNAL_CLASS_NAME, "invokeExact",
@@ -107,12 +131,36 @@ private fun getInvokeNextStacktraceMethodInstructions(
         add(JumpInsnNode(Opcodes.GOTO, endLabel))
     }
     add(invalidLabel)
+    add(FrameNode(
+        Opcodes.F_FULL,
+        7,
+        arrayOf(
+            "[L$METHOD_HANDLE_INTERNAL_CLASS_NAME;",
+            "[I",
+            Opcodes.INTEGER,
+            BI_FUNCTION_INTERNAL_CLASS_NAME,
+            OBJECT_INTERNAL_CLASS_NAME,
+            OBJECT_INTERNAL_CLASS_NAME,
+            Opcodes.INTEGER
+        ),
+        7,
+        arrayOf(
+            METHOD_HANDLE_INTERNAL_CLASS_NAME,
+            "[L$METHOD_HANDLE_INTERNAL_CLASS_NAME;",
+            "[I",
+            Opcodes.INTEGER,
+            BI_FUNCTION_INTERNAL_CLASS_NAME,
+            OBJECT_INTERNAL_CLASS_NAME,
+            OBJECT_INTERNAL_CLASS_NAME
+        )
+    ))
     add(InsnNode(Opcodes.POP2))
     add(InsnNode(Opcodes.POP2))
     add(InsnNode(Opcodes.POP2))
     add(InsnNode(Opcodes.POP))
     add(JumpInsnNode(Opcodes.GOTO, invalidLineNumberLabel))
     add(endLabel)
+    add(FrameNode(Opcodes.F_SAME1, 0, null, 1, arrayOf(OBJECT_INTERNAL_CLASS_NAME)))
     add(VarInsnNode(Opcodes.ASTORE, RESULT_VAR_INDEX))
 }
 
@@ -179,11 +227,10 @@ private fun getReturnSuspendObjectIfResultIsSuspendObjectInstructions() = InsnLi
     add(VarInsnNode(Opcodes.ALOAD, SUSPEND_OBJECT_VAR_INDEX))
     add(InsnNode(Opcodes.ARETURN))
     add(endLabel)
+    add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
 }
 
-private fun getInvokeFunctionAndReturnInstructions(
-    invalidLineNumberLabel: LabelNode, lineNumbers: List<Int>
-) = InsnList().apply {
+private fun getInvokeFunctionAndReturnInstructions(lineNumbers: List<Int>) = InsnList().apply {
     add(VarInsnNode(Opcodes.ALOAD, INVOKE_FUNCTION_VAR_INDEX))
     add(VarInsnNode(Opcodes.ILOAD, NEXT_STEP_VAR_INDEX))
     add(
@@ -194,15 +241,53 @@ private fun getInvokeFunctionAndReturnInstructions(
     add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
     val invalidLabel = LabelNode()
     addByLineNumbers(invalidLabel, lineNumbers) {
+        add(FrameNode(
+            Opcodes.F_FULL,
+            7,
+            arrayOf(
+                "[L$METHOD_HANDLE_INTERNAL_CLASS_NAME;",
+                "[I",
+                Opcodes.INTEGER,
+                BI_FUNCTION_INTERNAL_CLASS_NAME,
+                OBJECT_INTERNAL_CLASS_NAME,
+                OBJECT_INTERNAL_CLASS_NAME,
+                Opcodes.INTEGER
+            ),
+            3,
+            arrayOf(
+                BI_FUNCTION_INTERNAL_CLASS_NAME,
+                INTEGER_INTERNAL_CLASS_NAME,
+                OBJECT_INTERNAL_CLASS_NAME
+            )
+        ))
         add(
             MethodInsnNode(
                 Opcodes.INVOKEINTERFACE, BI_FUNCTION_INTERNAL_CLASS_NAME, "apply",
                 "(L$OBJECT_INTERNAL_CLASS_NAME;L$OBJECT_INTERNAL_CLASS_NAME;)L$OBJECT_INTERNAL_CLASS_NAME;")
         )
     }
+    add(FrameNode(Opcodes.F_SAME1, 0, null, 1, arrayOf(OBJECT_INTERNAL_CLASS_NAME)))
     add(InsnNode(Opcodes.ARETURN))
     add(invalidLabel)
+    add(FrameNode(
+        Opcodes.F_FULL,
+        7,
+        arrayOf(
+            "[L$METHOD_HANDLE_INTERNAL_CLASS_NAME;",
+            "[I",
+            Opcodes.INTEGER,
+            BI_FUNCTION_INTERNAL_CLASS_NAME,
+            OBJECT_INTERNAL_CLASS_NAME,
+            OBJECT_INTERNAL_CLASS_NAME,
+            Opcodes.INTEGER
+        ),
+        3,
+        arrayOf(
+            BI_FUNCTION_INTERNAL_CLASS_NAME,
+            INTEGER_INTERNAL_CLASS_NAME,
+            OBJECT_INTERNAL_CLASS_NAME
+        )
+    ))
     add(InsnNode(Opcodes.POP2))
     add(InsnNode(Opcodes.POP))
-    add(JumpInsnNode(Opcodes.GOTO, invalidLineNumberLabel))
 }

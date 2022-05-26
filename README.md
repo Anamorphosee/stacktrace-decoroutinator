@@ -109,9 +109,46 @@ fun main() {
             rec(10)
         }
     } catch (e: Exception) {
-        e.printStackTrace() // print full stack trace with 10 recursive calls
+        e.printStackTrace() // prints out full stack trace with 10 recursive calls
     }
 }
+```
+prints out:
+```
+java.lang.Exception: exception at 1653565535416
+	at ExampleKt.rec(example.kt:8)
+	at ExampleKt$rec$1.invokeSuspend(example.kt)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl$resumeWith$1.invoke(continuation-stdlib.kt:20)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl$resumeWith$1.invoke(continuation-stdlib.kt:18)
+	at dev.reformator.stacktracedecoroutinator.stdlib.StdlibKt.decoroutinatorResumeWith$lambda-1(stdlib.kt:34)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt.rec(example.kt:10)
+	at ExampleKt$main$1.invokeSuspend(example.kt:17)
+	at dev.reformator.stacktracedecoroutinator.stdlib.StdlibKt.decoroutinatorResumeWith(stdlib.kt:110)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(continuation-stdlib.kt:18)
+	at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:234)
+	at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:166)
+	at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:397)
+	at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl(CancellableContinuationImpl.kt:431)
+	at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$default(CancellableContinuationImpl.kt:420)
+	at kotlinx.coroutines.CancellableContinuationImpl.resumeUndispatched(CancellableContinuationImpl.kt:518)
+	at kotlinx.coroutines.EventLoopImplBase$DelayedResumeTask.run(EventLoop.common.kt:489)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:274)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:85)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:59)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:38)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at ExampleKt.main(example.kt:16)
+	at ExampleKt.main(example.kt)
 ```
 
 ### Android

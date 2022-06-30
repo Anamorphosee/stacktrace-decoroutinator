@@ -4,7 +4,6 @@ import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NA
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import java.lang.instrument.Instrumentation
-import java.nio.file.FileSystems
 import kotlin.coroutines.suspendCoroutine
 
 val BASE_CONTINUATION_INTERNAL_CLASS_NAME = BASE_CONTINUATION_CLASS_NAME.replace('.', '/')
@@ -41,7 +40,7 @@ fun addDecoroutinatorClassFileTransformers(inst: Instrumentation) {
     )
     Class.forName(BASE_CONTINUATION_CLASS_NAME)
     val stubClassName = _preloadStub::class.java.name
-    val stubClassPath = stubClassName.replace(".", FileSystems.getDefault().separator) + ".class"
+    val stubClassPath = stubClassName.replace('.', '/') + ".class"
     val stubClassBody = ClassLoader.getSystemResourceAsStream(stubClassPath).use { classBodyStream ->
         classBodyStream.readBytes()
     }

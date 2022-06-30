@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
 enum class DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy: DecoroutinatorDebugMetadataInfoResolver {
     SYSTEM_RESOURCE {
         override fun getDebugMetadataInfo(className: String): DebugMetadataInfo? {
-            val path = className.replace(".", FileSystems.getDefault().separator) + ".class"
+            val path = className.replace('.', '/') + ".class"
             return ClassLoader.getSystemResourceAsStream(path)?.use { classBodyStream ->
                 val classBody = classBodyStream.readBytes()
                 val classReader = ClassReader(classBody)

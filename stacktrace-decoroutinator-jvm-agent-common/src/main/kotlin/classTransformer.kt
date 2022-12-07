@@ -12,7 +12,7 @@ import java.lang.instrument.ClassFileTransformer
 import java.lang.invoke.MethodHandles
 import java.security.ProtectionDomain
 
-internal object DecoroutinatorBaseContinuationClassFileTransformer: ClassFileTransformer {
+internal object DecoroutinatorBaseContinuationClassFileTransformer : ClassFileTransformer {
     override fun transform(
         loader: ClassLoader?,
         internalClassName: String,
@@ -42,7 +42,7 @@ internal object DecoroutinatorBaseContinuationClassFileTransformer: ClassFileTra
     }
 }
 
-internal object DecoroutinatorClassFileTransformer: ClassFileTransformer {
+internal object DecoroutinatorClassFileTransformer : ClassFileTransformer {
     override fun transform(
         loader: ClassLoader?,
         internalClassName: String,
@@ -120,13 +120,15 @@ private fun getMetadataInfo(classNode: ClassNode): MetadataInfo? {
         }
     }
     return if (suspendFunc2LineNumbers.isNotEmpty()) {
-        val fileName = fileNames.run { when {
-            isEmpty() -> null
-            size == 1 -> single()
-            else -> throw IllegalStateException(
-                "class [${classNode.name}] contains suspend fun metadata with multiple file names: [$this]"
-            )
-        } }
+        val fileName = fileNames.run {
+            when {
+                isEmpty() -> null
+                size == 1 -> single()
+                else -> throw IllegalStateException(
+                    "class [${classNode.name}] contains suspend fun metadata with multiple file names: [$this]"
+                )
+            }
+        }
         MetadataInfo(fileName, suspendFunc2LineNumbers)
     } else {
         null
@@ -145,26 +147,15 @@ private fun MethodNode.getDebugMetadataInfo(): DebugMetadataInfo? {
             .forEach { continuationIndex += it.size }
         continuationIndex
     }
-    val firstInstructions: List<AbstractInsnNode> = instructions.asSequence()
-        .filter { it.opcode != -1 && it.opcode != Opcodes.NOP }
-        .take(2)
-        .toList()
-    if (firstInstructions.size == 2) {
-        val isAloadContinuation = firstInstructions[0].let {
-            it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex
-        }
-        val continuationClassName = firstInstructions[1].let {
-            if (it is TypeInsnNode && it.opcode == Opcodes.INSTANCEOF) {
-                it.desc.replace('/', '.')
-            } else {
-                null
-            }
-        }
-        if (isAloadContinuation && continuationClassName != null) {
-            return decoroutinatorJvmAgentRegistry.metadataInfoResolver.getDebugMetadataInfo(continuationClassName)
-        }
+    return instructions.asSequence().filter {
+        val next = it.next
+        it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex
+                && next != null && next is TypeInsnNode && next.opcode == Opcodes.INSTANCEOF
     }
-    return null
+        .firstOrNull()?.let {
+            val continuationClassName = (it.next as TypeInsnNode).desc.replace('/', '.')
+            decoroutinatorJvmAgentRegistry.metadataInfoResolver.getDebugMetadataInfo(continuationClassName)
+        }
 }
 
 private val MethodNode.hasCode: Boolean
@@ -225,18 +216,22 @@ private fun buildRegisterLookupMethod(): MethodNode {
         desc = "()V"
     }
     method.instructions.apply {
-        add(MethodInsnNode(
-            Opcodes.INVOKESTATIC,
-            Type.getInternalName(MethodHandles::class.java),
-            "lookup",
-            "()${Type.getDescriptor(MethodHandles.Lookup::class.java)}"
-        ))
-        add(MethodInsnNode(
-            Opcodes.INVOKESTATIC,
-            registerLookupInternalClassName,
-            registerLookupMethodName,
-            "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})V"
-        ))
+        add(
+            MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                Type.getInternalName(MethodHandles::class.java),
+                "lookup",
+                "()${Type.getDescriptor(MethodHandles.Lookup::class.java)}"
+            )
+        )
+        add(
+            MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                registerLookupInternalClassName,
+                registerLookupMethodName,
+                "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})V"
+            )
+        )
         add(InsnNode(Opcodes.RETURN))
     }
     return method

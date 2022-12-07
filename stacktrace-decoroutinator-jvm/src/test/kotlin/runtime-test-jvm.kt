@@ -7,14 +7,11 @@ import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContin
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy
 import dev.reformator.stacktracedecoroutinator.utils.checkStacktrace
 import dev.reformator.stacktracedecoroutinator.utils.getLineNumber
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.atomic.AtomicReference
@@ -24,7 +21,30 @@ import kotlin.test.*
 
 private const val FILE_NAME = "runtime-test-jvm.kt"
 
-class TestException(message: String): Exception(message)
+class TestException(message: String) : Exception(message)
+
+// Jacoco only instruments this class
+class JacocoInstrumentedMethodTest {
+    @BeforeTest
+    fun setup() {
+        System.setProperty(
+            "dev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy",
+            DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy.SYSTEM_RESOURCE.name
+        )
+        DecoroutinatorRuntime.load()
+    }
+
+    //@Disabled
+    @Test
+    fun jacocoInstrumentedMethodTest(): Unit = runBlocking {
+        suspend fun jacocoInstrumentedMethod() {
+            yield()
+            yield()
+        }
+
+        jacocoInstrumentedMethod()
+    }
+}
 
 class ReloadBaseContinuationTest {
     @Test
@@ -51,8 +71,8 @@ class RuntimeTest {
         val random = Random(123)
         val size = 30
         val lineNumberOffsets = generateSequence {
-                allowedLineNumberOffsets[random.nextInt(allowedLineNumberOffsets.size)]
-            }
+            allowedLineNumberOffsets[random.nextInt(allowedLineNumberOffsets.size)]
+        }
             .take(size)
             .toList()
         val job = launch {
@@ -82,12 +102,14 @@ class RuntimeTest {
         } catch (e: RuntimeException) {
             e.printStackTrace()
             (1..10).forEach {
-                assertEquals(StackTraceElement(
-                    RuntimeTest::class.java.typeName,
-                    "resumeWithExceptionRec",
-                    FILE_NAME,
-                    resumeWithExceptionRecBaseLineNumber + 8
-                ), e.stackTrace[it])
+                assertEquals(
+                    StackTraceElement(
+                        RuntimeTest::class.java.typeName,
+                        "resumeWithExceptionRec",
+                        FILE_NAME,
+                        resumeWithExceptionRecBaseLineNumber + 8
+                    ), e.stackTrace[it]
+                )
             }
         }
     }
@@ -197,23 +219,27 @@ class RuntimeTest {
 
     private suspend fun overload(@Suppress("UNUSED_PARAMETER") par: Int) {
         val lineNumber = getLineNumber() + 1
-        suspendResumeAndCheckStack(StackTraceElement(
-            RuntimeTest::class.java.typeName,
-            "overload",
-            FILE_NAME,
-            lineNumber
-        ))
+        suspendResumeAndCheckStack(
+            StackTraceElement(
+                RuntimeTest::class.java.typeName,
+                "overload",
+                FILE_NAME,
+                lineNumber
+            )
+        )
         tailCallDeoptimize()
     }
 
     private suspend fun overload(@Suppress("UNUSED_PARAMETER") par: String) {
         val lineNumber = getLineNumber() + 1
-        suspendResumeAndCheckStack(StackTraceElement(
-            RuntimeTest::class.java.typeName,
-            "overload",
-            FILE_NAME,
-            lineNumber
-        ))
+        suspendResumeAndCheckStack(
+            StackTraceElement(
+                RuntimeTest::class.java.typeName,
+                "overload",
+                FILE_NAME,
+                lineNumber
+            )
+        )
         tailCallDeoptimize()
     }
 
@@ -222,5 +248,5 @@ class RuntimeTest {
         checkStacktrace(*elements)
     }
 
-    private fun tailCallDeoptimize() { }
+    private fun tailCallDeoptimize() {}
 }

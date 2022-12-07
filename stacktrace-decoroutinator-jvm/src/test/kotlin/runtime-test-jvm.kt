@@ -7,14 +7,11 @@ import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContin
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy
 import dev.reformator.stacktracedecoroutinator.utils.checkStacktrace
 import dev.reformator.stacktracedecoroutinator.utils.getLineNumber
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.atomic.AtomicReference
@@ -25,6 +22,29 @@ import kotlin.test.*
 private const val FILE_NAME = "runtime-test-jvm.kt"
 
 class TestException(message: String): Exception(message)
+
+// Jacoco only instruments this class
+class JacocoInstrumentedMethodTest {
+    @BeforeTest
+    fun setup() {
+        System.setProperty(
+            "dev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy",
+            DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy.SYSTEM_RESOURCE.name
+        )
+        DecoroutinatorRuntime.load()
+    }
+
+    //@Disabled
+    @Test
+    fun jacocoInstrumentedMethodTest(): Unit = runBlocking {
+        suspend fun jacocoInstrumentedMethod() {
+            yield()
+            yield()
+        }
+
+        jacocoInstrumentedMethod()
+    }
+}
 
 class ReloadBaseContinuationTest {
     @Test

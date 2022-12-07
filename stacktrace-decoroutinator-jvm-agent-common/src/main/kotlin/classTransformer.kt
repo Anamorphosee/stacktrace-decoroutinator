@@ -12,7 +12,7 @@ import java.lang.instrument.ClassFileTransformer
 import java.lang.invoke.MethodHandles
 import java.security.ProtectionDomain
 
-internal object DecoroutinatorBaseContinuationClassFileTransformer : ClassFileTransformer {
+internal object DecoroutinatorBaseContinuationClassFileTransformer: ClassFileTransformer {
     override fun transform(
         loader: ClassLoader?,
         internalClassName: String,
@@ -42,7 +42,7 @@ internal object DecoroutinatorBaseContinuationClassFileTransformer : ClassFileTr
     }
 }
 
-internal object DecoroutinatorClassFileTransformer : ClassFileTransformer {
+internal object DecoroutinatorClassFileTransformer: ClassFileTransformer {
     override fun transform(
         loader: ClassLoader?,
         internalClassName: String,
@@ -120,15 +120,13 @@ private fun getMetadataInfo(classNode: ClassNode): MetadataInfo? {
         }
     }
     return if (suspendFunc2LineNumbers.isNotEmpty()) {
-        val fileName = fileNames.run {
-            when {
-                isEmpty() -> null
-                size == 1 -> single()
-                else -> throw IllegalStateException(
-                    "class [${classNode.name}] contains suspend fun metadata with multiple file names: [$this]"
-                )
-            }
-        }
+        val fileName = fileNames.run { when {
+            isEmpty() -> null
+            size == 1 -> single()
+            else -> throw IllegalStateException(
+                "class [${classNode.name}] contains suspend fun metadata with multiple file names: [$this]"
+            )
+        } }
         MetadataInfo(fileName, suspendFunc2LineNumbers)
     } else {
         null
@@ -151,7 +149,7 @@ private fun MethodNode.getDebugMetadataInfo(): DebugMetadataInfo? {
         val next = it.next
         it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex
                 && next != null && next is TypeInsnNode && next.opcode == Opcodes.INSTANCEOF
-    }
+        }
         .firstOrNull()?.let {
             val continuationClassName = (it.next as TypeInsnNode).desc.replace('/', '.')
             decoroutinatorJvmAgentRegistry.metadataInfoResolver.getDebugMetadataInfo(continuationClassName)
@@ -216,22 +214,18 @@ private fun buildRegisterLookupMethod(): MethodNode {
         desc = "()V"
     }
     method.instructions.apply {
-        add(
-            MethodInsnNode(
-                Opcodes.INVOKESTATIC,
-                Type.getInternalName(MethodHandles::class.java),
-                "lookup",
-                "()${Type.getDescriptor(MethodHandles.Lookup::class.java)}"
-            )
-        )
-        add(
-            MethodInsnNode(
-                Opcodes.INVOKESTATIC,
-                registerLookupInternalClassName,
-                registerLookupMethodName,
-                "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})V"
-            )
-        )
+        add(MethodInsnNode(
+            Opcodes.INVOKESTATIC,
+            Type.getInternalName(MethodHandles::class.java),
+            "lookup",
+            "()${Type.getDescriptor(MethodHandles.Lookup::class.java)}"
+        ))
+        add(MethodInsnNode(
+            Opcodes.INVOKESTATIC,
+            registerLookupInternalClassName,
+            registerLookupMethodName,
+            "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})V"
+        ))
         add(InsnNode(Opcodes.RETURN))
     }
     return method

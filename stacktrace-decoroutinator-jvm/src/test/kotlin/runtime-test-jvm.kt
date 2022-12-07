@@ -21,7 +21,7 @@ import kotlin.test.*
 
 private const val FILE_NAME = "runtime-test-jvm.kt"
 
-class TestException(message: String) : Exception(message)
+class TestException(message: String): Exception(message)
 
 // Jacoco only instruments this class
 class JacocoInstrumentedMethodTest {
@@ -71,8 +71,8 @@ class RuntimeTest {
         val random = Random(123)
         val size = 30
         val lineNumberOffsets = generateSequence {
-            allowedLineNumberOffsets[random.nextInt(allowedLineNumberOffsets.size)]
-        }
+                allowedLineNumberOffsets[random.nextInt(allowedLineNumberOffsets.size)]
+            }
             .take(size)
             .toList()
         val job = launch {
@@ -102,14 +102,12 @@ class RuntimeTest {
         } catch (e: RuntimeException) {
             e.printStackTrace()
             (1..10).forEach {
-                assertEquals(
-                    StackTraceElement(
-                        RuntimeTest::class.java.typeName,
-                        "resumeWithExceptionRec",
-                        FILE_NAME,
-                        resumeWithExceptionRecBaseLineNumber + 8
-                    ), e.stackTrace[it]
-                )
+                assertEquals(StackTraceElement(
+                    RuntimeTest::class.java.typeName,
+                    "resumeWithExceptionRec",
+                    FILE_NAME,
+                    resumeWithExceptionRecBaseLineNumber + 8
+                ), e.stackTrace[it])
             }
         }
     }
@@ -219,27 +217,23 @@ class RuntimeTest {
 
     private suspend fun overload(@Suppress("UNUSED_PARAMETER") par: Int) {
         val lineNumber = getLineNumber() + 1
-        suspendResumeAndCheckStack(
-            StackTraceElement(
-                RuntimeTest::class.java.typeName,
-                "overload",
-                FILE_NAME,
-                lineNumber
-            )
-        )
+        suspendResumeAndCheckStack(StackTraceElement(
+            RuntimeTest::class.java.typeName,
+            "overload",
+            FILE_NAME,
+            lineNumber
+        ))
         tailCallDeoptimize()
     }
 
     private suspend fun overload(@Suppress("UNUSED_PARAMETER") par: String) {
         val lineNumber = getLineNumber() + 1
-        suspendResumeAndCheckStack(
-            StackTraceElement(
-                RuntimeTest::class.java.typeName,
-                "overload",
-                FILE_NAME,
-                lineNumber
-            )
-        )
+        suspendResumeAndCheckStack(StackTraceElement(
+            RuntimeTest::class.java.typeName,
+            "overload",
+            FILE_NAME,
+            lineNumber
+        ))
         tailCallDeoptimize()
     }
 
@@ -248,5 +242,5 @@ class RuntimeTest {
         checkStacktrace(*elements)
     }
 
-    private fun tailCallDeoptimize() {}
+    private fun tailCallDeoptimize() { }
 }

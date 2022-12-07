@@ -4,6 +4,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.reformator.stacktracedecoroutinator.utils.checkStacktrace
 import dev.reformator.stacktracedecoroutinator.utils.getLineNumber
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -82,6 +85,33 @@ class RuntimeTest {
             }
         } catch (e: Throwable) {
             e.printStackTrace()
+        }
+    }
+
+    @Test
+    fun testSuspendCrossinlineInDifferentFile() {
+        val flow = flow {
+            for (i in 2..6) {
+                emit(i)
+                delay(10)
+                emit(i * i * i)
+            }
+        }.transform {
+            emit(it)
+            delay(10)
+            emit(it * it * it)
+        }.transform {
+            emit(it.toString())
+            if (it == 5 * 5 * 5) {
+                throw Exception("check")
+            }
+        }
+        try {
+            runBlocking {
+                flow.collect { }
+            }
+        } catch (e: Exception) {
+            assertEquals("check", e.message)
         }
     }
 

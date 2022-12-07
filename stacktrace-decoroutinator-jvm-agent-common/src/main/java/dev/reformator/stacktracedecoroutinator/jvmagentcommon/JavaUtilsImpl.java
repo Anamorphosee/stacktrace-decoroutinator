@@ -19,7 +19,7 @@ public class JavaUtilsImpl implements JavaUtils {
     @Nullable
     @Override
     public DebugMetadataInfo getDebugMetadataInfo(@NotNull String className) {
-        Class<?> clazz = null;
+        Class<?> clazz;
         try {
             clazz = Class.forName(className, false, getClass().getClassLoader());
         } catch (ClassNotFoundException e) {
@@ -31,6 +31,10 @@ public class JavaUtilsImpl implements JavaUtils {
         }
         String internalClassName = metadata.c().replace('.', '/');
         Set<Integer> lineNumbers = Arrays.stream(metadata.l()).boxed().collect(Collectors.toSet());
-        return new DebugMetadataInfo(internalClassName, metadata.m(), lineNumbers);
+        String fileName = metadata.f();
+        if (fileName.equals("")) {
+            fileName = null;
+        }
+        return new DebugMetadataInfo(internalClassName, metadata.m(), fileName, lineNumbers);
     }
 }

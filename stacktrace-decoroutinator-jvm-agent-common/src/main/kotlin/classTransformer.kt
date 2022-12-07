@@ -70,14 +70,16 @@ internal object DecoroutinatorClassFileTransformer: ClassFileTransformer {
         if (classNode.isTransformed()) {
             return null
         }
-        val suspendFuncName2LineNumbers = getSuspendFuncName2LineNumbersMap(classNode)
-        if (suspendFuncName2LineNumbers.isEmpty()) {
-            return null
-        }
-        classNode.transform(suspendFuncName2LineNumbers)
+        val metadataInfo = getMetadataInfo(classNode) ?: return null
+        classNode.transform(metadataInfo)
         return getClassBody(classNode)
     }
 }
+
+private data class MetadataInfo(
+    val fileName: String?,
+    val suspendFuncName2LineNumbers: Map<String, Set<Int>>
+)
 
 private fun getClassBody(classNode: ClassNode): ByteArray {
     val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
@@ -97,14 +99,18 @@ private fun ClassNode.isTransformed(): Boolean =
         .orEmpty()
         .find { it.desc == Type.getDescriptor(DecoroutinatorAgentTransformedMarker::class.java) } != null
 
-private fun getSuspendFuncName2LineNumbersMap(classNode: ClassNode): Map<String, Set<Int>> {
-    val result = mutableMapOf<String, MutableSet<Int>>()
+private fun getMetadataInfo(classNode: ClassNode): MetadataInfo? {
+    val suspendFunc2LineNumbers = mutableMapOf<String, MutableSet<Int>>()
+    val fileNames = mutableSetOf<String>()
     val check = { info: DebugMetadataInfo? ->
         if (info != null && info.internalClassName == classNode.name && info.lineNumbers.isNotEmpty()) {
-            val currentLineNumbers = result.computeIfAbsent(info.methodName) {
+            val currentLineNumbers = suspendFunc2LineNumbers.computeIfAbsent(info.methodName) {
                 mutableSetOf()
             }
             currentLineNumbers.addAll(info.lineNumbers)
+            if (info.fileName != null) {
+                fileNames.add(info.fileName)
+            }
         }
     }
     check(classNode.getDebugMetadataInfo())
@@ -113,7 +119,18 @@ private fun getSuspendFuncName2LineNumbersMap(classNode: ClassNode): Map<String,
             check(method.getDebugMetadataInfo())
         }
     }
-    return result
+    return if (suspendFunc2LineNumbers.isNotEmpty()) {
+        val fileName = fileNames.run { when {
+            isEmpty() -> null
+            size == 1 -> single()
+            else -> throw IllegalStateException(
+                "class [${classNode.name}] contains suspend fun metadata with multiple file names: [$this]"
+            )
+        } }
+        MetadataInfo(fileName, suspendFunc2LineNumbers)
+    } else {
+        null
+    }
 }
 
 private fun MethodNode.getDebugMetadataInfo(): DebugMetadataInfo? {
@@ -156,9 +173,9 @@ private val MethodNode.hasCode: Boolean
 private val MethodNode.isSuspend: Boolean
     get() = desc.endsWith("Lkotlin/coroutines/Continuation;)Ljava/lang/Object;")
 
-private fun ClassNode.transform(suspendFuncName2LineNumbers: Map<String, Set<Int>>) {
+private fun ClassNode.transform(metadataInfo: MetadataInfo) {
     version = maxOf(version, Opcodes.V1_8)
-    suspendFuncName2LineNumbers.forEach { methodName, lineNumbers ->
+    metadataInfo.suspendFuncName2LineNumbers.forEach { (methodName, lineNumbers) ->
         methods.add(buildStacktraceMethodNode(methodName, lineNumbers, true))
     }
     methods.add(buildRegisterLookupMethod())
@@ -170,19 +187,16 @@ private fun ClassNode.transform(suspendFuncName2LineNumbers: Map<String, Set<Int
     if (visibleAnnotations == null) {
         visibleAnnotations = mutableListOf()
     }
-    visibleAnnotations.add(buildMarkerAnnotation(sourceFile, suspendFuncName2LineNumbers))
+    visibleAnnotations.add(buildMarkerAnnotation(metadataInfo))
 }
 
-private fun buildMarkerAnnotation(
-    fileName: String?,
-    methodName2LineNumbers: Map<String, Set<Int>>
-): AnnotationNode {
+private fun buildMarkerAnnotation(metadataInfo: MetadataInfo): AnnotationNode {
     val result = AnnotationNode(Opcodes.ASM9, Type.getDescriptor(DecoroutinatorAgentTransformedMarker::class.java))
-    val list = methodName2LineNumbers.entries.toList()
+    val list = metadataInfo.suspendFuncName2LineNumbers.entries.toList()
     result.values = buildList {
-        if (fileName != null) {
+        if (metadataInfo.fileName != null) {
             add("fileName")
-            add(fileName)
+            add(metadataInfo.fileName)
         } else {
             add("fileNamePresent")
             add(false)

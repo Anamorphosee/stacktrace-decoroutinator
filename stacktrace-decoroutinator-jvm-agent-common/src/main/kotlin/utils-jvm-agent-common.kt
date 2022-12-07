@@ -30,6 +30,7 @@ internal interface JavaUtils {
 data class DebugMetadataInfo(
     val internalClassName: String,
     val methodName: String,
+    val fileName: String?,
     val lineNumbers: Set<Int>
 )
 
@@ -66,11 +67,17 @@ internal fun ClassNode.getDebugMetadataInfo(): DebugMetadataInfo? {
                 .toMap()
             val internalClassName = (parameters["c"] as String).replace('.', '/')
             val methodName = parameters["m"] as String
+            val fileName = (parameters["f"] as String).ifEmpty { null }
             val lineNumbers = (parameters["l"] as List<Int>).toSet()
             if (lineNumbers.isEmpty()) {
                 return null
             }
-            return DebugMetadataInfo(internalClassName, methodName, lineNumbers)
+            return DebugMetadataInfo(
+                internalClassName = internalClassName,
+                methodName = methodName,
+                fileName = fileName,
+                lineNumbers = lineNumbers,
+            )
         }
     }
     return null

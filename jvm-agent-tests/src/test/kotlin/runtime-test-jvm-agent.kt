@@ -1,6 +1,9 @@
 package dev.reformator.stacktracedecoroutinator.test
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -68,6 +71,33 @@ class RuntimeTest {
     @Test
     fun testLoadSelfDefinedClass() {
         Class.forName("io.ktor.utils.io.ByteBufferChannel")
+    }
+
+    @Test
+    fun testSuspendCrossinlineInDifferentFile() {
+        val flow = flow {
+            for (i in 2..6) {
+                emit(i)
+                delay(10)
+                emit(i * i * i)
+            }
+        }.transform {
+            emit(it)
+            delay(10)
+            emit(it * it * it)
+        }.transform {
+            emit(it.toString())
+            if (it == 5 * 5 * 5) {
+                throw Exception("check")
+            }
+        }
+        try {
+            runBlocking {
+                flow.collect { }
+            }
+        } catch (e: Exception) {
+            assertEquals("check", e.message)
+        }
     }
 
     private var resumeWithExceptionRecBaseLineNumber: Int = 0

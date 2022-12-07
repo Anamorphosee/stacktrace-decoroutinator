@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm")
     `maven-publish`
     signing
+    jacoco
 }
 
 repositories {
@@ -27,6 +28,9 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    extensions.configure(JacocoTaskExtension::class) {
+        includes = listOf("dev.reformator.stacktracedecoroutinator.runtime.JacocoInstrumentedMethodTest*")
+    }
 }
 
 tasks.withType<KotlinCompile> {

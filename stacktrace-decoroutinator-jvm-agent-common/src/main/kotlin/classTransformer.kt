@@ -145,26 +145,15 @@ private fun MethodNode.getDebugMetadataInfo(): DebugMetadataInfo? {
             .forEach { continuationIndex += it.size }
         continuationIndex
     }
-    val firstInstructions: List<AbstractInsnNode> = instructions.asSequence()
-        .filter { it.opcode != -1 && it.opcode != Opcodes.NOP }
-        .take(2)
-        .toList()
-    if (firstInstructions.size == 2) {
-        val isAloadContinuation = firstInstructions[0].let {
-            it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex
+    return instructions.asSequence().filter {
+        val next = it.next
+        it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex
+                && next != null && next is TypeInsnNode && next.opcode == Opcodes.INSTANCEOF
         }
-        val continuationClassName = firstInstructions[1].let {
-            if (it is TypeInsnNode && it.opcode == Opcodes.INSTANCEOF) {
-                it.desc.replace('/', '.')
-            } else {
-                null
-            }
+        .firstOrNull()?.let {
+            val continuationClassName = (it.next as TypeInsnNode).desc.replace('/', '.')
+            decoroutinatorJvmAgentRegistry.metadataInfoResolver.getDebugMetadataInfo(continuationClassName)
         }
-        if (isAloadContinuation && continuationClassName != null) {
-            return decoroutinatorJvmAgentRegistry.metadataInfoResolver.getDebugMetadataInfo(continuationClassName)
-        }
-    }
-    return null
 }
 
 private val MethodNode.hasCode: Boolean

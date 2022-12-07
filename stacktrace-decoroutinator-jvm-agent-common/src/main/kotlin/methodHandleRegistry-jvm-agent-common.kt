@@ -18,7 +18,7 @@ object DecoroutinatorJvmAgentStacktraceMethodHandleRegistry: DecoroutinatorStack
         val className2Spec = notSynchronizedClassName2Spec
         var needUpdateClassName2Spec = false
         val result = mutableMapOf<DecoroutinatorStacktraceElement, MethodHandle>()
-        elements.groupBy { it.className }.forEach { className, elements ->
+        elements.groupBy { it.className }.forEach { (className, elements) ->
             val classSpec = className2Spec[className] ?: run {
                 needUpdateClassName2Spec = true
                 calculateClassSpec(className)
@@ -28,23 +28,15 @@ object DecoroutinatorJvmAgentStacktraceMethodHandleRegistry: DecoroutinatorStack
                 .distinct()
                 .single()
             if (fileName != classSpec.fileName) {
-                throw IllegalStateException(
-                    "different file names for class [$className]: [$fileName] and [${classSpec.fileName}]"
-                )
+                error("different file names for class [$className]: [$fileName] and [${classSpec.fileName}]")
             }
-            elements.groupBy { it.methodName }.forEach { methodName, elements ->
+            elements.groupBy { it.methodName }.forEach { (methodName, elements) ->
                 val methodSpec = classSpec.methodName2Spec[methodName]
-                if (methodSpec == null) {
-                    throw IllegalStateException(
-                        "not found stacktrace method [$methodName] for class [$className]"
-                    )
-                }
+                    ?: error("not found stacktrace method [$methodName] for class [$className]")
                 elements.forEach { element ->
                     if (element.lineNumber !in methodSpec.lineNumbers) {
-                        throw IllegalStateException(
-                            "not found line number [${element.lineNumber}] for stacktrace method [$methodName] " +
-                                    "in class [$className]"
-                        )
+                        error("not found line number [${element.lineNumber}] for stacktrace method [$methodName] " +
+                                "in class [$className]")
                     }
                     result[element] = methodSpec.handle
                 }
@@ -58,17 +50,14 @@ object DecoroutinatorJvmAgentStacktraceMethodHandleRegistry: DecoroutinatorStack
 
     private fun calculateClassSpec(className: String): ClassSpec = className2Spec.computeIfAbsent(className) {
         val clazz = Class.forName(className)
-        val marker: DecoroutinatorAgentTransformedMarker? =
+        val marker: DecoroutinatorAgentTransformedMarker =
             clazz.getAnnotation(DecoroutinatorAgentTransformedMarker::class.java)
                 ?: if (decoroutinatorJvmAgentRegistry.isRetransformationAllowed) {
                     decoroutinatorJvmAgentRegistry.retransform(clazz)
                     clazz.getAnnotation(DecoroutinatorAgentTransformedMarker::class.java)
                 } else {
                     null
-                }
-        if (marker == null) {
-            error("The class [$className] was not transformed for Stacktrace-decoroutinator.")
-        }
+                } ?: error("The class [$className] was not transformed for Stacktrace-decoroutinator.")
         val methodName2Spec = buildMap(marker.methodNames.size) {
             var lineNumberIndex = 0
             marker.methodNames.forEachIndexed { index, methodName ->

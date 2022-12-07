@@ -1,3 +1,5 @@
+@file:Suppress("PackageDirectoryMismatch")
+
 package dev.reformator.stacktracedecoroutinator.runtime
 
 import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
@@ -6,6 +8,9 @@ import dev.reformator.stacktracedecoroutinator.jvmagentcommon.DecoroutinatorJvmA
 import dev.reformator.stacktracedecoroutinator.utils.checkStacktrace
 import dev.reformator.stacktracedecoroutinator.utils.getLineNumber
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -17,7 +22,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
 import kotlin.test.*
 
-private const val fileName = "runtime-test-jvm.kt"
+private const val FILE_NAME = "runtime-test-jvm.kt"
 
 class TestException(message: String): Exception(message)
 
@@ -80,7 +85,7 @@ class RuntimeTest {
                 assertEquals(StackTraceElement(
                     RuntimeTest::class.java.typeName,
                     "resumeWithExceptionRec",
-                    fileName,
+                    FILE_NAME,
                     resumeWithExceptionRecBaseLineNumber + 8
                 ), e.stackTrace[it])
             }
@@ -90,6 +95,33 @@ class RuntimeTest {
     @Test
     fun testLoadSelfDefinedClass() {
         Class.forName("io.ktor.utils.io.ByteBufferChannel")
+    }
+
+    @Test
+    fun testSuspendCrossinlineInDifferentFile() {
+        val flow = flow {
+            for (i in 2..6) {
+                emit(i)
+                delay(10)
+                emit(i * i * i)
+            }
+        }.transform {
+            emit(it)
+            delay(10)
+            emit(it * it * it)
+        }.transform {
+            emit(it.toString())
+            if (it == 5 * 5 * 5) {
+                throw Exception("check")
+            }
+        }
+        try {
+            runBlocking {
+                flow.collect { }
+            }
+        } catch (e: Exception) {
+            assertEquals("check", e.message)
+        }
     }
 
     private var resumeWithExceptionRecBaseLineNumber: Int = 0
@@ -117,7 +149,7 @@ class RuntimeTest {
             StackTraceElement(
                 RuntimeTest::class.java.typeName,
                 "rec",
-                fileName,
+                FILE_NAME,
                 recBaseLineNumber + it
             )
         }.toTypedArray()
@@ -163,23 +195,23 @@ class RuntimeTest {
         }
     }
 
-    private suspend fun overload(par: Int) {
+    private suspend fun overload(@Suppress("UNUSED_PARAMETER") par: Int) {
         val lineNumber = getLineNumber() + 1
         suspendResumeAndCheckStack(StackTraceElement(
             RuntimeTest::class.java.typeName,
             "overload",
-            fileName,
+            FILE_NAME,
             lineNumber
         ))
         tailCallDeoptimize()
     }
 
-    private suspend fun overload(par: String) {
+    private suspend fun overload(@Suppress("UNUSED_PARAMETER") par: String) {
         val lineNumber = getLineNumber() + 1
         suspendResumeAndCheckStack(StackTraceElement(
             RuntimeTest::class.java.typeName,
             "overload",
-            fileName,
+            FILE_NAME,
             lineNumber
         ))
         tailCallDeoptimize()

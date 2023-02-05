@@ -1,3 +1,5 @@
+@file:Suppress("PackageDirectoryMismatch")
+
 package dev.reformator.stacktracedecoroutinator.stdlib
 
 import dev.reformator.stacktracedecoroutinator.common.*

@@ -1,20 +1,19 @@
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 
 import dev.reformator.stacktracedecoroutinator.common.getFileClass
+import dev.reformator.stacktracedecoroutinator.jvmcommon.loadResource
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import java.lang.invoke.MethodHandles
-import java.nio.file.FileSystems
 import java.util.concurrent.ConcurrentHashMap
 
 enum class DecoroutinatorJvmAgentDebugMetadataInfoResolveStrategy: DecoroutinatorDebugMetadataInfoResolver {
     SYSTEM_RESOURCE {
         override fun getDebugMetadataInfo(className: String): DebugMetadataInfo? {
             val path = className.replace('.', '/') + ".class"
-            return ClassLoader.getSystemResourceAsStream(path)?.use { classBodyStream ->
-                val classBody = classBodyStream.readBytes()
+            return loadResource(path)?.let { classBody ->
                 val classReader = ClassReader(classBody)
                 val classNode = ClassNode(Opcodes.ASM9)
                 classReader.accept(classNode, ClassReader.SKIP_CODE)

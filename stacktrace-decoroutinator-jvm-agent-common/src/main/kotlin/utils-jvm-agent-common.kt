@@ -1,13 +1,14 @@
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 
 import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.jvmcommon.loadResource
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import java.lang.instrument.Instrumentation
 import kotlin.coroutines.suspendCoroutine
 
 val BASE_CONTINUATION_INTERNAL_CLASS_NAME = BASE_CONTINUATION_CLASS_NAME.replace('.', '/')
-val REGISTER_LOOKUP_METHOD_NAME = "\$decoroutinatorRegisterLookup"
+const val REGISTER_LOOKUP_METHOD_NAME = "\$decoroutinatorRegisterLookup"
 private val debugMetadataAnnotationClassDescriptor = Type.getDescriptor(JavaUtilsImpl.metadataAnnotationClass)
 
 @Target(AnnotationTarget.CLASS)
@@ -42,9 +43,7 @@ fun addDecoroutinatorClassFileTransformers(inst: Instrumentation) {
     Class.forName(BASE_CONTINUATION_CLASS_NAME)
     val stubClassName = _preloadStub::class.java.name
     val stubClassPath = stubClassName.replace('.', '/') + ".class"
-    val stubClassBody = ClassLoader.getSystemResourceAsStream(stubClassPath).use { classBodyStream ->
-        classBodyStream.readBytes()
-    }
+    val stubClassBody = loadResource(stubClassPath)!!
     val stubClassInternalName = stubClassName.replace('.', '/')
     DecoroutinatorClassFileTransformer.transform(
         loader = null,
@@ -68,7 +67,7 @@ internal fun ClassNode.getDebugMetadataInfo(): DebugMetadataInfo? {
             val internalClassName = (parameters["c"] as String).replace('.', '/')
             val methodName = parameters["m"] as String
             val fileName = (parameters["f"] as String).ifEmpty { null }
-            val lineNumbers = (parameters["l"] as List<Int>).toSet()
+            @Suppress("UNCHECKED_CAST") val lineNumbers = (parameters["l"] as List<Int>).toSet()
             if (lineNumbers.isEmpty()) {
                 return null
             }
@@ -83,9 +82,9 @@ internal fun ClassNode.getDebugMetadataInfo(): DebugMetadataInfo? {
     return null
 }
 
-
 @Suppress("ClassName")
 private class _preloadStub {
+    @Suppress("Unused")
     suspend fun suspendFun() {
         suspendCoroutine<Unit> { }
     }

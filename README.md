@@ -164,5 +164,8 @@ class MyApp: Application() {
 }
 ```
 
+### Problem with Jacoco and Decoroutinator
+Using Jacoco and Decoroutinator as Java agent may lead to the loss of code coverage. It's [common Jacoco Problem](https://www.eclemma.org/jacoco/trunk/doc/classids.html). In order not to lose coverage, make sure that the Jacoco agent comes before the Decoroutinator agent. See more at #24.
+
 ### Communication
 Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions).

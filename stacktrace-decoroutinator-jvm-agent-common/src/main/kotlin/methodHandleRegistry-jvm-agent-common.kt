@@ -3,10 +3,11 @@ package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorStacktraceElement
 import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorStacktraceMethodHandleRegistry
 import dev.reformator.stacktracedecoroutinator.common.invokeStacktraceMethodType
+import dev.reformator.stacktracedecoroutinator.jvmlegacycommon.DecoroutinatorJvmLegacyStacktraceMethodHandleRegistry
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.ConcurrentHashMap
 
-object DecoroutinatorJvmAgentStacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry {
+object DecorountinatorJvmStacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry {
     private val className2Spec = ConcurrentHashMap<String, ClassSpec>()
 
     @Volatile
@@ -14,50 +15,25 @@ object DecoroutinatorJvmAgentStacktraceMethodHandleRegistry: DecoroutinatorStack
 
     override fun getStacktraceMethodHandles(
         elements: Collection<DecoroutinatorStacktraceElement>
-    ): Map<DecoroutinatorStacktraceElement, MethodHandle> {
-        val className2Spec = notSynchronizedClassName2Spec
-        var needUpdateClassName2Spec = false
-        val result = mutableMapOf<DecoroutinatorStacktraceElement, MethodHandle>()
+    ): Map<DecoroutinatorStacktraceElement, MethodHandle> = buildMap {
         elements.groupBy { it.className }.forEach { (className, elements) ->
-            val classSpec = className2Spec[className] ?: run {
-                needUpdateClassName2Spec = true
-                calculateClassSpec(className)
+            val clazz = Class.forName(className)
+            if (tryAgentMethodHandleRegistry(className, clazz, elements)) {
+                return@forEach
             }
-            val fileName = elements.asSequence()
-                .map { it.fileName }
-                .distinct()
-                .single()
-            if (fileName != classSpec.fileName) {
-                error("different file names for class [$className]: [$fileName] and [${classSpec.fileName}]")
-            }
-            elements.groupBy { it.methodName }.forEach { (methodName, elements) ->
-                val methodSpec = classSpec.methodName2Spec[methodName]
-                    ?: error("not found stacktrace method [$methodName] for class [$className]")
-                elements.forEach { element ->
-                    if (element.lineNumber !in methodSpec.lineNumbers) {
-                        error("not found line number [${element.lineNumber}] for stacktrace method [$methodName] " +
-                                "in class [$className]")
-                    }
-                    result[element] = methodSpec.handle
+            if (decoroutinatorJvmAgentRegistry.isRetransformationAllowed) {
+                decoroutinatorJvmAgentRegistry.retransform(clazz)
+                if (tryAgentMethodHandleRegistry(className, clazz, elements)) {
+                    return@forEach
                 }
             }
+            putAll(DecoroutinatorJvmLegacyStacktraceMethodHandleRegistry.getStacktraceMethodHandles(elements))
         }
-        if (needUpdateClassName2Spec) {
-            updateClassName2Spec()
-        }
-        return result
     }
 
-    private fun calculateClassSpec(className: String): ClassSpec = className2Spec.computeIfAbsent(className) {
-        val clazz = Class.forName(className)
+    private fun calculateClassSpec(className: String, clazz: Class<*>): ClassSpec = className2Spec.computeIfAbsent(className) {
         val marker: DecoroutinatorAgentTransformedMarker =
             clazz.getAnnotation(DecoroutinatorAgentTransformedMarker::class.java)
-                ?: if (decoroutinatorJvmAgentRegistry.isRetransformationAllowed) {
-                    decoroutinatorJvmAgentRegistry.retransform(clazz)
-                    clazz.getAnnotation(DecoroutinatorAgentTransformedMarker::class.java)
-                } else {
-                    null
-                } ?: error("The class [$className] was not transformed for Stacktrace-decoroutinator.")
         val methodName2Spec = buildMap(marker.methodNames.size) {
             var lineNumberIndex = 0
             marker.methodNames.forEachIndexed { index, methodName ->
@@ -84,6 +60,46 @@ object DecoroutinatorJvmAgentStacktraceMethodHandleRegistry: DecoroutinatorStack
             } catch (_: ConcurrentModificationException) { }
         }
     }
+
+    private fun MutableMap<DecoroutinatorStacktraceElement, MethodHandle>.tryAgentMethodHandleRegistry(
+        className: String,
+        clazz: Class<*>,
+        elements: List<DecoroutinatorStacktraceElement>
+    ): Boolean =
+        if (clazz.isDecoroutinatorAgentTransformed) {
+            val className2Spec = notSynchronizedClassName2Spec
+            var needUpdateClassName2Spec = false
+            val classSpec = className2Spec[className] ?: run {
+                needUpdateClassName2Spec = true
+                calculateClassSpec(className, clazz)
+            }
+            val fileName = elements.asSequence()
+                .map { it.fileName }
+                .distinct()
+                .single()
+            if (fileName != classSpec.fileName) {
+                error("different file names for class [$className]: [$fileName] and [${classSpec.fileName}]")
+            }
+            elements.groupBy { it.methodName }.forEach { (methodName, elements) ->
+                val methodSpec = classSpec.methodName2Spec[methodName]
+                    ?: error("not found stacktrace method [$methodName] for class [$className]")
+                elements.forEach { element ->
+                    if (element.lineNumber !in methodSpec.lineNumbers) {
+                        error(
+                            "not found line number [${element.lineNumber}] for stacktrace method [$methodName] " +
+                                    "in class [$className]"
+                        )
+                    }
+                    this[element] = methodSpec.handle
+                }
+            }
+            if (needUpdateClassName2Spec) {
+                updateClassName2Spec()
+            }
+            true
+        } else {
+            false
+        }
 }
 
 private data class ClassSpec(

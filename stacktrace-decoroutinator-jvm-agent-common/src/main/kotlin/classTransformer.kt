@@ -231,21 +231,16 @@ private fun buildRegisterLookupMethod(): MethodNode {
     return method
 }
 
-private fun ClassNode.getOrCreateClinitMethod(): MethodNode {
-    val result = methods.firstOrNull {
+private fun ClassNode.getOrCreateClinitMethod(): MethodNode =
+    methods.firstOrNull {
         it.name == "<clinit>" && it.desc == "()V" && it.isStatic
+    } ?: MethodNode(Opcodes.ASM9).apply {
+        name = "<clinit>"
+        desc = "()V"
+        access = Opcodes.ACC_STATIC or Opcodes.ACC_SYNTHETIC
+        instructions.add(InsnNode(Opcodes.RETURN))
+        methods.add(this)
     }
-    if (result == null) {
-        val result = MethodNode(Opcodes.ASM9)
-        result.name = "<clinit>"
-        result.desc = "()V"
-        result.access = Opcodes.ACC_STATIC or Opcodes.ACC_SYNTHETIC
-        result.instructions.add(InsnNode(Opcodes.RETURN))
-        methods.add(result)
-        return result
-    }
-    return result
-}
 
 private val MethodNode.isStatic: Boolean
     get() = access and Opcodes.ACC_STATIC != 0

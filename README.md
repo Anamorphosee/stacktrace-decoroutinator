@@ -1,4 +1,4 @@
-[![Maven Central](https://img.shields.io/maven-central/v/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator-jvm.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22dev.reformator.stacktracedecoroutinator%22%20AND%20a:%22stacktrace-decoroutinator-jvm%22)
+![Maven Central](https://img.shields.io/maven-central/v/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator-jvm)
 # Stacktrace-decoroutinator
 Library for recovering stack trace in exceptions thrown in Kotlin coroutines.
 
@@ -84,9 +84,9 @@ Thus, if the coroutine throws an exception, they mimic the real call stack of th
 
 ### JVM
 There are three ways to enable Stacktrace-decoroutinator for JVM.
-1. (recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.6` and call method `DecoroutinatorRuntime.load()`.
-2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.6.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.6`.
-3. (less recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-legacy:2.3.6` and call method `DecoroutinatorRuntime.load()`. This way doesn't use Java instrumentation API unlike the way number 1.
+1. (recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.7` and call method `DecoroutinatorRuntime.load()`.
+2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.7.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.7`.
+3. (less recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-legacy:2.3.7` and call method `DecoroutinatorRuntime.load()`. This way doesn't use Java instrumentation API unlike the way number 1.
 
 Usage example:
 ```kotlin
@@ -152,7 +152,7 @@ java.lang.Exception: exception at 1653565535416
 ```
 
 ### Android
-To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.6` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
+To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.7` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
 
 It's recomended to add `DecoroutinatorRuntime.load()` call in your `Application.onCreate()` method. Example:
 ```kotlin
@@ -163,6 +163,9 @@ class MyApp: Application() {
     }
 }
 ```
+
+### Problem with Jacoco and Decoroutinator
+Using Jacoco and Decoroutinator as Java agent may lead to the loss of code coverage. It's [common Jacoco Problem](https://www.eclemma.org/jacoco/trunk/doc/classids.html). In order not to lose coverage, make sure that the Jacoco agent comes before the Decoroutinator agent. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/24.
 
 ### Communication
 Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions).

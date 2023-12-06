@@ -13,6 +13,7 @@ repositories {
 dependencies {
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-jvm-common"))
+    implementation(project(":stacktrace-decoroutinator-jvm-legacy-common"))
 
     implementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
 

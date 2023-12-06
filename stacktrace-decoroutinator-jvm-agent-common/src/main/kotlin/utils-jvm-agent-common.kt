@@ -38,7 +38,7 @@ data class DebugMetadataInfo(
 fun addDecoroutinatorClassFileTransformers(inst: Instrumentation) {
     inst.addTransformer(
         DecoroutinatorBaseContinuationClassFileTransformer,
-        decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed
+        decoroutinatorJvmAgentRegistry.isBaseContinuationRetransformationAllowed && inst.isRetransformClassesSupported
     )
     Class.forName(BASE_CONTINUATION_CLASS_NAME)
     val stubClassName = _preloadStub::class.java.name
@@ -54,7 +54,7 @@ fun addDecoroutinatorClassFileTransformers(inst: Instrumentation) {
     )
     inst.addTransformer(
         DecoroutinatorClassFileTransformer,
-        decoroutinatorJvmAgentRegistry.isRetransformationAllowed
+        decoroutinatorJvmAgentRegistry.isRetransformationAllowed && inst.isRetransformClassesSupported
     )
 }
 

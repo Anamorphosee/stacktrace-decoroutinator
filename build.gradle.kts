@@ -15,5 +15,5 @@ buildscript {
 
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
-    version = "2.3.6"
+    version = "2.3.7-SNAPSHOT"
 }

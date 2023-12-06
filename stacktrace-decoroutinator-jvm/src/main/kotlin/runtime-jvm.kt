@@ -3,8 +3,8 @@ package dev.reformator.stacktracedecoroutinator.runtime
 import dev.reformator.stacktracedecoroutinator.common.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.common.decoroutinatorRegistry
 import dev.reformator.stacktracedecoroutinator.common.isDecoroutinatorBaseContinuation
-import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmRegistry
-import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorRuntimeJvmAgentRegistry
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.DecoroutinatorJvmAgentRegistryImpl
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.DecoroutinatorJvmRegistry
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.addDecoroutinatorClassFileTransformers
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.decoroutinatorJvmAgentRegistry
 import net.bytebuddy.agent.ByteBuddyAgent
@@ -22,7 +22,7 @@ object DecoroutinatorRuntime {
             }
             val inst = ByteBuddyAgent.install()
             decoroutinatorRegistry = DecoroutinatorJvmRegistry
-            decoroutinatorJvmAgentRegistry = DecoroutinatorRuntimeJvmAgentRegistry(inst)
+            decoroutinatorJvmAgentRegistry = DecoroutinatorJvmAgentRegistryImpl(inst)
             addDecoroutinatorClassFileTransformers(inst)
             initialized = true
         }

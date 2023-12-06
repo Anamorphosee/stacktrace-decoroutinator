@@ -14,7 +14,6 @@ repositories {
 dependencies {
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
-    implementation(project(":stacktrace-decoroutinator-jvm-legacy-common"))
 
     implementation("net.bytebuddy:byte-buddy-agent:${properties["byteBuddyVersion"]}")
 

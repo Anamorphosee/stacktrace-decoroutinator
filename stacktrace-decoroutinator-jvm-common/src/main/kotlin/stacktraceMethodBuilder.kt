@@ -37,7 +37,7 @@ private val METHOD_DESC =
     ")L$OBJECT_INTERNAL_CLASS_NAME;"
 
 fun buildStacktraceMethodNode(methodName: String, lineNumbers: Set<Int>, makePrivate: Boolean): MethodNode {
-    val result = MethodNode().apply {
+    val result = MethodNode(/* latest api = */Opcodes.ASM9).apply {
         access = if (makePrivate) Opcodes.ACC_PRIVATE else Opcodes.ACC_PUBLIC
         access = access or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
         name = methodName

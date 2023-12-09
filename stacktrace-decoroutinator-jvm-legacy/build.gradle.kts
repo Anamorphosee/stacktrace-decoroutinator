@@ -24,6 +24,7 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     systemProperty("kotlinx.coroutines.stacktrace.recovery", "false")
+    jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
 }
 
 tasks.withType<KotlinCompile> {

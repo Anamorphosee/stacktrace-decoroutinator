@@ -1,4 +1,3 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="dev.reformator.stacktracedecoroutinator">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application android:name="dev.reformator.stacktracedecoroutinator.utils.DecoroutinatorApplication"/>
 </manifest>

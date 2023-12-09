@@ -1,9 +1,16 @@
+import java.util.*
+
 plugins {
     id("com.android.library")
     id("kotlin-android")
     `maven-publish`
     signing
 }
+
+val baseContinuationDexSourcesDir = layout.buildDirectory.get()
+    .dir("generated")
+    .dir("baseContinuationDexSources")
+    .asFile
 
 android {
     compileSdk = 26
@@ -21,6 +28,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    sourceSets {
+        android.sourceSets["main"].java.srcDir(baseContinuationDexSourcesDir)
+    }
+
+    namespace = "dev.reformator.stacktracedecoroutinator"
 }
 
 repositories {
@@ -39,18 +52,10 @@ dependencies {
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
 }
 
-val baseContinuationDexFile =
-    projectDir
-        .resolve("src")
-        .resolve("main")
-        .resolve("resources")
-        .resolve("decoroutinatorBaseContinuation.dex")
-
-val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
+val generateBaseContinuationDexSourcesTask = task("generateBaseContinuationDexSources") {
     dependsOn(":stdlib:jar")
     doLast {
-        baseContinuationDexFile.delete()
-        val destFolder = baseContinuationDexFile.parent
+        baseContinuationDexSourcesDir.deleteRecursively()
         val tmpDir = temporaryDir
         val jarFile = project(":stdlib")
             .tasks
@@ -67,21 +72,16 @@ val generateBaseContinuationDexTask = task("generateBaseContinuationDex") {
                 jarFile.absolutePath
             )
         }
-        copy {
-            from(tmpDir)
-            into(destFolder)
-            include("classes.dex")
-            rename("classes.dex", baseContinuationDexFile.name)
-        }
+        baseContinuationDexSourcesDir.mkdirs()
+        file(baseContinuationDexSourcesDir.resolve("baseContinuationContent.kt")).writeText(
+            file(projectDir.resolve("baseContinuationContent.ktTemplate")).readText()
+                .replace("\$CONTENT\$", Base64.getEncoder().encodeToString(tmpDir.resolve("classes.dex").readBytes()))
+        )
     }
 }
 
-tasks.clean {
-    delete(baseContinuationDexFile)
-}
-
 tasks.named("preBuild") {
-    dependsOn(generateBaseContinuationDexTask)
+    dependsOn(generateBaseContinuationDexSourcesTask)
 }
 
 val androidJavadocs = task("androidJavadocs", Javadoc::class) {

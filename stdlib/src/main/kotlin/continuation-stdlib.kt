@@ -4,7 +4,11 @@ import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorMarker
 import dev.reformator.stacktracedecoroutinator.common.decoroutinatorRegistry
 import dev.reformator.stacktracedecoroutinator.common.JavaUtilsImpl
 import dev.reformator.stacktracedecoroutinator.stdlib.decoroutinatorResumeWith
+import dev.reformator.stacktracedecoroutinator.stdlib.invokeSuspendFunc
 import java.io.Serializable
+import java.lang.invoke.MethodHandle
+import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
@@ -15,9 +19,14 @@ internal abstract class BaseContinuationImpl(
 ): Continuation<Any?>, CoroutineStackFrame, Serializable {
     final override fun resumeWith(result: Result<Any?>) {
         if (decoroutinatorRegistry.enabled) {
+            val invokeSuspendFuncLocal: MethodHandle = invokeSuspendFunc ?: run {
+                val result = MethodHandles.lookup().findVirtual(BaseContinuationImpl::class.java, "invokeSuspend", MethodType.methodType(Object::class.java, Object::class.java))
+                invokeSuspendFunc = result
+                result
+            }
             decoroutinatorResumeWith(
                 result,
-                invokeSuspendFunc = { invokeSuspend(it) },
+                invokeSuspendFunc = invokeSuspendFuncLocal,
                 releaseInterceptedFunc = { releaseIntercepted() }
             )
         } else {

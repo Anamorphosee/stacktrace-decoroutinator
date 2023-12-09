@@ -3,6 +3,7 @@ package dev.reformator.stacktracedecoroutinator.runtime
 import dalvik.system.BaseDexClassLoader
 import dalvik.system.InMemoryDexClassLoader
 import dev.reformator.stacktracedecoroutinator.android.DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl
+import dev.reformator.stacktracedecoroutinator.android.utils.baseContinuationDexBody
 import dev.reformator.stacktracedecoroutinator.common.*
 import java.lang.reflect.Field
 import java.nio.ByteBuffer
@@ -34,10 +35,7 @@ object DecoroutinatorRuntime {
             val dexElements = dexElementsField[pathList] as Array<Any>
 
             val decoroutinatorDexElements = run {
-                val dexBody = loader.getResourceAsStream("decoroutinatorBaseContinuation.dex").use{
-                    it.readBytes()
-                }
-                val dexClassLoader = InMemoryDexClassLoader(ByteBuffer.wrap(dexBody), null)
+                val dexClassLoader = InMemoryDexClassLoader(ByteBuffer.wrap(baseContinuationDexBody), null)
                 val pathList = pathListField[dexClassLoader]
                 dexElementsField[pathList] as Array<Any>
             }

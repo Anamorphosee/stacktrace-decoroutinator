@@ -9,9 +9,11 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.jvm.internal.BaseContinuationImpl
 
+var invokeSuspendFunc: MethodHandle? = null
+
 internal fun BaseContinuationImpl.decoroutinatorResumeWith(
     result: Result<Any?>,
-    invokeSuspendFunc: BaseContinuationImpl.(Result<Any?>) -> Any?,
+    invokeSuspendFunc: MethodHandle,
     releaseInterceptedFunc: BaseContinuationImpl.() -> Unit
 ) {
     val baseContinuations = buildList {
@@ -33,7 +35,7 @@ internal fun BaseContinuationImpl.decoroutinatorResumeWith(
         val continuation = baseContinuations[index]
         JavaUtilsImpl.probeCoroutineResumed(continuation)
         val newResult = try {
-            val newResult = continuation.invokeSuspendFunc(Result.success(result))
+            val newResult = invokeSuspendFunc.invokeExact(continuation, result)
             if (newResult === COROUTINE_SUSPENDED) {
                 return@BiFunction COROUTINE_SUSPENDED
             }

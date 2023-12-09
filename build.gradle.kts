@@ -7,7 +7,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:7.0.4")
+        classpath("com.android.tools.build:gradle:8.2.0")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.22")
         classpath("gradle.plugin.com.github.johnrengelman:shadow:7.1.2")
     }
@@ -15,5 +15,5 @@ buildscript {
 
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
-    version = "2.3.7"
+    version = "2.3.8-fix14-SNAPSHOT"
 }

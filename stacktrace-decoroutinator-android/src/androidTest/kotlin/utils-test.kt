@@ -29,8 +29,7 @@ fun getLineNumber(): Int {
 }
 
 class DecoroutinatorApplication: Application() {
-    override fun onCreate() {
+    init {
         DecoroutinatorRuntime.load()
-        super.onCreate()
     }
 }

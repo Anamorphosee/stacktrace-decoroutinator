@@ -154,12 +154,11 @@ java.lang.Exception: exception at 1653565535416
 ### Android
 To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.8` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
 
-It's recomended to add `DecoroutinatorRuntime.load()` call in your `Application.onCreate()` method. Example:
+It's recomended to add `DecoroutinatorRuntime.load()` call in your `Application`'s `init` block. Example:
 ```kotlin
 class MyApp: Application() {
-    override fun onCreate() {
+    init {
         DecoroutinatorRuntime.load()
-        super.onCreate()
     }
 }
 ```

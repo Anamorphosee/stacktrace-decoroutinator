@@ -220,7 +220,7 @@ class PerformanceTest {
             repeat(100) { index ->
                 callTraceInline(mocks) {
                     var startResumeTime = 0L
-                    suspendCoroutineUninterceptedOrReturn<Unit> { continuation ->
+                    suspendCoroutineUninterceptedOrReturn { continuation ->
                         thread {
                             Thread.sleep(10)
                             startResumeTime = System.nanoTime()

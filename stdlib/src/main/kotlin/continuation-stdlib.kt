@@ -20,9 +20,13 @@ internal abstract class BaseContinuationImpl(
     final override fun resumeWith(result: Result<Any?>) {
         if (decoroutinatorRegistry.enabled) {
             val invokeSuspendFuncLocal: MethodHandle = invokeSuspendFunc ?: run {
-                val result = MethodHandles.lookup().findVirtual(BaseContinuationImpl::class.java, "invokeSuspend", MethodType.methodType(Object::class.java, Object::class.java))
-                invokeSuspendFunc = result
-                result
+                MethodHandles.lookup().findVirtual(
+                    BaseContinuationImpl::class.java,
+                    "invokeSuspend",
+                    MethodType.methodType(Object::class.java, Object::class.java)
+                ).also {
+                    invokeSuspendFunc = it
+                }
             }
             decoroutinatorResumeWith(
                 result,

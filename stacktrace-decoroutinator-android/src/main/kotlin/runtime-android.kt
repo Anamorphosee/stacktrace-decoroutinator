@@ -22,6 +22,7 @@ object DecoroutinatorRuntime {
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun load(loader: ClassLoader = classLoader!!) {
         if (!isLoaderInstrumented(loader)) {
             val pathListField: Field = BaseDexClassLoader::class.java.getDeclaredField("pathList")
@@ -36,8 +37,8 @@ object DecoroutinatorRuntime {
 
             val decoroutinatorDexElements = run {
                 val dexClassLoader = InMemoryDexClassLoader(ByteBuffer.wrap(baseContinuationDexBody), null)
-                val pathList = pathListField[dexClassLoader]
-                dexElementsField[pathList] as Array<Any>
+                val dexPathList = pathListField[dexClassLoader]
+                dexElementsField[dexPathList] as Array<Any>
             }
 
             val newDexElements =  decoroutinatorDexElements plusArray dexElements
@@ -62,4 +63,4 @@ object DecoroutinatorRuntime {
     }
 }
 
-private inline infix fun <T> Array<T>.plusArray(elements: Array<out T>) = this + elements
+private infix fun <T> Array<T>.plusArray(elements: Array<out T>) = this + elements

@@ -31,11 +31,11 @@ internal fun BaseContinuationImpl.decoroutinatorResumeWith(
     val stacktraceElements = decoroutinatorRegistry.continuationStacktraceElementRegistry
         .getStacktraceElements(baseContinuations)
     fillStacktraceArrays(baseContinuations, stacktraceElements, stacktraceDepth, stacktraceHandles, stacktraceLineNumbers)
-    val invokeCoroutineFunction = BiFunction { index: Int, result: Any? ->
+    val invokeCoroutineFunction = BiFunction { index: Int, innerResult: Any? ->
         val continuation = baseContinuations[index]
         JavaUtilsImpl.probeCoroutineResumed(continuation)
         val newResult = try {
-            val newResult = invokeSuspendFunc.invokeExact(continuation, result)
+            val newResult = invokeSuspendFunc.invokeExact(continuation, innerResult)
             if (newResult === COROUTINE_SUSPENDED) {
                 return@BiFunction COROUTINE_SUSPENDED
             }

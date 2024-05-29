@@ -171,6 +171,7 @@ class RuntimeTest {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private suspend fun overload(par: Int) {
         val lineNumber = getLineNumber() + 1
         suspendResumeAndCheckStack(StackTraceElement(
@@ -182,6 +183,7 @@ class RuntimeTest {
         tailCallDeoptimize()
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private suspend fun overload(par: String) {
         val lineNumber = getLineNumber() + 1
         suspendResumeAndCheckStack(StackTraceElement(

@@ -30,7 +30,7 @@ val invokeStacktraceMethodType: MethodType = MethodType.methodType(
 )
 
 val unknownStacktraceMethodHandle: MethodHandle = lookup.findStatic(
-    Class.forName("UnknownKt"),
+    Class.forName("dev.reformator.stacktracedecoroutinator.common.UnknownKt"),
     "unknown",
     invokeStacktraceMethodType
 )

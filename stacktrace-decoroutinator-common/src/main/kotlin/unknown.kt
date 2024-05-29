@@ -3,6 +3,7 @@ package dev.reformator.stacktracedecoroutinator.common
 import java.lang.invoke.MethodHandle
 import java.util.function.BiFunction
 
+@Suppress("unused")
 internal fun unknown(
     stacktraceHandles: Array<MethodHandle>,
     lineNumbers: IntArray,

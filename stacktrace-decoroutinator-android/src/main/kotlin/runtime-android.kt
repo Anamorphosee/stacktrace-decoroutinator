@@ -22,7 +22,7 @@ object DecoroutinatorRuntime {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
+    @Suppress("UNCHECKED_CAST", "discouragedPrivateApi")
     fun load(loader: ClassLoader = classLoader!!) {
         if (!isLoaderInstrumented(loader)) {
             val pathListField: Field = BaseDexClassLoader::class.java.getDeclaredField("pathList")

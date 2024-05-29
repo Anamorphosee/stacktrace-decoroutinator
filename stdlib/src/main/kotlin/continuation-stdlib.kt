@@ -65,10 +65,12 @@ internal abstract class BaseContinuationImpl(
 
     protected open fun releaseIntercepted() { }
 
+    @Suppress("unused")
     open fun create(completion: Continuation<*>): Continuation<Unit> {
         throw UnsupportedOperationException("create(Continuation) has not been overridden")
     }
 
+    @Suppress("unused")
     open fun create(value: Any?, completion: Continuation<*>): Continuation<Unit> {
         throw UnsupportedOperationException("create(Any?;Continuation) has not been overridden")
     }

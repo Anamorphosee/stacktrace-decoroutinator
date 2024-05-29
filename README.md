@@ -84,9 +84,9 @@ Thus, if the coroutine throws an exception, they mimic the real call stack of th
 
 ### JVM
 There are three ways to enable Stacktrace-decoroutinator for JVM.
-1. (recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.8` and call method `DecoroutinatorRuntime.load()`.
-2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.8.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.8`.
-3. (less recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-legacy:2.3.8` and call method `DecoroutinatorRuntime.load()`. This way doesn't use Java instrumentation API unlike the way number 1.
+1. (recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.9` and call method `DecoroutinatorRuntime.load()`.
+2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.9.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.9`.
+3. (less recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-legacy:2.3.9` and call method `DecoroutinatorRuntime.load()`. This way doesn't use Java instrumentation API unlike the way number 1.
 
 Usage example:
 ```kotlin
@@ -152,7 +152,7 @@ java.lang.Exception: exception at 1653565535416
 ```
 
 ### Android
-To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.8` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
+To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.9` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
 
 It's recomended to add `DecoroutinatorRuntime.load()` call in your `Application`'s `init` block. Example:
 ```kotlin

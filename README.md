@@ -163,6 +163,14 @@ class MyApp: Application() {
 }
 ```
 
+### Using ProGuard
+If you use ProGuard (usually for Android) please add the following exclusion rules:
+```
+-keep class kotlin.** { *; }
+-keep class dev.reformator.stacktracedecoroutinator.** { *; }
+-keep @kotlin.coroutines.jvm.internal.DebugMetadata class * { *; }
+```
+
 ### Problem with Jacoco and Decoroutinator
 Using Jacoco and Decoroutinator as Java agent may lead to the loss of code coverage. It's [common Jacoco Problem](https://www.eclemma.org/jacoco/trunk/doc/classids.html). In order not to lose coverage, make sure that the Jacoco agent comes before the Decoroutinator agent. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/24.
 

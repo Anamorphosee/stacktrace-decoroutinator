@@ -1,8 +1,11 @@
+import com.android.build.gradle.internal.api.DefaultAndroidSourceDirectorySet
+import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import java.util.*
 
 plugins {
     id("com.android.library")
     id("kotlin-android")
+    id("org.jetbrains.dokka")
     `maven-publish`
     signing
 }
@@ -84,26 +87,16 @@ tasks.named("preBuild") {
     dependsOn(generateBaseContinuationDexSourcesTask)
 }
 
-val androidJavadocs = task("androidJavadocs", Javadoc::class) {
-    setSource(android.sourceSets["main"].java.srcDirs)
-    classpath += files(*android.bootClasspath.toTypedArray())
-    android.libraryVariants.asSequence()
-        .filter { it.name == "release" }
-        .forEach {
-            classpath += it.javaCompileProvider.get().classpath
-        }
-    exclude("**/R.html", "**/R.*.html", "**/index.html")
-}
-
-val androidJavadocsJar = task("androidJavadocsJar", Jar::class) {
-    dependsOn(androidJavadocs)
+val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
+    val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
+    dependsOn(dokkaJavadocTask)
     archiveClassifier.set("javadoc")
-    from(androidJavadocs.destinationDir)
+    from(dokkaJavadocTask.outputDirectory)
 }
 
-val androidSourcesJar = task("androidSourcesJar", Jar::class) {
+val sourcesJar = task("sourcesJar", Jar::class) {
     archiveClassifier.set("sources")
-    from(android.sourceSets["main"].java.srcDirs)
+    from((android.sourceSets["main"].kotlin as DefaultAndroidSourceDirectorySet).srcDirs)
 }
 
 afterEvaluate {
@@ -111,8 +104,8 @@ afterEvaluate {
         publications {
             create<MavenPublication>("maven") {
                 from(components["release"])
-                artifact(androidJavadocsJar)
-                artifact(androidSourcesJar)
+                artifact(dokkaJavadocsJar)
+                artifact(sourcesJar)
                 pom {
                     name.set("Stacktrace-decoroutinator Android.")
                     description.set("Android library for recovering stack trace in exceptions thrown in Kotlin coroutines.")

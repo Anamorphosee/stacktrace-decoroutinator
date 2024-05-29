@@ -1,7 +1,9 @@
+import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
+    id("org.jetbrains.dokka")
     `maven-publish`
     signing
 }
@@ -28,7 +30,6 @@ tasks.withType<KotlinCompile> {
 
 java {
     withSourcesJar()
-    withJavadocJar()
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
@@ -36,14 +37,14 @@ java {
 val appendStdlibClassesTask = task("appendStdlibClasses") {
     dependsOn(":stdlib:classes", "classes")
     doLast {
-        val fromDir = project(":stdlib").buildDir
-            .resolve("classes")
-            .resolve("kotlin")
-            .resolve("main")
-        val intoDir = buildDir
-            .resolve("classes")
-            .resolve("kotlin")
-            .resolve("main")
+        val fromDir = project(":stdlib").layout.buildDirectory.get()
+            .dir("classes")
+            .dir("kotlin")
+            .dir("main")
+        val intoDir = layout.buildDirectory.get()
+            .dir("classes")
+            .dir("kotlin")
+            .dir("main")
         copy {
             from(fromDir)
             into(intoDir)
@@ -52,10 +53,10 @@ val appendStdlibClassesTask = task("appendStdlibClasses") {
         }
         copy {
             val baseCondinuationDir = fromDir
-                .resolve("kotlin")
-                .resolve("coroutines")
-                .resolve("jvm")
-                .resolve("internal")
+                .dir("kotlin")
+                .dir("coroutines")
+                .dir("jvm")
+                .dir("internal")
             from(baseCondinuationDir)
             into(intoDir)
             include("BaseContinuationImpl.class")
@@ -68,10 +69,18 @@ tasks.named("jar") {
     dependsOn(appendStdlibClassesTask)
 }
 
+val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
+    val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
+    dependsOn(dokkaJavadocTask)
+    archiveClassifier.set("javadoc")
+    from(dokkaJavadocTask.outputDirectory)
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
+            artifact(dokkaJavadocsJar)
             pom {
                 name.set("Stacktrace-decoroutinator JVM common lib.")
                 description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")

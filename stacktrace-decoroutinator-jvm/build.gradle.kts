@@ -1,7 +1,9 @@
+import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
+    id("org.jetbrains.dokka")
     `maven-publish`
     signing
     jacoco
@@ -38,15 +40,22 @@ tasks.withType<KotlinCompile> {
 
 java {
     withSourcesJar()
-    withJavadocJar()
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
+    val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
+    dependsOn(dokkaJavadocTask)
+    archiveClassifier.set("javadoc")
+    from(dokkaJavadocTask.outputDirectory)
 }
 
 publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
+            artifact(dokkaJavadocsJar)
             pom {
                 name.set("Stacktrace-decoroutinator JVM.")
                 description.set("JVM library for recovering stack trace in exceptions thrown in Kotlin coroutines.")

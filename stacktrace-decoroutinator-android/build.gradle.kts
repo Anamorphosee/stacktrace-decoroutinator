@@ -30,7 +30,7 @@ android {
     }
 
     sourceSets {
-        android.sourceSets["main"].java.srcDir(baseContinuationDexSourcesDir)
+        android.sourceSets["main"].kotlin.srcDir(baseContinuationDexSourcesDir)
     }
 
     namespace = "dev.reformator.stacktracedecoroutinator"

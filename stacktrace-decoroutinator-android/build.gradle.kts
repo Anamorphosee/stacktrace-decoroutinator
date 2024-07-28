@@ -1,10 +1,9 @@
 import com.android.build.gradle.internal.api.DefaultAndroidSourceDirectorySet
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
-import java.util.*
 
 plugins {
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.dokka")
     `maven-publish`
     signing
@@ -45,47 +44,47 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-common"))
-    implementation("com.jakewharton.android.repackaged:dalvik-dx:${properties["dalvikDxVersion"]}")
+    implementation(project(":stacktrace-decoroutinator-runtime"))
+    implementation("com.jakewharton.android.repackaged:dalvik-dx:${decoroutinatorVersions["dalvikDx"]}")
 
     testImplementation("junit:junit:4.+")
 
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
-    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")
 }
 
-val generateBaseContinuationDexSourcesTask = task("generateBaseContinuationDexSources") {
-    dependsOn(":stdlib:jar")
-    doLast {
-        baseContinuationDexSourcesDir.deleteRecursively()
-        val tmpDir = temporaryDir
-        val jarFile = project(":stdlib")
-            .tasks
-            .named<Jar>("jar")
-            .get()
-            .outputs
-            .files
-            .singleFile
-        exec {
-            setCommandLine(
-                "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
-                "--min-api", "26",
-                "--output", tmpDir.absolutePath,
-                jarFile.absolutePath
-            )
-        }
-        baseContinuationDexSourcesDir.mkdirs()
-        file(baseContinuationDexSourcesDir.resolve("baseContinuationContent.kt")).writeText(
-            file(projectDir.resolve("baseContinuationContent.ktTemplate")).readText()
-                .replace("\$CONTENT\$", Base64.getEncoder().encodeToString(tmpDir.resolve("classes.dex").readBytes()))
-        )
-    }
-}
+//val generateBaseContinuationDexSourcesTask = task("generateBaseContinuationDexSources") {
+//    dependsOn(":stdlib:jar")
+//    doLast {
+//        baseContinuationDexSourcesDir.deleteRecursively()
+//        val tmpDir = temporaryDir
+//        val jarFile = project(":stdlib")
+//            .tasks
+//            .named<Jar>("jar")
+//            .get()
+//            .outputs
+//            .files
+//            .singleFile
+//        exec {
+//            setCommandLine(
+//                "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
+//                "--min-api", "26",
+//                "--output", tmpDir.absolutePath,
+//                jarFile.absolutePath
+//            )
+//        }
+//        baseContinuationDexSourcesDir.mkdirs()
+//        file(baseContinuationDexSourcesDir.resolve("baseContinuationContent.kt")).writeText(
+//            file(projectDir.resolve("baseContinuationContent.ktTemplate")).readText()
+//                .replace("\$CONTENT\$", Base64.getEncoder().encodeToString(tmpDir.resolve("classes.dex").readBytes()))
+//        )
+//    }
+//}
 
-tasks.named("preBuild") {
-    dependsOn(generateBaseContinuationDexSourcesTask)
-}
+//tasks.named("preBuild") {
+//    dependsOn(generateBaseContinuationDexSourcesTask)
+//}
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
     val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()

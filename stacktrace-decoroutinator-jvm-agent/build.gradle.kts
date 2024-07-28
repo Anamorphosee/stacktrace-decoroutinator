@@ -1,10 +1,13 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.jetbrains.dokka.gradle.AbstractDokkaTask
 
 plugins {
-    java
+    kotlin("jvm")
+    id("org.jetbrains.dokka")
     id("com.github.johnrengelman.shadow")
     `maven-publish`
     signing
+    jacoco
 }
 
 repositories {
@@ -12,15 +15,16 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-common")) {
-        exclude(group = "org.jetbrains.kotlin")
-    }
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common")) {
         exclude(group = "org.jetbrains.kotlin")
     }
+
+    testImplementation(project(":test-utils"))
+    testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")
 }
 
-tasks.named<ShadowJar>("shadowJar") {
+val shadowJarTask = tasks.named<ShadowJar>("shadowJar") {
     manifest {
         attributes(mapOf(
             "Premain-Class" to "dev.reformator.stacktracedecoroutinator.jvmagent.DecoroutinatorAgent"
@@ -31,23 +35,35 @@ tasks.named<ShadowJar>("shadowJar") {
 }
 
 tasks.test {
-    dependsOn(":jvm-agent-tests:test")
     useJUnitPlatform()
+    dependsOn(shadowJarTask)
+    val agentJar = shadowJarTask.get().outputs.files.singleFile
+    jvmArgs(
+        "-javaagent:${agentJar.absolutePath}",
+        "-Ddev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy=SYSTEM_RESOURCE"
+    )
+    extensions.configure(JacocoTaskExtension::class) {
+        includes = listOf("JacocoInstrumentedMethodTest*")
+    }
 }
 
-java {
-    withSourcesJar()
-    withJavadocJar()
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+kotlin {
+    jvmToolchain(8)
+}
+
+val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
+    val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
+    dependsOn(dokkaJavadocTask)
+    archiveClassifier.set("javadoc")
+    from(dokkaJavadocTask.outputDirectory)
 }
 
 publishing {
     publications {
         create<MavenPublication>("maven") {
             shadow.component(this)
-            artifact(tasks.named("javadocJar"))
-            artifact(tasks.named("sourcesJar"))
+            artifact(dokkaJavadocsJar)
+            artifact(tasks.named("kotlinSourcesJar"))
             pom {
                 name.set("Stacktrace-decoroutinator JVM agent.")
                 description.set("JVM agent for recovering stack trace in exceptions thrown in Kotlin coroutines.")

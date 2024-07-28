@@ -1,5 +1,5 @@
+import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
@@ -14,34 +14,36 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-common"))
+    implementation(project(":stacktrace-decoroutinator-runtime"))
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
-
-    implementation("net.bytebuddy:byte-buddy-agent:${properties["byteBuddyVersion"]}")
+    implementation("net.bytebuddy:byte-buddy-agent:${decoroutinatorVersions["byteBuddy"]}")
 
     testImplementation(kotlin("test"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${properties["kotlinxCoroutinesVersion"]}")
-    testImplementation("io.github.microutils:kotlin-logging-jvm:${properties["kotlinLoggingJvmVersion"]}")
-    testImplementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
-    testRuntimeOnly("io.ktor:ktor-io-jvm:${properties["ktorVersion"]}")
-    testRuntimeOnly("ch.qos.logback:logback-classic:${properties["logbackClassicVersion"]}")
+    testImplementation(project(":test-utils"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")
 }
 
 tasks.test {
     useJUnitPlatform()
     extensions.configure(JacocoTaskExtension::class) {
-        includes = listOf("dev.reformator.stacktracedecoroutinator.runtime.JacocoInstrumentedMethodTest*")
+        includes = listOf("JacocoInstrumentedMethodTest*")
     }
+    systemProperty("testReloadBaseConfiguration", false)
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+val testReloadBaseConfigurationTestName = "testReloadBaseConfiguration"
+tasks.create<Test>(testReloadBaseConfigurationTestName) {
+    useJUnitPlatform()
+    classpath = tasks.test.get().classpath
+    extensions.configure(JacocoTaskExtension::class) {
+        excludes = listOf("*")
+    }
+    systemProperty("testReloadBaseConfiguration", true)
 }
+tasks.test.dependsOn(tasks.named<Test>(testReloadBaseConfigurationTestName))
 
-java {
-    withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+kotlin {
+    jvmToolchain(8)
 }
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {

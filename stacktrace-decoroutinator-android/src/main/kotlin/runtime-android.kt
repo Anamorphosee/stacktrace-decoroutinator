@@ -17,7 +17,7 @@ object DecoroutinatorRuntime {
 
     init {
         decoroutinatorRegistry = object: BaseDecoroutinatorRegistry() {
-            override val stacktraceMethodHandleRegistry: DecoroutinatorStacktraceMethodHandleRegistry
+            override val methodHandleRegistry: MethodHandleRegistry
                 get() = DecoroutinatorAndroidStacktraceMethodHandleRegistryImpl
         }
     }

@@ -1,5 +1,4 @@
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
@@ -13,11 +12,9 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-common"))
-    implementation(project(":stacktrace-decoroutinator-jvm-common"))
-    implementation(project(":stacktrace-decoroutinator-jvm-legacy-common"))
-
-    implementation("org.ow2.asm:asm-util:${properties["asmVersion"]}")
+    implementation(project(":stacktrace-decoroutinator-runtime"))
+    implementation(project(":stacktrace-decoroutinator-generator"))
+    implementation("org.ow2.asm:asm-util:${decoroutinatorVersions["asm"]}")
 
     testImplementation(kotlin("test"))
 }
@@ -26,14 +23,8 @@ tasks.test {
     useJUnitPlatform()
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
-}
-
-java {
-    withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+kotlin {
+    jvmToolchain(8)
 }
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {

@@ -2,8 +2,10 @@
 
 package dev.reformator.stacktracedecoroutinator.generator
 
-fun loadResource(name: String): ByteArray? {
-    val resource = try {
+import java.io.InputStream
+
+fun getResourceAsStream(name: String): InputStream? =
+    try {
         Thread.currentThread().contextClassLoader.getResourceAsStream(name)
     } catch (_: Throwable) {
         null
@@ -20,10 +22,9 @@ fun loadResource(name: String): ByteArray? {
     } catch (_: Throwable) {
         null
     }
-    return resource?.use {
-        it.readBytes()
-    }
-}
+
+fun loadResource(name: String): ByteArray? =
+    getResourceAsStream(name)?.use { it.readBytes() }
 
 internal fun loadDecoroutinatorBaseContinuationClassBody(): ByteArray =
     loadResource("dev.reformator.stacktracedecoroutinator.decoroutinatorBaseContinuation.class")!!

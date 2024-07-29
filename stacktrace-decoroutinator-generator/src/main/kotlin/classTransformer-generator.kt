@@ -11,6 +11,7 @@ import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
+import java.io.InputStream
 import java.lang.invoke.MethodHandles
 import kotlin.coroutines.Continuation
 
@@ -23,7 +24,7 @@ data class DebugMetadataInfo internal constructor(
 
 fun tryTransformForDecoroutinator(
     className: String,
-    classBody: () -> ByteArray,
+    classBody: InputStream,
     metadataResolver: (className: String) -> DebugMetadataInfo?
 ): ByteArray? {
     if (className.startsWith("java.")) {
@@ -32,7 +33,7 @@ fun tryTransformForDecoroutinator(
     if (className == BASE_CONTINUATION_CLASS_NAME) {
         return loadDecoroutinatorBaseContinuationClassBody()
     }
-    val node = getClassNode(classBody()) ?: return null
+    val node = getClassNode(classBody) ?: return null
     if (Type.getObjectType(node.name).className != className || node.isTransformed) {
         return null
     }
@@ -41,7 +42,7 @@ fun tryTransformForDecoroutinator(
     return node.classBody
 }
 
-fun getDebugMetadataInfoFromClassBody(body: ByteArray): DebugMetadataInfo? =
+fun getDebugMetadataInfoFromClassBody(body: InputStream): DebugMetadataInfo? =
     getClassNode(body, skipCode = true)?.debugMetadataInfo
 
 fun getDebugMetadataInfoFromClass(clazz: Class<*>): DebugMetadataInfo? =
@@ -70,7 +71,7 @@ private fun ClassNode.transform(metadataInfo: MetadataInfo) {
     visibleAnnotations.add(metadataInfo.transformedAnnotation)
 }
 
-private fun getClassNode(classBody: ByteArray, skipCode: Boolean = false): ClassNode? {
+private fun getClassNode(classBody: InputStream, skipCode: Boolean = false): ClassNode? {
     return try {
         val classReader = ClassReader(classBody)
         val classNode = ClassNode(Opcodes.ASM9)

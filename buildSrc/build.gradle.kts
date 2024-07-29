@@ -51,7 +51,7 @@ javaSources.srcDirs("../stacktrace-decoroutinator-runtime/src/main/java")
 kotlinSources.srcDirs("../stacktrace-decoroutinator-runtime/src/main/kotlin")
 javaSources.srcDirs("../stacktrace-decoroutinator-generator/src/main/java")
 kotlinSources.srcDirs("../stacktrace-decoroutinator-generator/src/main/kotlin")
-kotlinSources.srcDirs("../stacktrace-decoroutinator-gradle-plugin/src/main/kotlin")
+kotlinSources.srcDirs("../gradle-plugin/src/main/kotlin")
 
 tasks.named("classes") {
     doLast {

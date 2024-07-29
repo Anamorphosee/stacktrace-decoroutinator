@@ -39,9 +39,27 @@ private val pluginProperties = Properties().apply {
 
 open class DecoroutinatorPluginExtension {
     var enabled = true
-    val configurations = mutableSetOf("runtimeClasspath", "testRuntimeClasspath")
+    var configurations = setOf(
+        "runtimeClasspath",
+        "testRuntimeClasspath",
+        "releaseRuntimeClasspath",
+        "releaseUnitTestRuntimeClasspath",
+        "debugAndroidTestRuntimeClasspath",
+        "debugRuntimeClasspath",
+        "debugUnitTestRuntimeClasspath"
+    )
     var addRuntimeDependency = true
-    val tasks = mutableSetOf("compileKotlin", "compileTestKotlin")
+    var tasks = setOf(
+        "compileKotlin",
+        "compileTestKotlin",
+        "compileDebugKotlin",
+        "compileReleaseKotlin",
+        "compileDebugAndroidTestSources",
+        "compileDebugSources",
+        "compileDebugUnitTestSources",
+        "compileReleaseSources",
+        "compileReleaseUnitTestSources"
+    )
 }
 
 class DecoroutinatorPlugin: Plugin<Project> {
@@ -86,19 +104,23 @@ class DecoroutinatorPlugin: Plugin<Project> {
 private fun transformClasses(root: File) {
     root.walk().forEach { file ->
         if (file.isFile && file.name.endsWith(CLASS_SUFFIX)) {
-            val transformedBody = tryTransformForDecoroutinator(
-                className = file.toRelativeString(root).removeSuffix(CLASS_SUFFIX).replace(File.separatorChar, '.'),
-                classBody = { file.readBytes() },
-                metadataResolver = { className ->
-                    val classRelativePath = className.replace('.', File.separatorChar) + CLASS_SUFFIX
-                    val classPath = root.resolve(classRelativePath)
-                    if (classPath.isFile) {
-                        getDebugMetadataInfoFromClassBody(classPath.readBytes())
-                    } else {
-                        null
+            val transformedBody = file.inputStream().use { classBody ->
+                tryTransformForDecoroutinator(
+                    className = file.toRelativeString(root).removeSuffix(CLASS_SUFFIX).replace(File.separatorChar, '.'),
+                    classBody = classBody,
+                    metadataResolver = { className ->
+                        val classRelativePath = className.replace('.', File.separatorChar) + CLASS_SUFFIX
+                        val classPath = root.resolve(classRelativePath)
+                        if (classPath.isFile) {
+                            classPath.inputStream().use {
+                                getDebugMetadataInfoFromClassBody(it)
+                            }
+                        } else {
+                            null
+                        }
                     }
-                }
-            )
+                )
+            }
             if (transformedBody != null) {
                 file.writeBytes(transformedBody)
             }
@@ -152,35 +174,34 @@ private inline fun transformJar(
 ) {
     JarFile(jar).use { jarFile ->
         jarFile.entries().asSequence().forEach { entry: ZipEntry ->
-            putNextEntry(entry)
+            putNextEntry(ZipEntry(entry.name).apply {
+                entry.lastModifiedTime?.let { lastModifiedTime = it }
+                entry.lastAccessTime?.let { lastAccessTime = it }
+                entry.creationTime?.let { creationTime = it }
+                method = ZipEntry.DEFLATED
+                comment = entry.comment
+            })
             if (!entry.isDirectory) {
-                var buffer: ByteArray? = null
-                var modified = false
+                var newBody: ByteArray? = null
                 if (entry.name.endsWith(CLASS_SUFFIX)) {
-                    val newBody = tryTransformForDecoroutinator(
-                        className = entry.name.substring(0, entry.name.length - CLASS_SUFFIX.length).replace('/', '.'),
-                        classBody = {
-                            jarFile.getInputStream(entry).use { it.readBytes() }.also { buffer = it }
-                        },
-                        metadataResolver = metadataResolver@{ className ->
-                            val entryName = className.replace('.', '/') + ".class"
-                            val classEntry = jarFile.getEntry(entryName) ?: return@metadataResolver null
-                            if (classEntry.isDirectory) {
-                                return@metadataResolver null
+                    newBody = jarFile.getInputStream(entry).use { classBody ->
+                        tryTransformForDecoroutinator(
+                            className = entry.name.substring(0, entry.name.length - CLASS_SUFFIX.length).replace('/', '.'),
+                            classBody = classBody,
+                            metadataResolver = metadataResolver@{ metadataClassName ->
+                                val entryName = metadataClassName.replace('.', '/') + ".class"
+                                val classEntry = jarFile.getEntry(entryName) ?: return@metadataResolver null
+                                jarFile.getInputStream(classEntry).use {
+                                    getDebugMetadataInfoFromClassBody(it)
+                                }
                             }
-                            val classBody = jarFile.getInputStream(classEntry).use { it.readBytes() }
-                            getDebugMetadataInfoFromClassBody(classBody)
-                        }
-                    )
-                    if (newBody != null) {
-                        buffer = newBody
-                        modified = true
+                        )
                     }
                 }
-                putFileBody(
-                    modified,
-                    buffer?.let { ByteArrayInputStream(it) } ?: jarFile.getInputStream(entry)
-                )
+                val modified = newBody != null
+                (if (modified) ByteArrayInputStream(newBody) else jarFile.getInputStream(entry)).use { body ->
+                    putFileBody(modified, body)
+                }
             }
             closeEntry()
         }

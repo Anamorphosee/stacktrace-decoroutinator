@@ -2,7 +2,7 @@ rootProject.name = "stacktrace-decoroutinator"
 include(
     "stacktrace-decoroutinator-runtime",
     "stacktrace-decoroutinator-generator",
-    "stacktrace-decoroutinator-gradle-plugin",
+    "gradle-plugin",
 
     "stacktrace-decoroutinator-jvm-agent-common",
     "stacktrace-decoroutinator-jvm",
@@ -11,3 +11,4 @@ include(
     "test-utils",
     "gradle-plugin-tests"
 )
+project(":gradle-plugin").name = "dev.reformator.stacktracedecoroutinator.gradle.plugin"

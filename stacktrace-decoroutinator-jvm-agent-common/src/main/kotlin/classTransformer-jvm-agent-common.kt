@@ -8,6 +8,7 @@ import dev.reformator.stacktracedecoroutinator.runtime.BASE_CONTINUATION_CLASS_N
 import dev.reformator.stacktracedecoroutinator.runtime.isDecoroutinatorBaseContinuation
 import dev.reformator.stacktracedecoroutinator.runtime.isDecoroutinatorTransformed
 import org.objectweb.asm.Type
+import java.io.ByteArrayInputStream
 import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
 import java.security.ProtectionDomain
@@ -68,7 +69,7 @@ private class DecoroutinatorClassFileTransformer(
         }
         return tryTransformForDecoroutinator(
             className = Type.getObjectType(internalClassName).className,
-            classBody = { classBody },
+            classBody = ByteArrayInputStream(classBody),
             metadataResolver = jvmAgentDebugMetadataInfoResolveStrategy
         )
     }

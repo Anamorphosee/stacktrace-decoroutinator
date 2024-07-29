@@ -2,16 +2,17 @@
 
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 
-import dev.reformator.stacktracedecoroutinator.generator.DebugMetadataInfo
-import dev.reformator.stacktracedecoroutinator.generator.getDebugMetadataInfoFromClass
-import dev.reformator.stacktracedecoroutinator.generator.getDebugMetadataInfoFromClassBody
-import dev.reformator.stacktracedecoroutinator.generator.loadResource
+import dev.reformator.stacktracedecoroutinator.generator.*
 
 internal enum class JvmAgentDebugMetadataInfoResolveStrategy: (String) -> DebugMetadataInfo? {
     SYSTEM_RESOURCE {
         override fun invoke(className: String): DebugMetadataInfo? {
             val path = className.replace('.', '/') + ".class"
-            return loadResource(path)?.let { getDebugMetadataInfoFromClassBody(it) }
+            return getResourceAsStream(path)?.let { resource ->
+                resource.use {
+                    getDebugMetadataInfoFromClassBody(resource)
+                }
+            }
         }
     },
 

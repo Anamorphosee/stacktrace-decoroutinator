@@ -26,8 +26,8 @@ private const val JAR_SUFFIX = ".jar"
 private const val CLASS_SUFFIX = ".class"
 internal const val EXTENSION_NAME = "stacktraceDecoroutinator"
 
-private val stdlibTransformedAttribute = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.gradleplugin.stdlibTransformed",
+private val transformedAttribute = Attribute.of(
+    "dev.reformator.stacktracedecoroutinator.transformed",
     Boolean::class.javaObjectType
 )
 
@@ -39,58 +39,60 @@ private val pluginProperties = Properties().apply {
 
 open class DecoroutinatorPluginExtension {
     var enabled = true
-    var configurations = setOf(
+
+    var configurationsInclude = setOf(
         "runtimeClasspath",
-        "testRuntimeClasspath",
-        "releaseRuntimeClasspath",
-        "releaseUnitTestRuntimeClasspath",
-        "debugAndroidTestRuntimeClasspath",
-        "debugRuntimeClasspath",
-        "debugUnitTestRuntimeClasspath"
+        ".+RuntimeClasspath"
     )
+    var configurationsExclude = setOf<String>()
+
+    var tasksInclude = setOf(
+        "compile.*Kotlin",
+        "compile.*Sources"
+    )
+    var tasksExclude = setOf<String>()
+
     var addRuntimeDependency = true
-    var tasks = setOf(
-        "compileKotlin",
-        "compileTestKotlin",
-        "compileDebugKotlin",
-        "compileReleaseKotlin",
-        "compileDebugAndroidTestSources",
-        "compileDebugSources",
-        "compileDebugUnitTestSources",
-        "compileReleaseSources",
-        "compileReleaseUnitTestSources"
-    )
+    var runtimeDependencyConfigName = "runtimeOnly"
 }
 
 class DecoroutinatorPlugin: Plugin<Project> {
     override fun apply(target: Project) {
         with (target) {
             val pluginExtension = extensions.create(EXTENSION_NAME, DecoroutinatorPluginExtension::class.java)
-            dependencies.attributesSchema.attribute(stdlibTransformedAttribute)
+            dependencies.attributesSchema.attribute(transformedAttribute)
             dependencies.artifactTypes.getByName("jar") {
-                it.attributes.attribute(stdlibTransformedAttribute, false)
+                it.attributes.attribute(transformedAttribute, false)
             }
             dependencies.registerTransform(DecoroutinatorTransformAction::class.java) {
-                it.from.attribute(stdlibTransformedAttribute, false)
-                it.to.attribute(stdlibTransformedAttribute, true)
+                it.from.attribute(transformedAttribute, false)
+                it.to.attribute(transformedAttribute, true)
             }
 
             afterEvaluate { _ ->
                 if (pluginExtension.enabled) {
-                    configurations.all {
-                        if (it.name in pluginExtension.configurations) {
-                            it.attributes.attribute(stdlibTransformedAttribute, true)
-                        }
-                    }
                     if (pluginExtension.addRuntimeDependency) {
                         dependencies.add(
-                            "runtimeOnly",
+                            pluginExtension.runtimeDependencyConfigName,
                             "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-runtime:${pluginProperties["version"]}"
                         )
                     }
-                    pluginExtension.tasks.forEach { taskName ->
-                        tasks.findByName(taskName)?.let { task ->
-                            task.doLast { _ ->
+
+                    run {
+                        val includes = pluginExtension.configurationsInclude.map { Regex(it) }
+                        val excludes = pluginExtension.configurationsExclude.map { Regex(it) }
+                        configurations.all { config ->
+                            if (includes.any { it.matches(config.name) } && excludes.all { !it.matches(config.name) }) {
+                                config.attributes.attribute(transformedAttribute, true)
+                            }
+                        }
+                    }
+
+                    run {
+                        val includes = pluginExtension.tasksInclude.map { Regex(it) }
+                        val excludes = pluginExtension.tasksExclude.map { Regex(it) }
+                        tasks.all { task ->
+                            if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
                                 task.outputs.files.files.forEach { transformClasses(it) }
                             }
                         }

@@ -93,7 +93,9 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         val excludes = pluginExtension.tasksExclude.map { Regex(it) }
                         tasks.all { task ->
                             if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
-                                task.outputs.files.files.forEach { transformClasses(it) }
+                                task.doLast { _ ->
+                                    task.outputs.files.files.forEach { transformClasses(it) }
+                                }
                             }
                         }
                     }

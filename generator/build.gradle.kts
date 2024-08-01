@@ -30,6 +30,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    dependsOn(":generator-runtime-tests:test")
 }
 
 kotlin {

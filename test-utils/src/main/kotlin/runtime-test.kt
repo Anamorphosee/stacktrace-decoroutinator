@@ -8,21 +8,20 @@ import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ForkJoinPool
-import kotlin.test.Test
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 private val fileName = getFileName()
 
 class TestException(message: String): Exception(message)
 
 open class RuntimeTest {
-    @Test
+    @Junit4Test @Junit5Test
     fun basic() = runBlocking {
         val random = Random(123)
         val size = 30
@@ -43,13 +42,13 @@ open class RuntimeTest {
         job.join()
     }
 
-    @Test
+    @Junit4Test @Junit5Test
     fun overloadedMethods() = runBlocking {
         overload(1)
         overload("")
     }
 
-    @Test
+    @Junit4Test @Junit5Test
     fun resumeWithException() {
         try {
             runBlocking {
@@ -68,12 +67,12 @@ open class RuntimeTest {
         }
     }
 
-    @Test
+    @Junit4Test @Junit5Test
     fun testLoadSelfDefinedClass() {
         Class.forName("io.ktor.utils.io.ByteBufferChannel")
     }
 
-    @Test
+    @Junit4Test @Junit5Test
     fun testSuspendCrossinlineInDifferentFile() {
         val flow = flow {
             for (i in 2..6) {

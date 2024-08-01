@@ -46,11 +46,10 @@ kotlin {
 
 val javaSources = sourceSets.main.get().java
 val kotlinSources = sourceSets.main.get().kotlin
-
-javaSources.srcDirs("../stacktrace-decoroutinator-runtime/src/main/java")
-kotlinSources.srcDirs("../stacktrace-decoroutinator-runtime/src/main/kotlin")
-javaSources.srcDirs("../stacktrace-decoroutinator-generator/src/main/java")
-kotlinSources.srcDirs("../stacktrace-decoroutinator-generator/src/main/kotlin")
+javaSources.srcDirs("../runtime/src/main/java")
+kotlinSources.srcDirs("../runtime/src/main/kotlin")
+javaSources.srcDirs("../generator/src/main/java")
+kotlinSources.srcDirs("../generator/src/main/kotlin")
 kotlinSources.srcDirs("../gradle-plugin/src/main/kotlin")
 
 tasks.named("classes") {

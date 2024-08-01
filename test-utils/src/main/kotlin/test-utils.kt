@@ -2,7 +2,7 @@
 
 package dev.reformator.stacktracedecoroutinator.test
 
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 
 fun getLineNumber(): Int {
     val stacktrace = Exception().stackTrace
@@ -35,3 +35,6 @@ fun checkStacktrace(vararg elements: StackTraceElement) {
 private infix fun StackTraceElement.eq(element: StackTraceElement) =
     this.className == element.className && this.methodName == element.methodName &&
             this.lineNumber == element.lineNumber
+
+typealias Junit4Test = org.junit.Test
+typealias Junit5Test = org.junit.jupiter.api.Test

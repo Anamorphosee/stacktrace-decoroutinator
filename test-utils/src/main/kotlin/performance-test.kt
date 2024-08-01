@@ -5,7 +5,6 @@ import mu.KotlinLogging
 import kotlin.concurrent.thread
 import kotlin.coroutines.resume
 import kotlin.random.Random
-import kotlin.test.Test
 import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
@@ -185,22 +184,22 @@ private fun Random.getMocks(depth: Int) = List(depth) { mocks.random(this) }
 fun tailCallDeoptimize() { }
 
 open class PerformanceTest {
-    @Test
+    @Junit4Test @Junit5Test
     fun depth10() {
         resumeWithDepth(10)
     }
 
-    @Test
+    @Junit4Test @Junit5Test
     fun depth50() {
         resumeWithDepth(50)
     }
 
-    @Test
+    @Junit4Test @Junit5Test
     fun depth100() {
         resumeWithDepth(100)
     }
 
-    @Test
+    @Junit4Test @Junit5Test
     fun depth500() {
         resumeWithDepth(500)
     }

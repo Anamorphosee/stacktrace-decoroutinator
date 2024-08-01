@@ -45,6 +45,7 @@ kotlin {
 tasks.test {
     useJUnitPlatform()
     dependsOn(":gradle-plugin-tests:test")
+    dependsOn(":gradle-plugin-android-tests:connectedAndroidTest")
 }
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {

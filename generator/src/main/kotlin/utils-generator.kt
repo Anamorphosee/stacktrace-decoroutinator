@@ -26,7 +26,7 @@ fun getResourceAsStream(name: String): InputStream? =
 fun loadResource(name: String): ByteArray? =
     getResourceAsStream(name)?.use { it.readBytes() }
 
-internal fun loadDecoroutinatorBaseContinuationClassBody(): ByteArray =
+fun loadDecoroutinatorBaseContinuationClassBody(): ByteArray =
     loadResource("dev.reformator.stacktracedecoroutinator.decoroutinatorBaseContinuation.class")!!
 
 @Suppress("ClassName")

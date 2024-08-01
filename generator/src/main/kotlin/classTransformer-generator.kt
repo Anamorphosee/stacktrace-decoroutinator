@@ -61,10 +61,22 @@ private fun ClassNode.transform(metadataInfo: MetadataInfo) {
         methods.add(buildStacktraceMethodNode(methodName, lineNumbers, true))
     }
     val clinit = getOrCreateClinitMethod()
+    val tryStart = LabelNode()
+    val tryEnd = LabelNode()
+    val tryHandler = LabelNode()
     clinit.instructions.insertBefore(
         clinit.instructions.first,
-        buildCallRegisterLookupInstructions()
+        buildCallRegisterLookupInstructions(
+            tryStart = tryStart,
+            tryEnd = tryEnd,
+            tryHandler = tryHandler
+        )
     )
+    clinit.tryCatchBlocks = clinit.tryCatchBlocks.orEmpty().toMutableList().also { blocks ->
+        blocks.add(TryCatchBlockNode(
+            tryStart, tryEnd, tryHandler, Type.getInternalName(NoClassDefFoundError::class.java)
+        ))
+    }
     if (visibleAnnotations == null) {
         visibleAnnotations = mutableListOf()
     }
@@ -206,19 +218,28 @@ private fun ClassNode.getOrCreateClinitMethod(): MethodNode =
         methods.add(this)
     }
 
-private fun buildCallRegisterLookupInstructions() = InsnList().apply {
+private fun buildCallRegisterLookupInstructions(tryStart: LabelNode, tryEnd: LabelNode, tryHandler: LabelNode) = InsnList().apply {
     add(MethodInsnNode(
         Opcodes.INVOKESTATIC,
         Type.getInternalName(MethodHandles::class.java),
         "lookup",
         "()${Type.getDescriptor(MethodHandles.Lookup::class.java)}"
     ))
+    add(tryStart)
     add(MethodInsnNode(
         Opcodes.INVOKESTATIC,
         Type.getInternalName(registerTransformedFunctionClass),
         registerTransformedFunctionName,
         "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})V"
     ))
+    add(tryEnd)
+    val end = LabelNode()
+    add(JumpInsnNode(Opcodes.GOTO, end))
+    add(tryHandler)
+    add(FrameNode(Opcodes.F_SAME1, 0, null, 1, arrayOf(Type.getInternalName(NoClassDefFoundError::class.java))))
+    add(InsnNode(Opcodes.POP))
+    add(end)
+    add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
 }
 
 private val MetadataInfo.transformedAnnotation: AnnotationNode

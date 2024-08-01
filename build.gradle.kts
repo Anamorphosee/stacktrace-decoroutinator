@@ -7,10 +7,10 @@ buildscript {
         }
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.2.0")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${decoroutinatorVersions["kotlin"]}")
         classpath("com.github.johnrengelman:shadow:${decoroutinatorVersions["shadow"]}")
         classpath("org.jetbrains.dokka:dokka-gradle-plugin:${decoroutinatorVersions["dokka"]}")
+        classpath("com.android.tools.build:gradle:${decoroutinatorVersions["androidGradle"]}")
     }
 }
 

@@ -4,7 +4,7 @@ import dev.reformator.stacktracedecoroutinator.test.getLineNumber
 import dev.reformator.stacktracedecoroutinator.test.tailCallDeoptimize
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
-import kotlin.test.Test
+import org.junit.Test
 
 class PerformanceTest: dev.reformator.stacktracedecoroutinator.test.PerformanceTest()
 class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()

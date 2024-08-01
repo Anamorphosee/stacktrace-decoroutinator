@@ -14,11 +14,11 @@ stacktraceDecoroutinator {
 }
 
 dependencies {
-    implementation(project(":test-utils"))
-
-    runtimeOnly(project(":stacktrace-decoroutinator-runtime"))
-
+    androidTestImplementation(project(":test-utils"))
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")
     androidTestImplementation("androidx.test:runner:${decoroutinatorVersions["androidTestRunner"]}")
+
+    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-runtime"))
 }
 
 android {

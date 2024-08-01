@@ -50,6 +50,8 @@ open class DecoroutinatorPluginExtension {
         ".+RuntimeClasspath"
     )
     var _configurationsExclude = setOf<String>()
+    var _tasksInclude = setOf("compile.*Kotlin")
+    var _tasksExclude = setOf<String>()
 }
 
 class DecoroutinatorPlugin: Plugin<Project> {
@@ -87,6 +89,22 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         }
                     }
 
+                    run {
+                        val includes = pluginExtension._tasksInclude.map { Regex(it) }
+                        val excludes = pluginExtension._tasksExclude.map { Regex(it) }
+                        tasks.all { task ->
+                            if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
+                                task.doLast {
+                                    task.outputs.files.files.forEach { classes ->
+                                        if (classes.isDirectory) {
+                                            transformClassesDirInPlace(classes)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     val setTransformedAttributeAction = Action<Project> { project ->
                         project.configurations.forEach { conf ->
                             conf.outgoing.variants.forEach { variant ->
@@ -115,7 +133,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
 
     override fun transform(outputs: TransformOutputs) {
         val root = inputArtifact.get().asFile
-        println("***TRANFORMING ${if (root.isFile) "FILE" else "DIR"} ${root.absolutePath}")
+        println("***TRANSFORMING ${if (root.isFile) "FILE" else "DIR"} ${root.absolutePath}")
         if (root.isFile) {
             val needModification = run {
                 try {
@@ -268,6 +286,20 @@ private inline fun transformClassesDir(
             onDirectory(relativePath)
         }
     }
+}
+
+private fun transformClassesDirInPlace(dir: File) {
+    transformClassesDir(
+        root = dir,
+        onDirectory = { },
+        onFile = { relativePath, content, modified ->
+            if (modified) {
+                dir.resolve(relativePath).outputStream().use { output ->
+                    content.copyTo(output)
+                }
+            }
+        }
+    )
 }
 
 private val String.extension: String

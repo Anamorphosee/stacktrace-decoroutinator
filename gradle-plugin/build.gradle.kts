@@ -61,6 +61,7 @@ publishing {
         create<MavenPublication>("maven") {
             from(components["java"])
             artifact(dokkaJavadocsJar)
+            artifact(tasks.named("kotlinSourcesJar"))
             pom {
                 name.set("Stacktrace-decoroutinator Gradle plugin.")
                 description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")

@@ -5,6 +5,7 @@ plugins {
 
 stacktraceDecoroutinator {
     _addRuntimeDependency = false
+    require(!_isAndroid)
 }
 
 repositories {

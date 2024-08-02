@@ -11,6 +11,7 @@ repositories {
 
 stacktraceDecoroutinator {
     _addRuntimeDependency = false
+    require(_isAndroid)
 }
 
 dependencies {

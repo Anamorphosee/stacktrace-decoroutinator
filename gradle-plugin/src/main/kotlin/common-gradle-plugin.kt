@@ -31,8 +31,9 @@ val decoroutinatorTransformedAttribute: Attribute<Boolean> = Attribute.of(
     Boolean::class.javaObjectType
 )
 
-open class DecoroutinatorPluginExtension {
+open class DecoroutinatorPluginExtension(project: Project) {
     var enabled = true
+    var addGeneratorDependency = false
 
     var _artifactTypes = setOf(
         ArtifactTypeDefinition.JAR_TYPE,
@@ -49,13 +50,14 @@ open class DecoroutinatorPluginExtension {
     var _configurationsExclude = setOf<String>()
     var _tasksInclude = setOf("compile.*Kotlin")
     var _tasksExclude = setOf<String>()
+    var _isAndroid = project.pluginManager.hasPlugin("com.android.base")
 }
 
 class DecoroutinatorPlugin: Plugin<Project> {
     override fun apply(target: Project) {
         log.debug { "applying Decoroutinator plugin to ${target.name}" }
         with (target) {
-            val pluginExtension = extensions.create(EXTENSION_NAME, DecoroutinatorPluginExtension::class.java)
+            val pluginExtension = extensions.create(EXTENSION_NAME, DecoroutinatorPluginExtension::class.java, target)
             dependencies.attributesSchema.attribute(decoroutinatorTransformedAttribute)
 
             afterEvaluate { _ ->
@@ -78,6 +80,16 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         )
                     } else {
                         log.debug { "Skipped runtime dependency" }
+                    }
+                    if (pluginExtension.addGeneratorDependency) {
+                        val dependency = if (pluginExtension._isAndroid) {
+                            log.debug { "add generator dependency for Android" }
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-android:${pluginProperties["version"]}"
+                        } else {
+                            log.debug { "add generator dependency for JVM" }
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:${pluginProperties["version"]}"
+                        }
+                        dependencies.add(pluginExtension._runtimeDependencyConfigName, dependency)
                     }
 
                     run {

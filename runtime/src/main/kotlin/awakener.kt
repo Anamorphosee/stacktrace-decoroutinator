@@ -4,14 +4,13 @@ package dev.reformator.stacktracedecoroutinator.runtime
 
 import unknownStacktraceMethodHandle
 import java.lang.invoke.MethodHandle
-import java.util.function.BiFunction
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.jvm.internal.BaseContinuationImpl
 
-internal fun BaseContinuationImpl.decoroutinatorResumeWith(result: Result<Any?>) {
+internal fun BaseContinuationImpl.awake(result: Result<Any?>) {
     val baseContinuations = buildList {
-        var completion: Continuation<Any?> = this@decoroutinatorResumeWith
+        var completion: Continuation<Any?> = this@awake
         while (completion is BaseContinuationImpl) {
             add(completion)
             completion = completion.completion!!
@@ -25,21 +24,6 @@ internal fun BaseContinuationImpl.decoroutinatorResumeWith(result: Result<Any?>)
     val stacktraceElements = decoroutinatorRegistry.stacktraceElementRegistry
         .getStacktraceElements(baseContinuations)
     fillStacktraceArrays(baseContinuations, stacktraceElements, stacktraceDepth, stacktraceHandles, stacktraceLineNumbers)
-    val invokeCoroutineFunction = BiFunction { index: Int, innerResult: Any? ->
-        val continuation = baseContinuations[index]
-        JavaUtils().probeCoroutineResumed(continuation)
-        val newResult = try {
-            val newResult = JavaUtils().invokeSuspend(continuation, Result.success(innerResult))
-            if (newResult === COROUTINE_SUSPENDED) {
-                return@BiFunction COROUTINE_SUSPENDED
-            }
-            newResult
-        } catch (e: Throwable) {
-            JavaUtils().createFailure(e)
-        }
-        JavaUtils().releaseIntercepted(continuation)
-        newResult
-    }
     if (result.isFailure && decoroutinatorRegistry.recoveryExplicitStacktrace) {
         val exception = JavaUtils().retrieveResultThrowable(result)
         recoveryExplicitStacktrace(exception, baseContinuations, stacktraceElements)
@@ -48,7 +32,7 @@ internal fun BaseContinuationImpl.decoroutinatorResumeWith(result: Result<Any?>)
         stacktraceHandles = stacktraceHandles,
         lineNumbers = stacktraceLineNumbers,
         nextStepIndex = 0,
-        invokeCoroutineFunction = invokeCoroutineFunction,
+        invokeCoroutineFunction = JavaUtils().createAwakenerFun(baseContinuations),
         result = JavaUtils().retrieveResultValue(result),
         coroutineSuspend = COROUTINE_SUSPENDED
     )

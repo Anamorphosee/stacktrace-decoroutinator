@@ -6,6 +6,7 @@ include(
     "jvm-agent-common",
     "jvm",
     "jvm-agent",
+    "generator-android",
 
     "test-utils",
     "gradle-plugin-tests",
@@ -18,4 +19,5 @@ project(":gradle-plugin").name = "dev.reformator.stacktracedecoroutinator.gradle
 project(":jvm-agent-common").name = "stacktrace-decoroutinator-jvm-agent-common"
 project(":jvm").name = "stacktrace-decoroutinator-jvm"
 project(":jvm-agent").name = "stacktrace-decoroutinator-jvm-agent"
+project(":generator-android").name = "stacktrace-decoroutinator-generator-android"
 

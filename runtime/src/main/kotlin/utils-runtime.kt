@@ -21,9 +21,7 @@ internal interface JavaUtils {
     fun retrieveResultThrowable(result: Result<*>): Throwable
     fun probeCoroutineResumed(frame: Continuation<*>)
     fun getStackTraceElementImpl(continuation: BaseContinuationImpl): StackTraceElement?
-    fun invokeSuspend(continuation: BaseContinuationImpl, result: Result<Any?>): Any?
-    fun releaseIntercepted(continuation: BaseContinuationImpl)
-    fun createFailure(exception: Throwable): Any
+    fun createAwakenerFun(baseContinuations: List<BaseContinuationImpl>): BiFunction<Int, Any?, Any?>
 
     companion object {
         operator fun invoke(): JavaUtils = impl

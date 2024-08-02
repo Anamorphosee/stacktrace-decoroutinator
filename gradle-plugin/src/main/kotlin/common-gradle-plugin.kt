@@ -5,6 +5,7 @@ package dev.reformator.stacktracedecoroutinator.gradleplugin
 import dev.reformator.stacktracedecoroutinator.generator.getDebugMetadataInfoFromClassBody
 import dev.reformator.stacktracedecoroutinator.generator.loadResource
 import dev.reformator.stacktracedecoroutinator.generator.tryTransformForDecoroutinator
+import mu.KotlinLogging
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -24,10 +25,6 @@ import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
-
-private const val JAR_EXTENSION = "jar"
-private const val CLASS_EXTENSION = "class"
-internal const val EXTENSION_NAME = "stacktraceDecoroutinator"
 
 val decoroutinatorTransformedAttribute: Attribute<Boolean> = Attribute.of(
     "dev.reformator.stacktracedecoroutinator.transformed",
@@ -56,12 +53,14 @@ open class DecoroutinatorPluginExtension {
 
 class DecoroutinatorPlugin: Plugin<Project> {
     override fun apply(target: Project) {
+        log.debug { "applying Decoroutinator plugin to ${target.name}" }
         with (target) {
             val pluginExtension = extensions.create(EXTENSION_NAME, DecoroutinatorPluginExtension::class.java)
             dependencies.attributesSchema.attribute(decoroutinatorTransformedAttribute)
 
             afterEvaluate { _ ->
                 if (pluginExtension.enabled) {
+                    log.debug { "registering DecoroutinatorArtifactTransfomer for types [${pluginExtension._artifactTypes}]" }
                     pluginExtension._artifactTypes.forEach { artifactType ->
                         dependencies.registerTransform(DecoroutinatorTransformAction::class.java) {
                             it.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
@@ -77,6 +76,8 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             pluginExtension._runtimeDependencyConfigName,
                             "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-runtime:${pluginProperties["version"]}"
                         )
+                    } else {
+                        log.debug { "Skipped runtime dependency" }
                     }
 
                     run {
@@ -84,6 +85,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         val excludes = pluginExtension._configurationsExclude.map { Regex(it) }
                         configurations.all { config ->
                             if (includes.any { it.matches(config.name) } && excludes.all { !it.matches(config.name) }) {
+                                log.debug { "setting decoroutinatorTransformedAttribute for configuration [${config.name}]" }
                                 config.attributes.attribute(decoroutinatorTransformedAttribute, true)
                             }
                         }
@@ -94,10 +96,13 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         val excludes = pluginExtension._tasksExclude.map { Regex(it) }
                         tasks.all { task ->
                             if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
+                                log.debug { "setting transform classes action for task [${task.name}]" }
                                 task.doLast {
                                     task.outputs.files.files.forEach { classes ->
                                         if (classes.isDirectory) {
                                             transformClassesDirInPlace(classes)
+                                        } else {
+                                            log.debug { "skipping in-place transformation for artifact [${classes.absolutePath}] as it is not a directory" }
                                         }
                                     }
                                 }
@@ -109,6 +114,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         project.configurations.forEach { conf ->
                             conf.outgoing.variants.forEach { variant ->
                                 if (variant.artifacts.any { it.type in pluginExtension._artifactTypes }) {
+                                    log.debug { "unsetting decoroutinatorTransformedAttribute for outgoing variant [${variant.name}] of cofiguarion [${conf.name}]" }
                                     variant.attributes.attribute(decoroutinatorTransformedAttribute, false)
                                 }
                             }
@@ -121,6 +127,8 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             project.afterEvaluate(setTransformedAttributeAction)
                         }
                     }
+                } else {
+                    log.debug { "Decoroutinator plugin is disabled" }
                 }
             }
         }
@@ -133,8 +141,9 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
 
     override fun transform(outputs: TransformOutputs) {
         val root = inputArtifact.get().asFile
-        println("***TRANSFORMING ${if (root.isFile) "FILE" else "DIR"} ${root.absolutePath}")
+        log.debug { "trying transform artifact [${root.absolutePath}]" }
         if (root.isFile) {
+            log.debug { "artifact [${root.absolutePath}] is a file" }
             val needModification = run {
                 try {
                     transformZip(
@@ -164,11 +173,13 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
                         closeEntry = { output.closeEntry() }
                     )
                 }
-                println("***TRANSFORMED FILE: $newFile")
+                log.debug { "file artifact [${root.absolutePath}] was transformed to [${newFile.absolutePath}]" }
             } else {
+                log.debug { "file artifact [${root.absolutePath}] was skipped" }
                 outputs.file(inputArtifact)
             }
         } else if (root.isDirectory) {
+            log.debug { "artifact [${root.absolutePath}] is a directory" }
             val needModification = run {
                 transformClassesDir(
                     root = root,
@@ -190,15 +201,21 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
                         }
                     }
                 )
-                println("***TRANSFORMED DIR: $newRoot")
+                log.debug { "directory artifact [${root.absolutePath}] was transformed to [${newRoot.absolutePath}]" }
             } else {
+                log.debug { "directory artifact [${root.absolutePath}] was skipped" }
                 outputs.dir(inputArtifact)
             }
         } else {
+            log.debug { "artifact [${root.absolutePath}] does not exist" }
             outputs.dir("empty")
         }
     }
 }
+
+internal const val EXTENSION_NAME = "stacktraceDecoroutinator"
+private const val CLASS_EXTENSION = "class"
+private val log = KotlinLogging.logger { }
 
 private val pluginProperties = Properties().apply {
     load(
@@ -289,12 +306,15 @@ private inline fun transformClassesDir(
 }
 
 private fun transformClassesDirInPlace(dir: File) {
+    log.debug { "performing in-place transformation of a classes directory [${dir.absolutePath}]" }
     transformClassesDir(
         root = dir,
         onDirectory = { },
         onFile = { relativePath, content, modified ->
             if (modified) {
-                dir.resolve(relativePath).outputStream().use { output ->
+                val file = dir.resolve(relativePath)
+                log.debug { "class file [${file.absolutePath}] was transformed" }
+                file.outputStream().use { output ->
                     content.copyTo(output)
                 }
             }

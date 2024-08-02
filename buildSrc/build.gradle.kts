@@ -37,6 +37,7 @@ repositories {
 
 dependencies {
     implementation("org.ow2.asm:asm-util:${versions["asm"]}")
+    implementation("io.github.microutils:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
 }
 
 

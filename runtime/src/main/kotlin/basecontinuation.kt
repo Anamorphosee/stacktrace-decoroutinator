@@ -3,7 +3,9 @@
 package kotlin.coroutines.jvm.internal
 
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorMarker
-import dev.reformator.stacktracedecoroutinator.runtime.decoroutinatorResumeWith
+import dev.reformator.stacktracedecoroutinator.runtime.JavaUtils
+import dev.reformator.stacktracedecoroutinator.runtime.decoroutinatorRegistry
+import dev.reformator.stacktracedecoroutinator.runtime.awake
 import java.io.Serializable
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
@@ -14,17 +16,13 @@ internal abstract class BaseContinuationImpl(
     val completion: Continuation<Any?>?
 ): Continuation<Any?>, CoroutineStackFrame, Serializable {
     final override fun resumeWith(result: Result<Any?>) {
-        val standart = try {
-            decoroutinatorResumeWith(result)
-            false
-        } catch (_: NoClassDefFoundError) {
-            true
-        }
-        if (standart) {
+        if (decoroutinatorRegistry.enabled) {
+            awake(result)
+        } else {
             var current = this
             var param = result
             while (true) {
-                //JavaUtils().probeCoroutineResumed(current)
+                JavaUtils().probeCoroutineResumed(current)
                 with(current) {
                     val completion = completion!!
                     val outcome: Result<Any?> =
@@ -69,5 +67,5 @@ internal abstract class BaseContinuationImpl(
         get() = completion as? CoroutineStackFrame
 
     override fun getStackTraceElement(): StackTraceElement? =
-       null
+        JavaUtils().getStackTraceElementImpl(this)
 }

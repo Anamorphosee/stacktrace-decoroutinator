@@ -145,7 +145,12 @@ java.lang.Exception: exception at 1722597709832
 ```
 
 ### Android
-For Android there is only one option to enable Stacktrace-decoroutinator: applying Gradle plugin `dev.reformator.stacketracedecoroutinator` to your application's project.
+For Android there is only one option to enable Stacktrace-decoroutinator - apply the Gradle plugin `dev.reformator.stacketracedecoroutinator` to your application's project.
+```kotlin
+plugins {
+    id("dev.reformator.stacktracedecoroutinator") version "2.4.0"
+}
+```
 
 ### Using ProGuard
 If you use ProGuard (usually for Android) please add the following exclusion rules:

@@ -1,4 +1,3 @@
-import com.android.build.gradle.internal.api.DefaultAndroidSourceDirectorySet
 import dev.reformator.stacktracedecoroutinator.generator.loadDecoroutinatorBaseContinuationClassBody
 import dev.reformator.stacktracedecoroutinator.runtime.BASE_CONTINUATION_CLASS_NAME
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
@@ -100,18 +99,12 @@ val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
     from(dokkaJavadocTask.outputDirectory)
 }
 
-val sourcesJar = task("sourcesJar", Jar::class) {
-    archiveClassifier.set("sources")
-    from((android.sourceSets["main"].kotlin as DefaultAndroidSourceDirectorySet).srcDirs)
-}
-
 afterEvaluate {
     publishing {
         publications {
             create<MavenPublication>("maven") {
                 from(components["release"])
                 artifact(dokkaJavadocsJar)
-                artifact(sourcesJar)
                 pom {
                     name.set("Stacktrace-decoroutinator Android runtime class generator.")
                     description.set("Android library for recovering stack trace in exceptions thrown in Kotlin coroutines.")

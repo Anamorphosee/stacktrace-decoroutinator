@@ -11,10 +11,11 @@ buildscript {
         classpath("com.github.johnrengelman:shadow:${decoroutinatorVersions["shadow"]}")
         classpath("org.jetbrains.dokka:dokka-gradle-plugin:${decoroutinatorVersions["dokka"]}")
         classpath("com.android.tools.build:gradle:${decoroutinatorVersions["androidGradle"]}")
+        classpath("com.gradle.publish:plugin-publish-plugin:${decoroutinatorVersions["pluginPublish"]}")
     }
 }
 
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
-    version = "2.4.0"
+    version = "2.4.1"
 }

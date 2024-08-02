@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 
 plugins {
@@ -12,11 +13,17 @@ repositories {
     mavenCentral()
 }
 
+@Suppress("UnstableApiUsage")
 gradlePlugin {
+    website = "https://github.com/Anamorphosee/stacktrace-decoroutinator"
+    vcsUrl = "https://github.com/Anamorphosee/stacktrace-decoroutinator.git"
     plugins {
         create("decoroutinatorPlugin") {
             id = "dev.reformator.stacktracedecoroutinator"
             implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPlugin"
+            displayName = "Stacktrace Decoroutinator Gradle Plugin"
+            description = "Gradle plugin for recovering stack trace in exceptions thrown in Kotlin coroutines"
+            tags = listOf("kotlin", "coroutines", "debug", "kotlin-coroutines")
         }
     }
 }
@@ -104,6 +111,11 @@ publishing {
         }
     }
 }
+
+tasks.named("generateMetadataFileForMavenPublication").dependsOn(
+    tasks.named("dokkaJavadocsJar"),
+    tasks.named("kotlinSourcesJar")
+)
 
 signing {
     useGpgCmd()

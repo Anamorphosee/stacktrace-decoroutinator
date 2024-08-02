@@ -1,5 +1,0 @@
-package dev.reformator.stacktracedecoroutinator.android.utils
-
-import android.util.Base64
-
-internal val baseContinuationDexBody: ByteArray = Base64.decode("$CONTENT$", Base64.DEFAULT)

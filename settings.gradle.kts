@@ -10,7 +10,6 @@ include(
 
     "test-utils",
     "gradle-plugin-tests",
-    "generator-runtime-tests",
     "gradle-plugin-android-tests"
 )
 project(":runtime").name = "stacktrace-decoroutinator-runtime"

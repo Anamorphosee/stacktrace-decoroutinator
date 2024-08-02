@@ -43,6 +43,7 @@ dependencies {
 
 kotlin {
     compilerOptions.freeCompilerArgs.add("-Xallow-kotlin-package")
+    jvmToolchain(8)
 }
 
 val javaSources = sourceSets.main.get().java

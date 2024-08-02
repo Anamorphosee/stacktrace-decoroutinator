@@ -9,7 +9,7 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import java.util.concurrent.CopyOnWriteArrayList
 
-internal object GeneratorMethodHandleRegistry: BaseMethodHandleRegistry() {
+class GeneratorMethodHandleRegistry: BaseMethodHandleRegistry() {
     private val classLoaderByRevision: MutableList<DecoroutinatorClassLoader> = CopyOnWriteArrayList()
 
     override fun generateStacktraceClass(

@@ -4,8 +4,8 @@ package kotlin.coroutines.jvm.internal
 
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorMarker
 import dev.reformator.stacktracedecoroutinator.runtime.JavaUtils
-import dev.reformator.stacktracedecoroutinator.runtime.decoroutinatorRegistry
 import dev.reformator.stacktracedecoroutinator.runtime.awake
+import dev.reformator.stacktracedecoroutinator.runtime.enabled
 import java.io.Serializable
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
@@ -16,7 +16,7 @@ internal abstract class BaseContinuationImpl(
     val completion: Continuation<Any?>?
 ): Continuation<Any?>, CoroutineStackFrame, Serializable {
     final override fun resumeWith(result: Result<Any?>) {
-        if (decoroutinatorRegistry.enabled) {
+        if (enabled) {
             awake(result)
         } else {
             var current = this

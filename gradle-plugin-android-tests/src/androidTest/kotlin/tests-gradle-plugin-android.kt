@@ -6,9 +6,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import org.junit.Test
 
-class PerformanceTest: dev.reformator.stacktracedecoroutinator.test.PerformanceTest()
-class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
-
 class TestLocalFile {
     @Test
     fun localTest(): Unit = runBlocking {

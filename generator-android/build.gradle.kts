@@ -1,7 +1,6 @@
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 
 plugins {
-    `java-gradle-plugin`
     kotlin("jvm")
     id("org.jetbrains.dokka")
     `maven-publish`
@@ -12,41 +11,19 @@ repositories {
     mavenCentral()
 }
 
-gradlePlugin {
-    plugins {
-        create("decoroutinatorPlugin") {
-            id = "dev.reformator.stacktracedecoroutinator"
-            implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPlugin"
-        }
-    }
-}
-
 dependencies {
     implementation(project(":stacktrace-decoroutinator-runtime"))
-    implementation(project(":stacktrace-decoroutinator-generator"))
-    implementation("io.github.microutils:kotlin-logging-jvm:${decoroutinatorVersions["kotlinLoggingJvm"]}")
+    implementation("com.jakewharton.android.repackaged:dalvik-dx:${decoroutinatorVersions["dalvikDx"]}")
 
     testImplementation(kotlin("test"))
 }
 
-tasks.named("processResources").get().doLast {
-    val propertiesFile = layout.buildDirectory.get()
-        .dir("resources")
-        .dir("main")
-        .file("dev.reformator.stacktracedecoroutinator.gradleplugin.properties")
-    propertiesFile.asFile.outputStream().writer().use { output ->
-        output.write("version=$version\n")
-    }
+tasks.test {
+    useJUnitPlatform()
 }
 
 kotlin {
     jvmToolchain(8)
-}
-
-tasks.test {
-    useJUnitPlatform()
-    dependsOn(":gradle-plugin-tests:test")
-    dependsOn(":gradle-plugin-android-tests:connectedAndroidTest")
 }
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
@@ -62,7 +39,7 @@ publishing {
             from(components["java"])
             artifact(dokkaJavadocsJar)
             pom {
-                name.set("Stacktrace-decoroutinator Gradle plugin.")
+                name.set("Stacktrace-decoroutinator Android classes generator lib.")
                 description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
                 url.set("https://stacktracedecoroutinator.reformator.dev")
                 licenses {

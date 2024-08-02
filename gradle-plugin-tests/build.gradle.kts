@@ -22,25 +22,3 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
-
-fun printConfigs() {
-    configurations.forEach { conf ->
-        println("**CONFIGURATION: ${conf.name}")
-        conf.outgoing.variants.forEach { variant ->
-            println("****OUTGOING VARIANT: ${variant.name}")
-            variant.artifacts.forEach { artifact ->
-                println("******ARTIFACT: ${artifact.name} - ${artifact.file} - ${artifact.type}")
-            }
-            variant.attributes.keySet().forEach { attribute ->
-                println("******ATTRIBUTE: ${attribute.name} - ${variant.attributes.getAttribute(attribute)}")
-            }
-        }
-        conf.artifacts.forEach { artifact ->
-            println("****ARTIFACT:  ${artifact.name} - ${artifact.file} - ${artifact.type}")
-        }
-    }
-}
-
-afterEvaluate {
-    printConfigs()
-}

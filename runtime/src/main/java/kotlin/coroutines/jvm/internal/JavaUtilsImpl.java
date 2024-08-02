@@ -4,8 +4,12 @@ import dev.reformator.stacktracedecoroutinator.runtime.JavaUtils;
 import kotlin.Result;
 import kotlin.ResultKt;
 import kotlin.coroutines.Continuation;
+import kotlin.coroutines.intrinsics.IntrinsicsKt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.function.BiFunction;
 
 @SuppressWarnings("KotlinInternalInJava")
 public class JavaUtilsImpl implements JavaUtils {
@@ -32,20 +36,29 @@ public class JavaUtilsImpl implements JavaUtils {
         return DebugMetadataKt.getStackTraceElement(continuation);
     }
 
-    @Nullable
-    @Override
-    public Object invokeSuspend(@NotNull BaseContinuationImpl continuation, @NotNull Object result) {
-        return continuation.invokeSuspend(result);
-    }
-
-    @Override
-    public void releaseIntercepted(@NotNull BaseContinuationImpl continuation) {
-        continuation.releaseIntercepted();
-    }
-
+    @SuppressWarnings({"unchecked", "Convert2Lambda", "rawtypes"})
     @NotNull
     @Override
-    public Object createFailure(@NotNull Throwable exception) {
-        return ResultKt.createFailure(exception);
+    public BiFunction<Integer, Object, Object> createAwakenerFun(
+            @NotNull List<? extends BaseContinuationImpl> baseContinuations
+    ) {
+        return new BiFunction() {
+            @Override
+            public Object apply(Object index, Object innerResult) {
+                BaseContinuationImpl continuation = baseContinuations.get((Integer) index );
+                DebugProbesKt.probeCoroutineResumed(continuation);
+                Object newResult;
+                try {
+                    newResult = continuation.invokeSuspend(innerResult);
+                    if (newResult == IntrinsicsKt.getCOROUTINE_SUSPENDED()) {
+                        return newResult;
+                    }
+                } catch (Throwable e) {
+                    newResult = ResultKt.createFailure(e);
+                }
+                continuation.releaseIntercepted();
+                return newResult;
+            }
+        };
     }
 }

@@ -19,7 +19,7 @@ annotation class DecoroutinatorTransformed(
 val Class<*>.isDecoroutinatorTransformed: Boolean
     get() = isAnnotationPresent(DecoroutinatorTransformed::class.java)
 
-object TransformedClassMethodHandleRegistry: MethodHandleRegistry {
+internal object TransformedClassMethodHandleRegistry: MethodHandleRegistry {
     private val className2Spec: MutableMap<String, ClassSpec> = ConcurrentHashMap()
 
     @Volatile

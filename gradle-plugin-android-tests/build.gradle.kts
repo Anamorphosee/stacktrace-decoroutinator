@@ -1,5 +1,5 @@
 plugins {
-    id("com.android.application")
+    id("com.android.library")
     kotlin("android")
     id("dev.reformator.stacktracedecoroutinator")
 }
@@ -14,15 +14,16 @@ stacktraceDecoroutinator {
 }
 
 dependencies {
-    androidTestImplementation(project(":test-utils"))
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")
-    androidTestImplementation("androidx.test:runner:${decoroutinatorVersions["androidTestRunner"]}")
+    androidTestImplementation(project(":test-utils"))
+    androidTestImplementation("junit:junit:${decoroutinatorVersions["junit4"]}")
 
+    androidTestRuntimeOnly("androidx.test:runner:${decoroutinatorVersions["androidTestRunner"]}")
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-runtime"))
 }
 
 android {
-    namespace = "dev.reformator.stacktracedecoroutinator"
+    namespace = "dev.reformator.stacktracedecoroutinator.gradlepluginandroidtests"
     compileSdk = 26
     defaultConfig {
         minSdk = 26

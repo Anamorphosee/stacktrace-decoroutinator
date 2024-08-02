@@ -4,28 +4,15 @@ package dev.reformator.stacktracedecoroutinator.runtime
 
 import java.util.ServiceLoader
 
-interface DecoroutinatorRegistry {
-    val methodHandleRegistry: MethodHandleRegistry
-    val stacktraceElementRegistry: StacktraceElementRegistry
-    val enabled: Boolean
-    val recoveryExplicitStacktrace: Boolean
-}
+internal val methodHandleRegistry: MethodHandleRegistry =
+    ServiceLoader.load(MethodHandleRegistry::class.java).firstOrNull() ?: TransformedClassMethodHandleRegistry
 
-open class BaseDecoroutinatorRegistry: DecoroutinatorRegistry {
-    override val methodHandleRegistry: MethodHandleRegistry
-        get() = TransformedClassMethodHandleRegistry
+internal val stacktraceElementRegistry: StacktraceElementRegistry =
+    ServiceLoader.load(StacktraceElementRegistry::class.java).firstOrNull() ?: StacktraceElementRegistryImpl()
 
-    override val stacktraceElementRegistry =
-        StacktraceElementRegistryImpl()
+internal val enabled =
+    System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
 
-    override val enabled =
-        System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
-
-    override val recoveryExplicitStacktrace =
-        System
-            .getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true")
-            .toBoolean()
-}
-
-val decoroutinatorRegistry: DecoroutinatorRegistry =
-    ServiceLoader.load(DecoroutinatorRegistry::class.java).firstOrNull() ?: BaseDecoroutinatorRegistry()
+internal val recoveryExplicitStacktrace =
+    System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true")
+        .toBoolean()

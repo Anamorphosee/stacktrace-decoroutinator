@@ -21,10 +21,9 @@ internal fun BaseContinuationImpl.awake(result: Result<Any?>) {
     val stacktraceDepth = baseContinuations.lastIndex
     val stacktraceHandles = Array(stacktraceDepth) { unknownStacktraceMethodHandle }
     val stacktraceLineNumbers = IntArray(stacktraceDepth) { -1 }
-    val stacktraceElements = decoroutinatorRegistry.stacktraceElementRegistry
-        .getStacktraceElements(baseContinuations)
+    val stacktraceElements = stacktraceElementRegistry.getStacktraceElements(baseContinuations)
     fillStacktraceArrays(baseContinuations, stacktraceElements, stacktraceDepth, stacktraceHandles, stacktraceLineNumbers)
-    if (result.isFailure && decoroutinatorRegistry.recoveryExplicitStacktrace) {
+    if (result.isFailure && recoveryExplicitStacktrace) {
         val exception = JavaUtils().retrieveResultThrowable(result)
         recoveryExplicitStacktrace(exception, baseContinuations, stacktraceElements)
     }
@@ -49,7 +48,7 @@ private fun fillStacktraceArrays(
     stacktraceHandles: Array<MethodHandle>,
     stacktraceLineNumbers: IntArray
 ) {
-    val stacktraceElement2StacktraceMethodHandle = decoroutinatorRegistry.methodHandleRegistry
+    val stacktraceElement2StacktraceMethodHandle = methodHandleRegistry
         .getStacktraceMethodHandles(stacktraceElements.possibleElements)
     (0 until stacktraceDepth).forEach { index ->
         val continuation = baseContinuations[index]

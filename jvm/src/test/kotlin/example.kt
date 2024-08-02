@@ -1,10 +1,10 @@
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 
 suspend fun rec(depth: Int) {
     if (depth == 0) {
-        delay(100)
+        yield()
         throw Exception("exception at ${System.currentTimeMillis()}")
     }
     rec(depth - 1)

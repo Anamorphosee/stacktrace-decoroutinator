@@ -68,7 +68,6 @@ Some examples of suffering from this problem:
 - https://github.com/arrow-kt/arrow/issues/2647
 - https://stackoverflow.com/questions/54349418/how-to-recover-the-coroutines-true-call-trace
 - https://stackoverflow.com/questions/69226016/how-to-get-full-exception-stacktrace-when-using-await-on-completablefuture
-- https://gitanswer.com/kotlinx-coroutines-stack-trace-recovery-kotlin-236882832
 
 The Kotlin team are known about the problem and has come up with a [solution](https://github.com/Kotlin/kotlinx.coroutines/blob/master/docs/topics/debugging.md#stacktrace-recovery), but it solves just a part of the cases.
 For example, the exception from the example above still lacks some calls.
@@ -84,19 +83,21 @@ Thus, if the coroutine throws an exception, they mimic the real call stack of th
 
 ### JVM
 There are three ways to enable Stacktrace-decoroutinator for JVM.
-1. (recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.9` and call method `DecoroutinatorRuntime.load()`.
-2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.9.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.9`.
-3. (less recommended) Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-legacy:2.3.9` and call method `DecoroutinatorRuntime.load()`. This way doesn't use Java instrumentation API unlike the way number 1.
+1. If you build your project with Gradle, just apply Gradle plugin with id `dev.reformator.stracktracedecoroutinator`.
+2. Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.3.9` and call method `DecoroutinatorRuntime.load()`.
+3. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.3.9.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.3.9`.
+
+The first option generates auxiliary methods at build time and the other two use the Java instrumentation API at runtime. 
 
 Usage example:
 ```kotlin
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 
 suspend fun rec(depth: Int) {
     if (depth == 0) {
-        delay(100)
+        yield()
         throw Exception("exception at ${System.currentTimeMillis()}")
     }
     rec(depth - 1)
@@ -109,18 +110,16 @@ fun main() {
             rec(10)
         }
     } catch (e: Exception) {
-        e.printStackTrace() // prints out full stack trace with 10 recursive calls
+        e.printStackTrace() // print full stack trace with 10 recursive calls
     }
 }
 ```
 prints out:
 ```
-java.lang.Exception: exception at 1653565535416
+java.lang.Exception: exception at 1722597709832
 	at ExampleKt.rec(example.kt:8)
 	at ExampleKt$rec$1.invokeSuspend(example.kt)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl$resumeWith$1.invoke(continuation-stdlib.kt:20)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl$resumeWith$1.invoke(continuation-stdlib.kt:18)
-	at dev.reformator.stacktracedecoroutinator.stdlib.StdlibKt.decoroutinatorResumeWith$lambda-1(stdlib.kt:34)
+	at kotlin.coroutines.jvm.internal.JavaUtilsImpl$1.apply(JavaUtilsImpl.java:52)
 	at ExampleKt.rec(example.kt:10)
 	at ExampleKt.rec(example.kt:10)
 	at ExampleKt.rec(example.kt:10)
@@ -132,47 +131,31 @@ java.lang.Exception: exception at 1653565535416
 	at ExampleKt.rec(example.kt:10)
 	at ExampleKt.rec(example.kt:10)
 	at ExampleKt$main$1.invokeSuspend(example.kt:17)
-	at dev.reformator.stacktracedecoroutinator.stdlib.StdlibKt.decoroutinatorResumeWith(stdlib.kt:110)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(continuation-stdlib.kt:18)
-	at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:234)
-	at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:166)
-	at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:397)
-	at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl(CancellableContinuationImpl.kt:431)
-	at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$default(CancellableContinuationImpl.kt:420)
-	at kotlinx.coroutines.CancellableContinuationImpl.resumeUndispatched(CancellableContinuationImpl.kt:518)
-	at kotlinx.coroutines.EventLoopImplBase$DelayedResumeTask.run(EventLoop.common.kt:489)
-	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:274)
-	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:85)
-	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:59)
+	at dev.reformator.stacktracedecoroutinator.runtime.AwakenerKt.awake(awakener.kt:93)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(basecontinuation.kt:20)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
 	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
-	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:38)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
 	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
 	at ExampleKt.main(example.kt:16)
 	at ExampleKt.main(example.kt)
 ```
 
 ### Android
-To enable Stacktrace-decoroutinator for Android you should add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-android:2.3.9` in your Android application and call method `DecoroutinatorRuntime.load()` before creating any coroutines.
-
-It's recomended to add `DecoroutinatorRuntime.load()` call in your `Application`'s `init` block. Example:
-```kotlin
-class MyApp: Application() {
-    init {
-        DecoroutinatorRuntime.load()
-    }
-}
-```
+For Android there is only one option to enable Stacktrace-decoroutinator: applying Gradle plugin `dev.reformator.stacketracedecoroutinator` to your application's project.
 
 ### Using ProGuard
 If you use ProGuard (usually for Android) please add the following exclusion rules:
 ```
--keep class kotlin.** { *; }
--keep class dev.reformator.stacktracedecoroutinator.** { *; }
 -keep @kotlin.coroutines.jvm.internal.DebugMetadata class * { *; }
+-keep @dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorTransformed class * { *; }
 ```
 
 ### Problem with Jacoco and Decoroutinator
-Using Jacoco and Decoroutinator as Java agent may lead to the loss of code coverage. It's [common Jacoco Problem](https://www.eclemma.org/jacoco/trunk/doc/classids.html). In order not to lose coverage, make sure that the Jacoco agent comes before the Decoroutinator agent. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/24.
+Using Jacoco and Decoroutinator as a Java agent may lead to the loss of code coverage. It's [common Jacoco Problem](https://www.eclemma.org/jacoco/trunk/doc/classids.html). In order not to lose coverage, make sure that the Jacoco agent comes before the Decoroutinator agent. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/24.
 
 ### Communication
 Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions).

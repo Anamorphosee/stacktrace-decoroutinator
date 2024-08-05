@@ -183,6 +183,7 @@ private fun Random.getMocks(depth: Int) = List(depth) { mocks.random(this) }
 
 fun tailCallDeoptimize() { }
 
+@Suppress("JUnitMixedFramework")
 open class PerformanceTest {
     @Junit4Test @Junit5Test
     fun depth10() {

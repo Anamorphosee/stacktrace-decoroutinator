@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("KotlinInternalInJava")
+@SuppressWarnings({"KotlinInternalInJava", "unused"})
 class StacktraceElementRegistryImpl implements StacktraceElementRegistry {
 
     private final ConcurrentHashMap<Class<?>, ContinuationClassSpec> continuationClass2Spec =

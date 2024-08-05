@@ -2,7 +2,6 @@ package dev.reformator.stacktracedecoroutinator.test
 
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntimeApi
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
@@ -18,6 +17,7 @@ private val fileName = getFileName()
 
 class TestException(message: String): Exception(message)
 
+@Suppress("JUnitMixedFramework")
 open class RuntimeTest {
     @Junit4Test @Junit5Test
     fun basic() = runBlocking {

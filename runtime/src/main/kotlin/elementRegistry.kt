@@ -11,11 +11,11 @@ data class StacktraceElement(
     val lineNumber: Int
 )
 
-data class StacktraceElements(
+internal data class StacktraceElements(
     val continuation2Element: Map<Continuation<*>, StacktraceElement>,
     val possibleElements: Set<StacktraceElement>
 )
 
-interface StacktraceElementRegistry {
+internal interface StacktraceElementRegistry {
     fun getStacktraceElements(continuations: Collection<Continuation<*>>): StacktraceElements
 }

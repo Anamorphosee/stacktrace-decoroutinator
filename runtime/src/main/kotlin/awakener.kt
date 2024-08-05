@@ -8,6 +8,8 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.jvm.internal.BaseContinuationImpl
 
+internal val awakenerFileClassName = getFileClass().name
+
 internal fun BaseContinuationImpl.awake(result: Result<Any?>) {
     val baseContinuations = buildList {
         var completion: Continuation<Any?> = this@awake

@@ -7,6 +7,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":stacktrace-decoroutinator-runtime"))
     implementation("org.junit.jupiter:junit-jupiter-api:${decoroutinatorVersions["junit5"]}")
     implementation("junit:junit:${decoroutinatorVersions["junit4"]}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")

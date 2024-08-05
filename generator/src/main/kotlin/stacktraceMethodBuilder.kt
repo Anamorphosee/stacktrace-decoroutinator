@@ -8,36 +8,6 @@ import org.objectweb.asm.tree.*
 import java.lang.invoke.MethodHandle
 import java.util.function.BiFunction
 
-private const val STACK_METHOD_HANDLERS_VAR_INDEX = 0
-private const val LINE_NUMBERS_VAR_INDEX = 1
-private const val NEXT_STEP_VAR_INDEX = 2
-private const val INVOKE_FUNCTION_VAR_INDEX = 3
-private const val RESULT_VAR_INDEX = 4
-private const val SUSPEND_OBJECT_VAR_INDEX = 5
-private const val LINE_NUMBER_VAR_INDEX = 6
-
-private val METHOD_HANDLE_INTERNAL_CLASS_NAME = Type.getInternalName(MethodHandle::class.java)
-private val BI_FUNCTION_INTERNAL_CLASS_NAME = Type.getInternalName(BiFunction::class.java)
-private val OBJECT_INTERNAL_CLASS_NAME = Type.getInternalName(Object::class.java)
-private val INTEGER_INTERNAL_CLASS_NAME = Type.getInternalName(Integer::class.java)
-private val STRING_BUILDER_INTERNAL_CLASS_NAME = Type.getInternalName(java.lang.StringBuilder::class.java)
-private val STRING_INTERNAL_CLASS_NAME = Type.getInternalName(java.lang.String::class.java)
-
-//MethodHandle[] stackMethodHandlers
-//int[] stackLineNumbers
-//int nextStep
-//BiFunction<Integer, Object, Object> continuationInvokeMethods
-//Object result
-//Object suspendObject
-private val METHOD_DESC =
-    "([L$METHOD_HANDLE_INTERNAL_CLASS_NAME;" +
-    "[I" +
-    "I" +
-    "L$BI_FUNCTION_INTERNAL_CLASS_NAME;" +
-    "L$OBJECT_INTERNAL_CLASS_NAME;" +
-    "L$OBJECT_INTERNAL_CLASS_NAME;" +
-    ")L$OBJECT_INTERNAL_CLASS_NAME;"
-
 fun buildStacktraceMethodNode(methodName: String, lineNumbers: Set<Int>, makePrivate: Boolean): MethodNode {
     val result = MethodNode(Opcodes.ASM9).apply {
         access = if (makePrivate) Opcodes.ACC_PRIVATE else Opcodes.ACC_PUBLIC
@@ -68,6 +38,36 @@ fun buildStacktraceMethodNode(methodName: String, lineNumbers: Set<Int>, makePri
     }
     return result
 }
+
+private const val STACK_METHOD_HANDLERS_VAR_INDEX = 0
+private const val LINE_NUMBERS_VAR_INDEX = 1
+private const val NEXT_STEP_VAR_INDEX = 2
+private const val INVOKE_FUNCTION_VAR_INDEX = 3
+private const val RESULT_VAR_INDEX = 4
+private const val SUSPEND_OBJECT_VAR_INDEX = 5
+private const val LINE_NUMBER_VAR_INDEX = 6
+
+private val METHOD_HANDLE_INTERNAL_CLASS_NAME = Type.getInternalName(MethodHandle::class.java)
+private val BI_FUNCTION_INTERNAL_CLASS_NAME = Type.getInternalName(BiFunction::class.java)
+private val OBJECT_INTERNAL_CLASS_NAME = Type.getInternalName(Object::class.java)
+private val INTEGER_INTERNAL_CLASS_NAME = Type.getInternalName(Integer::class.java)
+private val STRING_BUILDER_INTERNAL_CLASS_NAME = Type.getInternalName(java.lang.StringBuilder::class.java)
+private val STRING_INTERNAL_CLASS_NAME = Type.getInternalName(java.lang.String::class.java)
+
+//MethodHandle[] stackMethodHandlers
+//int[] stackLineNumbers
+//int nextStep
+//BiFunction<Integer, Object, Object> continuationInvokeMethods
+//Object result
+//Object suspendObject
+private val METHOD_DESC =
+    "([L$METHOD_HANDLE_INTERNAL_CLASS_NAME;" +
+    "[I" +
+    "I" +
+    "L$BI_FUNCTION_INTERNAL_CLASS_NAME;" +
+    "L$OBJECT_INTERNAL_CLASS_NAME;" +
+    "L$OBJECT_INTERNAL_CLASS_NAME;" +
+    ")L$OBJECT_INTERNAL_CLASS_NAME;"
 
 private fun getStoreLineNumberInstructions() = InsnList().apply {
     add(VarInsnNode(Opcodes.ALOAD, LINE_NUMBERS_VAR_INDEX))

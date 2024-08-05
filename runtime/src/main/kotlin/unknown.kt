@@ -6,10 +6,12 @@ import dev.reformator.stacktracedecoroutinator.runtime.markedFunctionName
 import java.lang.invoke.MethodHandle
 import java.util.function.BiFunction
 
-internal val unknownStacktraceMethodHandle: MethodHandle = run {
-    val clazz = getFileClass()
-    lookup.findStatic(clazz, clazz.markedFunctionName, invokeStacktraceMethodType)
-}
+internal val unknownStacktraceClass = getFileClass()
+internal val unknownStacktraceMethodHandle: MethodHandle = lookup.findStatic(
+    unknownStacktraceClass,
+    unknownStacktraceClass.markedFunctionName,
+    invokeStacktraceMethodType
+)
 
 @FunctionMarker
 @Suppress("unused")

@@ -1,13 +1,11 @@
 package dev.reformator.stacktracedecoroutinator.test
 
-import kotlinx.coroutines.delay
+import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntimeApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import java.util.concurrent.CompletableFuture
@@ -97,6 +95,12 @@ open class RuntimeTest {
         } catch (e: Exception) {
             assertEquals("check", e.message)
         }
+    }
+
+    @Junit4Test @Junit5Test
+    fun testRuntimeApiStatus() {
+        val status = DecoroutinatorRuntimeApi.getStatus { it() }
+        assertTrue(status.successful, status.description)
     }
 
     private var resumeWithExceptionRecBaseLineNumber: Int = 0
@@ -200,4 +204,9 @@ open class RuntimeTest {
     }
 
     private fun tailCallDeoptimize() { }
+}
+
+suspend fun tailCallSuspend1() {
+    yield()
+    yield()
 }

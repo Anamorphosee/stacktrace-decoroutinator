@@ -12,7 +12,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("KotlinInternalInJava")
-public class StacktraceElementRegistryImpl implements StacktraceElementRegistry {
+class StacktraceElementRegistryImpl implements StacktraceElementRegistry {
 
     private final ConcurrentHashMap<Class<?>, ContinuationClassSpec> continuationClass2Spec =
             new ConcurrentHashMap<>();

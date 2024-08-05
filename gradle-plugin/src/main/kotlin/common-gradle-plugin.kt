@@ -42,7 +42,8 @@ open class DecoroutinatorPluginExtension(project: Project) {
         "aar",
     )
     var _addRuntimeDependency = true
-    var _runtimeDependencyConfigName = "runtimeOnly"
+    var _runtimeOnlyConfigName = "runtimeOnly"
+    var _implementationConfigName = "implementation"
     var _configurationsInclude = setOf(
         "runtimeClasspath",
         ".+RuntimeClasspath"
@@ -75,7 +76,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
 
                     if (pluginExtension._addRuntimeDependency) {
                         dependencies.add(
-                            pluginExtension._runtimeDependencyConfigName,
+                            pluginExtension._implementationConfigName,
                             "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-runtime:${pluginProperties["version"]}"
                         )
                     } else {
@@ -89,7 +90,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             log.debug { "add generator dependency for JVM" }
                             "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:${pluginProperties["version"]}"
                         }
-                        dependencies.add(pluginExtension._runtimeDependencyConfigName, dependency)
+                        dependencies.add(pluginExtension._runtimeOnlyConfigName, dependency)
                     }
 
                     run {

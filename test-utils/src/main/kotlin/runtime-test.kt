@@ -205,8 +205,3 @@ open class RuntimeTest {
 
     private fun tailCallDeoptimize() { }
 }
-
-suspend fun tailCallSuspend1() {
-    yield()
-    yield()
-}

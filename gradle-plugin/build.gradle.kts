@@ -1,12 +1,9 @@
-import com.android.build.gradle.internal.tasks.factory.dependsOn
-import org.jetbrains.dokka.gradle.AbstractDokkaTask
-
 plugins {
-    `java-gradle-plugin`
     kotlin("jvm")
     id("org.jetbrains.dokka")
     `maven-publish`
     signing
+    id("com.gradle.plugin-publish")
 }
 
 repositories {
@@ -25,6 +22,12 @@ gradlePlugin {
             description = "Gradle plugin for recovering stack trace in exceptions thrown in Kotlin coroutines"
             tags = listOf("kotlin", "coroutines", "debug", "kotlin-coroutines")
         }
+    }
+}
+
+afterEvaluate {
+    tasks.named<Jar>("javadocJar") {
+        from(tasks.named("dokkaJavadoc"))
     }
 }
 
@@ -54,19 +57,11 @@ tasks.test {
     useJUnitPlatform()
 }
 
-val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
-    val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
-    dependsOn(dokkaJavadocTask)
-    archiveClassifier.set("javadoc")
-    from(dokkaJavadocTask.outputDirectory)
-}
-
 publishing {
     publications {
         create<MavenPublication>("maven") {
+            artifactId = "dev.reformator.stacktracedecoroutinator.gradle.plugin"
             from(components["java"])
-            artifact(dokkaJavadocsJar)
-            artifact(tasks.named("kotlinSourcesJar"))
             pom {
                 name.set("Stacktrace-decoroutinator Gradle plugin.")
                 description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
@@ -109,11 +104,6 @@ publishing {
         }
     }
 }
-
-tasks.named("generateMetadataFileForMavenPublication").dependsOn(
-    tasks.named("dokkaJavadocsJar"),
-    tasks.named("kotlinSourcesJar")
-)
 
 signing {
     useGpgCmd()

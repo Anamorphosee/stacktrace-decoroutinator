@@ -83,7 +83,7 @@ Thus, if the coroutine throws an exception, they mimic the real call stack of th
 
 ### JVM
 There are three ways to enable Stacktrace-decoroutinator for JVM.
-1. If you build your project with Gradle, just apply Gradle plugin with id `dev.reformator.stracktracedecoroutinator`.
+1. If you build your project with Gradle, just apply Gradle plugin with id `dev.reformator.stacktracedecoroutinator`.
 2. Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.4.1` and call method `DecoroutinatorRuntime.load()`.
 3. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.4.1.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.4.1`.
 

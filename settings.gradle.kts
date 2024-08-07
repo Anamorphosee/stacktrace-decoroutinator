@@ -14,8 +14,7 @@ include(
 )
 project(":runtime").name = "stacktrace-decoroutinator-runtime"
 project(":generator").name = "stacktrace-decoroutinator-generator"
-project(":gradle-plugin").name = "dev.reformator.stacktracedecoroutinator.gradle.plugin"
-//project(":gradle-plugin").name = "stacktrace-decoroutinator-gradle-plugin"
+project(":gradle-plugin").name = "stacktrace-decoroutinator-gradle-plugin"
 project(":jvm-agent-common").name = "stacktrace-decoroutinator-jvm-agent-common"
 project(":jvm").name = "stacktrace-decoroutinator-jvm"
 project(":jvm-agent").name = "stacktrace-decoroutinator-jvm-agent"

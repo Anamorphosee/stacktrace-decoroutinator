@@ -1,8 +1,8 @@
 @file:Suppress("PackageDirectoryMismatch")
 
-package dev.reformator.stacktracedecoroutinator.runtime
+package dev.reformator.stacktracedecoroutinator.runtime.internal
 
-import unknownStacktraceMethodHandle
+import unknownSpecFactory
 import java.lang.invoke.MethodHandle
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
@@ -17,50 +17,56 @@ internal fun BaseContinuationImpl.awake(result: Result<Any?>) {
             add(completion)
             completion = completion.completion!!
         }
-        reverse()
     }
-    val bottomContinuation = baseContinuations[0].completion!!
-    val stacktraceDepth = baseContinuations.lastIndex
-    val stacktraceHandles = Array(stacktraceDepth) { unknownStacktraceMethodHandle }
-    val stacktraceLineNumbers = IntArray(stacktraceDepth) { -1 }
+
     val stacktraceElements = stacktraceElementRegistry.getStacktraceElements(baseContinuations)
-    fillStacktraceArrays(baseContinuations, stacktraceElements, stacktraceDepth, stacktraceHandles, stacktraceLineNumbers)
     if (result.isFailure && recoveryExplicitStacktrace) {
         val exception = JavaUtils().retrieveResultThrowable(result)
         recoveryExplicitStacktrace(exception, baseContinuations, stacktraceElements)
     }
-    val bottomResult = callStacktraceHandles(
-        stacktraceHandles = stacktraceHandles,
-        lineNumbers = stacktraceLineNumbers,
-        nextStepIndex = 0,
-        invokeCoroutineFunction = JavaUtils().createAwakenerFun(baseContinuations),
-        result = JavaUtils().retrieveResultValue(result),
-        coroutineSuspend = COROUTINE_SUSPENDED
-    )
-    if (bottomResult === COROUTINE_SUSPENDED) {
-        return
-    }
-    bottomContinuation.resumeWith(Result.success(bottomResult))
+
+    val specResult = callSpecMethods(baseContinuations, stacktraceElements, result)
+    if (specResult === COROUTINE_SUSPENDED) return
+
+    val lastBaseContinuationResult = baseContinuations.last().callInvokeSuspend(Result.success(specResult))
+    if (lastBaseContinuationResult === COROUTINE_SUSPENDED) return
+
+    baseContinuations.last().completion!!.resumeWith(Result.success(lastBaseContinuationResult))
 }
 
-private fun fillStacktraceArrays(
+private fun callSpecMethods(
     baseContinuations: List<BaseContinuationImpl>,
     stacktraceElements: StacktraceElements,
-    stacktraceDepth: Int,
-    stacktraceHandles: Array<MethodHandle>,
-    stacktraceLineNumbers: IntArray
-) {
-    val stacktraceElement2StacktraceMethodHandle = methodHandleRegistry
-        .getStacktraceMethodHandles(stacktraceElements.possibleElements)
-    (0 until stacktraceDepth).forEach { index ->
+    result: Result<Any?>
+): Any? {
+    val specFactories = specRegistry.getSpecFactories(stacktraceElements.possibleElements)
+    var prevHandle: MethodHandle? = null
+    var prevSpec: Any? = null
+    (1 ..< baseContinuations.size).forEach { index ->
         val continuation = baseContinuations[index]
         val element = stacktraceElements.continuation2Element[continuation]
-        if (element != null) {
-            stacktraceElement2StacktraceMethodHandle[element]?.let {
-                stacktraceHandles[index] = it
-            }
-            stacktraceLineNumbers[index] = element.lineNumber
+        val factory = element?.let { specFactories[it] } ?: unknownSpecFactory
+        val lineNumber = element?.lineNumber ?: 0
+        val prevContinuation = baseContinuations[index - 1]
+        prevSpec = if (prevHandle != null) {
+            factory.createCallingNextHandle(
+                lineNumber = lineNumber,
+                nextHandle = prevHandle!!,
+                nextSpec = prevSpec!!,
+                nextContinuation = prevContinuation
+            )
+        } else {
+            factory.createNotCallingNextHandle(
+                lineNumber = lineNumber,
+                nextContinuation = prevContinuation
+            )
         }
+        prevHandle = factory.handle
+    }
+    return if (prevHandle != null) {
+        prevHandle!!.invoke(prevSpec, JavaUtils().retrieveResultValue(result))
+    } else {
+        JavaUtils().retrieveResultValue(result)
     }
 }
 
@@ -72,7 +78,7 @@ private fun recoveryExplicitStacktrace(
     val recoveredStacktrace = Array(exception.stackTrace.size + baseContinuations.size + 1) {
         when {
             it < baseContinuations.size -> {
-                val continuation = baseContinuations[baseContinuations.lastIndex - it]
+                val continuation = baseContinuations[it]
                 val element = stacktraceElements.continuation2Element[continuation]
                 if (element == null) {
                     artificialFrame("unknown")
@@ -89,4 +95,3 @@ private fun recoveryExplicitStacktrace(
 
 private fun artificialFrame(message: String) =
     StackTraceElement("", "", message, -1)
-

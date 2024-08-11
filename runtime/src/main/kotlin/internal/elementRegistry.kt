@@ -1,6 +1,6 @@
 @file:Suppress("PackageDirectoryMismatch")
 
-package dev.reformator.stacktracedecoroutinator.runtime
+package dev.reformator.stacktracedecoroutinator.runtime.internal
 
 import kotlin.coroutines.Continuation
 

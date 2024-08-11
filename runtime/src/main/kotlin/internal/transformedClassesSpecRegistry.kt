@@ -1,33 +1,24 @@
 @file:Suppress("PackageDirectoryMismatch")
 
-package dev.reformator.stacktracedecoroutinator.runtime
+package dev.reformator.stacktracedecoroutinator.runtime.internal
 
+import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorTransformed
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.jvm.internal.BaseContinuationImpl
+import kotlin.coroutines.jvm.internal.DecoroutinatorSpecImpl
 
-@Target(AnnotationTarget.CLASS)
-@Retention
-annotation class DecoroutinatorTransformed(
-    val fileNamePresent: Boolean = true,
-    val fileName: String = "",
-    val methodNames: Array<String>,
-    val lineNumbersCounts: IntArray,
-    val lineNumbers: IntArray
-)
-
-val Class<*>.isDecoroutinatorTransformed: Boolean
-    get() = isAnnotationPresent(DecoroutinatorTransformed::class.java)
-
-internal object TransformedClassMethodHandleRegistry: MethodHandleRegistry {
+internal object TransformedClassesSpecRegistry: SpecRegistry {
     private val className2Spec: MutableMap<String, ClassSpec> = ConcurrentHashMap()
 
     @Volatile
     private var notSynchronizedClassName2Spec = emptyMap<String, ClassSpec>()
 
-    override fun getStacktraceMethodHandles(
+    override fun getSpecFactories(
         elements: Collection<StacktraceElement>
-    ): Map<StacktraceElement, MethodHandle> =
+    ): Map<StacktraceElement, SpecFactory> =
         buildMap {
             elements.groupBy { it.className }.forEach { (className, elements) ->
                 val classSpec = notSynchronizedClassName2Spec[className]
@@ -40,7 +31,7 @@ internal object TransformedClassMethodHandleRegistry: MethodHandleRegistry {
                             if (methodSpec != null) {
                                 elements.forEach {
                                     if (it.lineNumber in methodSpec.lineNumbers) {
-                                        put(it, methodSpec.handle)
+                                        put(it, methodSpec)
                                     }
                                 }
                             }
@@ -52,7 +43,7 @@ internal object TransformedClassMethodHandleRegistry: MethodHandleRegistry {
     internal fun registerClass(lookup: MethodHandles.Lookup) {
         val clazz: Class<*> = lookup.lookupClass()
         val meta: DecoroutinatorTransformed? = clazz.getDeclaredAnnotation(DecoroutinatorTransformed::class.java)
-        if (meta != null) {
+        if (meta != null && meta.version == TRANSFORMED_VERSION) {
             val lineNumberIterator = meta.lineNumbers.iterator()
             val classSpec = ClassSpec(
                 fileName = if (meta.fileNamePresent) meta.fileName else null,
@@ -64,7 +55,7 @@ internal object TransformedClassMethodHandleRegistry: MethodHandleRegistry {
                                     add(lineNumberIterator.next())
                                 }
                             },
-                            handle = lookup.findStatic(clazz, methodName, invokeStacktraceMethodType)
+                            handle = lookup.findStatic(clazz, methodName, specMethodType)
                         )
                         methodName to methodSpec
                     }
@@ -77,6 +68,8 @@ internal object TransformedClassMethodHandleRegistry: MethodHandleRegistry {
                     return
                 } catch (_: ConcurrentModificationException) { }
             }
+        } else if (meta != null && meta.version > TRANSFORMED_VERSION) {
+            error("Class [$clazz] has transformed meta of version [${meta.version}]. Please update Decoroutinator")
         }
     }
 
@@ -87,15 +80,17 @@ internal object TransformedClassMethodHandleRegistry: MethodHandleRegistry {
 
     private data class MethodSpec(
         val lineNumbers: Set<Int>,
-        val handle: MethodHandle
-    )
-}
+        override val handle: MethodHandle
+    ): SpecFactory {
+        override fun createNotCallingNextHandle(lineNumber: Int, nextContinuation: Continuation<*>): Any =
+            DecoroutinatorSpecImpl(lineNumber, nextContinuation as BaseContinuationImpl)
 
-@FunctionMarker
-@Suppress("unused")
-fun registerClass(lookup: MethodHandles.Lookup) {
-    TransformedClassMethodHandleRegistry.registerClass(lookup)
+        override fun createCallingNextHandle(
+            lineNumber: Int,
+            nextHandle: MethodHandle,
+            nextSpec: Any,
+            nextContinuation: Continuation<*>
+        ): Any =
+            DecoroutinatorSpecImpl(lineNumber, nextHandle, nextSpec, nextContinuation as BaseContinuationImpl)
+    }
 }
-
-val registerTransformedFunctionClass = getFileClass()
-val registerTransformedFunctionName = registerTransformedFunctionClass.markedFunctionName

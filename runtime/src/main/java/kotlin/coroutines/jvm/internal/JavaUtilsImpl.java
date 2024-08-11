@@ -1,18 +1,14 @@
 package kotlin.coroutines.jvm.internal;
 
-import dev.reformator.stacktracedecoroutinator.runtime.JavaUtils;
+import dev.reformator.stacktracedecoroutinator.runtime.internal.JavaUtils;
 import kotlin.Result;
 import kotlin.ResultKt;
 import kotlin.coroutines.Continuation;
-import kotlin.coroutines.intrinsics.IntrinsicsKt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.function.BiFunction;
-
 @SuppressWarnings("KotlinInternalInJava")
-public class JavaUtilsImpl implements JavaUtils {
+public final class JavaUtilsImpl implements JavaUtils {
     @Nullable
     @Override
     public Object retrieveResultValue(@Nullable Object result) {
@@ -36,29 +32,23 @@ public class JavaUtilsImpl implements JavaUtils {
         return DebugMetadataKt.getStackTraceElement(continuation);
     }
 
-    @SuppressWarnings({"unchecked", "Convert2Lambda", "rawtypes"})
     @NotNull
     @Override
-    public BiFunction<Integer, Object, Object> createAwakenerFun(
-            @NotNull List<? extends BaseContinuationImpl> baseContinuations
+    public Object createFailureResult(@NotNull Throwable exception) {
+        return ResultKt.createFailure(exception);
+    }
+
+    @Nullable
+    @Override
+    public Object baseContinuationInvokeSuspend(
+            @NotNull BaseContinuationImpl baseContinuation,
+            @NotNull Object result
     ) {
-        return new BiFunction() {
-            @Override
-            public Object apply(Object index, Object innerResult) {
-                BaseContinuationImpl continuation = baseContinuations.get((Integer) index );
-                DebugProbesKt.probeCoroutineResumed(continuation);
-                Object newResult;
-                try {
-                    newResult = continuation.invokeSuspend(innerResult);
-                    if (newResult == IntrinsicsKt.getCOROUTINE_SUSPENDED()) {
-                        return newResult;
-                    }
-                } catch (Throwable e) {
-                    newResult = ResultKt.createFailure(e);
-                }
-                continuation.releaseIntercepted();
-                return newResult;
-            }
-        };
+        return baseContinuation.invokeSuspend(result);
+    }
+
+    @Override
+    public void baseContinuationReleaseIntercepted(@NotNull BaseContinuationImpl baseContinuation) {
+        baseContinuation.releaseIntercepted();
     }
 }

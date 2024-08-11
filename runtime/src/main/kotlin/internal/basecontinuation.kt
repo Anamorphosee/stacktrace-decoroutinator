@@ -2,10 +2,10 @@
 
 package kotlin.coroutines.jvm.internal
 
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorMarker
-import dev.reformator.stacktracedecoroutinator.runtime.JavaUtils
-import dev.reformator.stacktracedecoroutinator.runtime.awake
-import dev.reformator.stacktracedecoroutinator.runtime.enabled
+import dev.reformator.stacktracedecoroutinator.runtime.internal.DecoroutinatorMarker
+import dev.reformator.stacktracedecoroutinator.runtime.internal.JavaUtils
+import dev.reformator.stacktracedecoroutinator.runtime.internal.awake
+import dev.reformator.stacktracedecoroutinator.runtime.internal.enabled
 import java.io.Serializable
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED

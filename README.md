@@ -119,7 +119,7 @@ prints out:
 java.lang.Exception: exception at 1722597709832
 	at ExampleKt.rec(example.kt:8)
 	at ExampleKt$rec$1.invokeSuspend(example.kt)
-	at kotlin.coroutines.jvm.internal.JavaUtilsImpl$1.apply(JavaUtilsImpl.java:52)
+	at dev.reformator.stacktracedecoroutinator.runtime.JavaUtilsImpl$1.apply(JavaUtilsImpl.java:52)
 	at ExampleKt.rec(example.kt:10)
 	at ExampleKt.rec(example.kt:10)
 	at ExampleKt.rec(example.kt:10)

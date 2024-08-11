@@ -1,32 +1,48 @@
 @file:Suppress("PackageDirectoryMismatch")
 
-package dev.reformator.stacktracedecoroutinator.runtime
+package dev.reformator.stacktracedecoroutinator.runtime.internal
 
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.jvm.internal.BaseContinuationImpl
+import kotlin.coroutines.jvm.internal.DecoroutinatorSpecImpl
 
-interface MethodHandleRegistry {
-    fun getStacktraceMethodHandles(
-        elements: Collection<StacktraceElement>
-    ): Map<StacktraceElement, MethodHandle>
+interface SpecFactory {
+    fun createNotCallingNextHandle(lineNumber: Int, nextContinuation: Continuation<*>): Any
+
+    fun createCallingNextHandle(
+        lineNumber: Int,
+        nextHandle: MethodHandle,
+        nextSpec: Any,
+        nextContinuation: Continuation<*>
+    ): Any
+
+    val handle: MethodHandle
 }
 
-abstract class BaseMethodHandleRegistry: MethodHandleRegistry {
+interface SpecRegistry {
+    fun getSpecFactories(
+        elements: Collection<StacktraceElement>
+    ): Map<StacktraceElement, SpecFactory>
+}
+
+abstract class BaseSpecRegistry: SpecRegistry {
     private val className2Spec = ConcurrentHashMap<String, ClassSpec>()
     @Volatile
     private var notSynchronizedClassName2Spec = emptyMap<String, NotSynchronizedClassSpec>()
 
-    override fun getStacktraceMethodHandles(
+    override fun getSpecFactories(
         elements: Collection<StacktraceElement>
-    ): Map<StacktraceElement, MethodHandle> {
-        val transformedHandles = TransformedClassMethodHandleRegistry.getStacktraceMethodHandles(elements)
-        val notTransformedElements = elements.asSequence().filter { it !in transformedHandles }.toSet()
+    ): Map<StacktraceElement, SpecFactory> {
+        val transformed = TransformedClassesSpecRegistry.getSpecFactories(elements)
+        val notTransformedElements = elements.asSequence().filter { it !in transformed }.toSet()
         if (notTransformedElements.isEmpty()) {
-            return transformedHandles
+            return transformed
         }
 
-        val result: MutableMap<StacktraceElement, MethodHandle> = HashMap(transformedHandles)
-        val missingElements = getMissingElementsAndFillResult(elements, result)
+        val result: MutableMap<StacktraceElement, SpecFactory> = HashMap(transformed)
+        val missingElements = getMissingElementsAndFillResult(notTransformedElements, result)
         if (missingElements.isNotEmpty()) {
             regenerateClassesForMissingElements(missingElements)
             updateNotSynchronizedClassName2Spec()
@@ -36,7 +52,7 @@ abstract class BaseMethodHandleRegistry: MethodHandleRegistry {
                 missingElements.groupBy { it.methodName }.forEach { (methodName, missingElements) ->
                     val methodSpec = classSpec.methodName2Spec[methodName]!!
                     missingElements.forEach {
-                        result[it] = methodSpec.handle
+                        result[it] = methodSpec.factory
                     }
                 }
             }
@@ -45,16 +61,16 @@ abstract class BaseMethodHandleRegistry: MethodHandleRegistry {
         return result
     }
 
-    protected abstract fun generateStacktraceClass(
+    protected abstract fun generateSpecClassAndGetMethodName2Factory(
         className: String,
         fileName: String?,
         classRevision: Int,
         methodName2LineNumbers: Map<String, Set<Int>>
-    ): Class<*>
+    ): Map<String, SpecFactory>
 
     private fun getMissingElementsAndFillResult(
         elements: Collection<StacktraceElement>,
-        result: MutableMap<StacktraceElement, MethodHandle>
+        result: MutableMap<StacktraceElement, SpecFactory>
     ) = buildSet {
         val className2Spec = notSynchronizedClassName2Spec
         elements.groupBy { it.className }.forEach classForEach@{ (className, elements) ->
@@ -78,7 +94,7 @@ abstract class BaseMethodHandleRegistry: MethodHandleRegistry {
                         )
                     }
                     if (it.lineNumber in methodSpec.lineNumbers) {
-                        result[it] = methodSpec.handle
+                        result[it] = methodSpec.factory
                     } else {
                         add(it)
                     }
@@ -130,7 +146,7 @@ abstract class BaseMethodHandleRegistry: MethodHandleRegistry {
                 }
 
                 classSpec.revision++
-                val clazz = generateStacktraceClass(
+                val methodName2Factory = generateSpecClassAndGetMethodName2Factory(
                     className = className,
                     fileName = fileName,
                     classRevision = classSpec.revision,
@@ -138,10 +154,9 @@ abstract class BaseMethodHandleRegistry: MethodHandleRegistry {
                 )
 
                 methodName2LineNumbers.forEach { (methodName, lineNumbers) ->
-                    val handle = lookup.findStatic(clazz, methodName, invokeStacktraceMethodType)
                     classSpec.methodName2Spec[methodName] = MethodSpec(
                         lineNumbers = lineNumbers,
-                        handle = handle
+                        factory = methodName2Factory[methodName]!!
                     )
                 }
             }
@@ -170,11 +185,24 @@ abstract class BaseMethodHandleRegistry: MethodHandleRegistry {
 
     private class MethodSpec(
         val lineNumbers: Set<Int>,
-        val handle: MethodHandle
+        val factory: SpecFactory
     )
 
     private class NotSynchronizedClassSpec(
         val fileName: String?,
         val methodName2Spec: Map<String, MethodSpec>
     )
+}
+
+internal class SpecFactoryImpl(override val handle: MethodHandle): SpecFactory {
+    override fun createNotCallingNextHandle(lineNumber: Int, nextContinuation: Continuation<*>): Any =
+        DecoroutinatorSpecImpl(lineNumber, nextContinuation as BaseContinuationImpl)
+
+    override fun createCallingNextHandle(
+        lineNumber: Int,
+        nextHandle: MethodHandle,
+        nextSpec: Any,
+        nextContinuation: Continuation<*>
+    ): Any =
+        DecoroutinatorSpecImpl(lineNumber, nextHandle, nextSpec, nextContinuation as BaseContinuationImpl)
 }

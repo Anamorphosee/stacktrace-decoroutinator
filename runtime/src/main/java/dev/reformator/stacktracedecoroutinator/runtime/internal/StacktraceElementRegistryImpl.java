@@ -1,4 +1,4 @@
-package dev.reformator.stacktracedecoroutinator.runtime;
+package dev.reformator.stacktracedecoroutinator.runtime.internal;
 
 import kotlin.Pair;
 import kotlin.coroutines.Continuation;

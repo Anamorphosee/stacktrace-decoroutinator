@@ -2,8 +2,8 @@
 
 package dev.reformator.stacktracedecoroutinator.generator
 
-import dev.reformator.stacktracedecoroutinator.runtime.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorTransformed
+import dev.reformator.stacktracedecoroutinator.runtime.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.runtime.registerTransformedFunctionClass
 import dev.reformator.stacktracedecoroutinator.runtime.registerTransformedFunctionName
 import org.objectweb.asm.ClassReader
@@ -58,25 +58,13 @@ private data class MetadataInfo(
 private fun ClassNode.transform(metadataInfo: MetadataInfo) {
     version = maxOf(version, Opcodes.V1_8)
     metadataInfo.suspendFuncName2LineNumbers.forEach { (methodName, lineNumbers) ->
-        methods.add(buildStacktraceMethodNode(methodName, lineNumbers, true))
+        methods.add(buildSpecMethodNode(methodName, lineNumbers, true))
     }
     val clinit = getOrCreateClinitMethod()
-    val tryStart = LabelNode()
-    val tryEnd = LabelNode()
-    val tryHandler = LabelNode()
     clinit.instructions.insertBefore(
         clinit.instructions.first,
-        buildCallRegisterLookupInstructions(
-            tryStart = tryStart,
-            tryEnd = tryEnd,
-            tryHandler = tryHandler
-        )
+        buildCallRegisterLookupInstructions()
     )
-    clinit.tryCatchBlocks = clinit.tryCatchBlocks.orEmpty().toMutableList().also { blocks ->
-        blocks.add(TryCatchBlockNode(
-            tryStart, tryEnd, tryHandler, Type.getInternalName(NoClassDefFoundError::class.java)
-        ))
-    }
     if (visibleAnnotations == null) {
         visibleAnnotations = mutableListOf()
     }
@@ -218,28 +206,19 @@ private fun ClassNode.getOrCreateClinitMethod(): MethodNode =
         methods.add(this)
     }
 
-private fun buildCallRegisterLookupInstructions(tryStart: LabelNode, tryEnd: LabelNode, tryHandler: LabelNode) = InsnList().apply {
+private fun buildCallRegisterLookupInstructions() = InsnList().apply {
     add(MethodInsnNode(
         Opcodes.INVOKESTATIC,
         Type.getInternalName(MethodHandles::class.java),
         "lookup",
         "()${Type.getDescriptor(MethodHandles.Lookup::class.java)}"
     ))
-    add(tryStart)
     add(MethodInsnNode(
         Opcodes.INVOKESTATIC,
         Type.getInternalName(registerTransformedFunctionClass),
         registerTransformedFunctionName,
         "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})V"
     ))
-    add(tryEnd)
-    val end = LabelNode()
-    add(JumpInsnNode(Opcodes.GOTO, end))
-    add(tryHandler)
-    add(FrameNode(Opcodes.F_SAME1, 0, null, 1, arrayOf(Type.getInternalName(NoClassDefFoundError::class.java))))
-    add(InsnNode(Opcodes.POP))
-    add(end)
-    add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
 }
 
 private val MetadataInfo.transformedAnnotation: AnnotationNode

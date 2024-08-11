@@ -2,7 +2,11 @@
 
 package dev.reformator.stacktracedecoroutinator.runtime
 
-import unknownStacktraceClass
+import dev.reformator.stacktracedecoroutinator.runtime.internal.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.runtime.internal.ENABLED_PROPERTY
+import dev.reformator.stacktracedecoroutinator.runtime.internal.awakenerFileClassName
+import dev.reformator.stacktracedecoroutinator.runtime.internal.enabled
+import unknownSpecClass
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -117,7 +121,7 @@ object DecoroutinatorRuntimeApi {
                 }
                 if (
                     trace.subList(0, baseContinuationResumeIndex).any {
-                        it.className == unknownStacktraceClass.name
+                        it.className == unknownSpecClass.name
                     }
                 ) {
                     return Status(

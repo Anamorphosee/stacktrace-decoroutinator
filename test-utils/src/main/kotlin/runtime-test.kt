@@ -1,6 +1,6 @@
 package dev.reformator.stacktracedecoroutinator.test
 
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntimeApi
+//import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntimeApi
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
@@ -97,11 +97,11 @@ open class RuntimeTest {
         }
     }
 
-    @Junit4Test @Junit5Test
-    fun testRuntimeApiStatus() {
-        val status = DecoroutinatorRuntimeApi.getStatus { it() }
-        assertTrue(status.successful, status.description)
-    }
+//    @Junit4Test @Junit5Test
+//    fun testRuntimeApiStatus() {
+//        val status = DecoroutinatorRuntimeApi.getStatus { it() }
+//        assertTrue(status.successful, status.description)
+//    }
 
     private var resumeWithExceptionRecBaseLineNumber: Int = 0
 

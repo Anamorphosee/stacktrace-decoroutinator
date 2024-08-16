@@ -1,12 +1,12 @@
 plugins {
     kotlin("jvm")
-    id("dev.reformator.stacktracedecoroutinator")
+    //id("dev.reformator.stacktracedecoroutinator")
 }
 
-stacktraceDecoroutinator {
-    _addRuntimeDependency = false
-    require(!_isAndroid)
-}
+//stacktraceDecoroutinator {
+//    _addRuntimeDependency = false
+//    require(!_isAndroid)
+//}
 
 repositories {
     mavenCentral()

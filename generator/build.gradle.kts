@@ -1,6 +1,7 @@
-import dev.reformator.stacktracedecoroutinator.generator.loadDecoroutinatorBaseContinuationClassBody
-import dev.reformator.stacktracedecoroutinator.runtime.internal.BASE_CONTINUATION_CLASS_NAME
+//import dev.reformator.stacktracedecoroutinator.generator.internal.loadDecoroutinatorBaseContinuationClassBody
+//import dev.reformator.stacktracedecoroutinator.runtime.internal.BASE_CONTINUATION_CLASS_NAME
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
@@ -10,14 +11,27 @@ plugins {
     id("org.jetbrains.dokka")
     `maven-publish`
     signing
+    id("dev.reformator.stacktracedecoroutinator.downgrade-classes")
 }
 
-tasks.named("classes") {
+tasks.named("processResources") {
+    dependsOn(":basecontinuation:classes")
     doLast {
         copy {
-            from(project(":stacktrace-decoroutinator-runtime").layout.buildDirectory.get().dir("baseContinuation"))
-            into(layout.buildDirectory.get().dir("classes").dir("kotlin").dir("main"))
-            include("**.class")
+            from(
+                project(":basecontinuation").layout.buildDirectory.get()
+                .dir("classes")
+                .dir("kotlin")
+                .dir("main")
+                .dir("kotlin")
+                .dir("coroutines")
+                .dir("jvm")
+                .dir("internal")
+            )
+            into(layout.buildDirectory.get().dir("resources").dir("main"))
+            val fileName = "BaseContinuationImpl.class"
+            include(fileName)
+            rename(fileName, "dev.reformator.stacktracedecoroutinator.generator.basecontinuation.class")
         }
     }
 }
@@ -31,48 +45,49 @@ val transformedAttribute = Attribute.of(
     Boolean::class.javaObjectType
 )
 
-abstract class Transform: TransformAction<TransformParameters.None> {
-    @get:InputArtifact
-    abstract val inputArtifact: Provider<FileSystemLocation>
-
-    override fun transform(outputs: TransformOutputs) {
-        val file = inputArtifact.get().asFile
-        if (file.name.startsWith("kotlin-stdlib-") && file.extension == "jar") {
-            JarOutputStream(outputs.file("kotlin-stdlib-transformed.jar").outputStream()).use { output ->
-                JarFile(file).use { input ->
-                    input.entries().asSequence().forEach { entry ->
-                        output.putNextEntry(ZipEntry(entry.name).apply {
-                            method = ZipEntry.DEFLATED
-                        })
-                        if (entry.name == BASE_CONTINUATION_CLASS_NAME.replace('.', '/') + ".class") {
-                            output.write(loadDecoroutinatorBaseContinuationClassBody())
-                        } else if (!entry.isDirectory) {
-                            input.getInputStream(entry).use { it.copyTo(output) }
-                        }
-                        output.closeEntry()
-                    }
-                }
-            }
-        } else {
-            outputs.file(inputArtifact)
-        }
-    }
-}
+//abstract class Transform: TransformAction<TransformParameters.None> {
+//    @get:InputArtifact
+//    abstract val inputArtifact: Provider<FileSystemLocation>
+//
+//    override fun transform(outputs: TransformOutputs) {
+//        val file = inputArtifact.get().asFile
+//        if (file.name.startsWith("kotlin-stdlib-") && file.extension == "jar") {
+//            JarOutputStream(outputs.file("kotlin-stdlib-transformed.jar").outputStream()).use { output ->
+//                JarFile(file).use { input ->
+//                    input.entries().asSequence().forEach { entry ->
+//                        output.putNextEntry(ZipEntry(entry.name).apply {
+//                            method = ZipEntry.DEFLATED
+//                        })
+//                        if (entry.name == BASE_CONTINUATION_CLASS_NAME.replace('.', '/') + ".class") {
+//                            output.write(loadDecoroutinatorBaseContinuationClassBody())
+//                        } else if (!entry.isDirectory) {
+//                            input.getInputStream(entry).use { it.copyTo(output) }
+//                        }
+//                        output.closeEntry()
+//                    }
+//                }
+//            }
+//        } else {
+//            outputs.file(inputArtifact)
+//        }
+//    }
+//}
 
 dependencies {
     attributesSchema.attribute(transformedAttribute)
-    artifactTypes.getByName("jar", object: Action<ArtifactTypeDefinition> {
-        override fun execute(t: ArtifactTypeDefinition) {
-            t.attributes.attribute(transformedAttribute, false)
-        }
-    })
-    registerTransform(Transform::class.java, object: Action<TransformSpec<TransformParameters.None>> {
-        override fun execute(t: TransformSpec<TransformParameters.None>) {
-            t.from.attribute(transformedAttribute, false)
-            t.to.attribute(transformedAttribute, true)
-        }
-    })
+//    artifactTypes.getByName("jar", object: Action<ArtifactTypeDefinition> {
+//        override fun execute(t: ArtifactTypeDefinition) {
+//            t.attributes.attribute(transformedAttribute, false)
+//        }
+//    })
+//    registerTransform(Transform::class.java, object: Action<TransformSpec<TransformParameters.None>> {
+//        override fun execute(t: TransformSpec<TransformParameters.None>) {
+//            t.from.attribute(transformedAttribute, false)
+//            t.to.attribute(transformedAttribute, true)
+//        }
+//    })
 
+    implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-runtime"))
     implementation("org.ow2.asm:asm-util:${decoroutinatorVersions["asm"]}")
 
@@ -88,8 +103,15 @@ tasks.test {
     useJUnitPlatform()
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
+}
+
 kotlin {
-    jvmToolchain(8)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+    }
 }
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {

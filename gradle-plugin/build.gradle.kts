@@ -1,9 +1,12 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     kotlin("jvm")
     id("org.jetbrains.dokka")
     `maven-publish`
     signing
     id("com.gradle.plugin-publish")
+    id("dev.reformator.stacktracedecoroutinator.downgrade-classes")
 }
 
 repositories {
@@ -49,8 +52,15 @@ tasks.named("processResources").get().doLast {
     }
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
+}
+
 kotlin {
-    jvmToolchain(8)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+    }
 }
 
 tasks.test {

@@ -2,7 +2,10 @@
 
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 
-import dev.reformator.stacktracedecoroutinator.generator.*
+import dev.reformator.stacktracedecoroutinator.generator.internal.DebugMetadataInfo
+import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClass
+import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
+import dev.reformator.stacktracedecoroutinator.generator.internal.getResourceAsStream
 
 internal enum class JvmAgentDebugMetadataInfoResolveStrategy: (String) -> DebugMetadataInfo? {
     SYSTEM_RESOURCE {

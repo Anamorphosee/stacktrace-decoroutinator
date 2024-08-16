@@ -1,33 +1,12 @@
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
     id("org.jetbrains.dokka")
     `maven-publish`
     signing
-}
-
-tasks.named("classes") {
-    doLast {
-        val baseContinuationDirPath = layout.buildDirectory.get()
-            .dir("classes")
-            .dir("kotlin")
-            .dir("main")
-            .dir("kotlin")
-            .dir("coroutines")
-            .dir("jvm")
-            .dir("internal")
-        val baseContinuationPath = layout.buildDirectory.get()
-            .dir("baseContinuation")
-        val baseContinuationClassFileName = "BaseContinuationImpl.class"
-        copy {
-            from(baseContinuationDirPath)
-            into(baseContinuationPath)
-            include(baseContinuationClassFileName)
-            rename(baseContinuationClassFileName, "dev.reformator.stacktracedecoroutinator.decoroutinatorBaseContinuation.class")
-        }
-        delete(baseContinuationDirPath.file(baseContinuationClassFileName))
-    }
+    id("dev.reformator.stacktracedecoroutinator.apply-intrinsics")
 }
 
 repositories {
@@ -35,6 +14,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":stacktrace-decoroutinator-provider"))
     testImplementation(kotlin("test"))
 }
 
@@ -42,9 +22,27 @@ tasks.test {
     useJUnitPlatform()
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
+
+}
+
+//tasks.withType<JavaCompile> {
+//    options.compilerArgs.addAll(listOf("--add-reads", "dev.reformator.stacktracedecoroutinator.runtime=intrinsics"))
+//}
+
 kotlin {
-    jvmToolchain(8)
-    compilerOptions.freeCompilerArgs.add("-Xallow-kotlin-package")
+    compilerOptions {
+        //freeCompilerArgs.addAll(listOf("-Xadd-reads", "dev.reformator.stacktracedecoroutinator.runtime=intrinsics"))
+        jvmTarget = JvmTarget.JVM_1_8
+    }
+}
+
+sourceSets {
+    main {
+        kotlin.destinationDirectory = java.destinationDirectory
+    }
 }
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {

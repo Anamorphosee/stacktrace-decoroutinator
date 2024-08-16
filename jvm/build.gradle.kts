@@ -1,5 +1,6 @@
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
@@ -7,6 +8,7 @@ plugins {
     `maven-publish`
     signing
     jacoco
+    id("dev.reformator.stacktracedecoroutinator.downgrade-classes")
 }
 
 repositories {
@@ -42,8 +44,15 @@ tasks.create<Test>(testReloadBaseConfigurationTestName) {
 }
 tasks.test.dependsOn(tasks.named<Test>(testReloadBaseConfigurationTestName))
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
+}
+
 kotlin {
-    jvmToolchain(8)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+    }
 }
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {

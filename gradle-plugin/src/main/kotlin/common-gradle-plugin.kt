@@ -2,9 +2,9 @@
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
-import dev.reformator.stacktracedecoroutinator.generator.getDebugMetadataInfoFromClassBody
-import dev.reformator.stacktracedecoroutinator.generator.loadResource
-import dev.reformator.stacktracedecoroutinator.generator.tryTransformForDecoroutinator
+import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
+import dev.reformator.stacktracedecoroutinator.generator.internal.loadResource
+import dev.reformator.stacktracedecoroutinator.generator.internal.tryTransformForDecoroutinator
 import mu.KotlinLogging
 import org.gradle.api.Action
 import org.gradle.api.Plugin

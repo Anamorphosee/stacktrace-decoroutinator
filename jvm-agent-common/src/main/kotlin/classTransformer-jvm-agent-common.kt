@@ -2,8 +2,8 @@
 
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 
-import dev.reformator.stacktracedecoroutinator.generator.loadResource
-import dev.reformator.stacktracedecoroutinator.generator.tryTransformForDecoroutinator
+import dev.reformator.stacktracedecoroutinator.generator.internal.loadResource
+import dev.reformator.stacktracedecoroutinator.generator.internal.tryTransformForDecoroutinator
 import dev.reformator.stacktracedecoroutinator.runtime.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.runtime.isDecoroutinatorBaseContinuation
 import dev.reformator.stacktracedecoroutinator.runtime.isDecoroutinatorTransformed

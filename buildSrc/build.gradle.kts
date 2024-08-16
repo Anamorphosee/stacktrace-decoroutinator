@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.FileInputStream
 import java.util.*
 
@@ -19,13 +20,13 @@ plugins {
             properties as Map<String, String>
         }
 
-    val versions = tryLoadVersions(".") ?: tryLoadVersions("..")!!
+    val decoroutinatorVersions = tryLoadVersions(".") ?: tryLoadVersions("..")!!
 
     `java-gradle-plugin`
-    kotlin("jvm") version versions["kotlin"]
+    kotlin("jvm") version decoroutinatorVersions["kotlin"]
 }
 
-val versions = FileInputStream(projectDir.resolve("../versions.properties")).use { input ->
+val decoroutinatorVersions = FileInputStream(projectDir.resolve("../versions.properties")).use { input ->
     val properties = Properties()
     properties.load(input)
     properties.mapKeys { (key, _) -> key.toString() }.mapValues { (_, value) -> value.toString() }
@@ -33,57 +34,76 @@ val versions = FileInputStream(projectDir.resolve("../versions.properties")).use
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
 }
 
 dependencies {
-    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
-    implementation("io.github.microutils:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:${decoroutinatorVersions["kotlin"]}")
+    implementation("org.ow2.asm:asm-util:${decoroutinatorVersions["asm"]}")
+    implementation("io.github.microutils:kotlin-logging-jvm:${decoroutinatorVersions["kotlinLoggingJvm"]}")
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    modularity.inferModulePath = false
+}
 
 kotlin {
-    compilerOptions.freeCompilerArgs.add("-Xallow-kotlin-package")
-    jvmToolchain(8)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+        freeCompilerArgs.add("-Xallow-kotlin-package")
+    }
 }
 
 val javaSources = sourceSets.main.get().java
 val kotlinSources = sourceSets.main.get().kotlin
-javaSources.srcDirs("../runtime/src/main/java")
-kotlinSources.srcDirs("../runtime/src/main/kotlin")
-javaSources.srcDirs("../generator/src/main/java")
-kotlinSources.srcDirs("../generator/src/main/kotlin")
-kotlinSources.srcDirs("../gradle-plugin/src/main/kotlin")
+//javaSources.srcDirs("../runtime/src/main/java")
+//kotlinSources.srcDirs("../runtime/src/main/kotlin")
+//javaSources.srcDirs("../generator/src/main/java")
+//kotlinSources.srcDirs("../generator/src/main/kotlin")
+//kotlinSources.srcDirs("../gradle-plugin/src/main/kotlin")
+kotlinSources.srcDirs("../intrinsics/src/main/kotlin")
+javaSources.exclude("**/module-info.java")
 
-tasks.named("classes") {
-    doLast {
-        val classesPath = layout.buildDirectory.get()
-            .dir("classes")
-            .dir("kotlin")
-            .dir("main")
-        val baseContinuationDirPath = classesPath
-            .dir("kotlin")
-            .dir("coroutines")
-            .dir("jvm")
-            .dir("internal")
-        val baseContinuationClassFileName = "BaseContinuationImpl.class"
-        copy {
-            from(baseContinuationDirPath)
-            into(classesPath)
-            include(baseContinuationClassFileName)
-            rename(
-                baseContinuationClassFileName,
-                "dev.reformator.stacktracedecoroutinator.decoroutinatorBaseContinuation.class"
-            )
-        }
-        delete(baseContinuationDirPath.file(baseContinuationClassFileName))
-    }
-}
+//tasks.named("classes") {
+//    doLast {
+//        val classesPath = layout.buildDirectory.get()
+//            .dir("classes")
+//            .dir("kotlin")
+//            .dir("main")
+//        val baseContinuationDirPath = classesPath
+//            .dir("kotlin")
+//            .dir("coroutines")
+//            .dir("jvm")
+//            .dir("internal")
+//        val baseContinuationClassFileName = "BaseContinuationImpl.class"
+//        copy {
+//            from(baseContinuationDirPath)
+//            into(classesPath)
+//            include(baseContinuationClassFileName)
+//            rename(
+//                baseContinuationClassFileName,
+//                "dev.reformator.stacktracedecoroutinator.decoroutinatorBaseContinuation.class"
+//            )
+//        }
+//        delete(baseContinuationDirPath.file(baseContinuationClassFileName))
+//    }
+//}
 
 gradlePlugin {
     plugins {
-        create("decoroutinatorPlugin") {
-            id = "dev.reformator.stacktracedecoroutinator"
-            implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPlugin"
+//        create("decoroutinatorPlugin") {
+//            id = "dev.reformator.stacktracedecoroutinator"
+//            implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPlugin"
+//        }
+        create("downgradeClassesPlugin") {
+            id = "dev.reformator.stacktracedecoroutinator.downgrade-classes"
+            implementationClass = "dev.reformator.stacktracedecoroutinator.buildsrc.DowngradeClassesPlugin"
+        }
+        create("applyIntrinsicsPlugin") {
+            id = "dev.reformator.stacktracedecoroutinator.apply-intrinsics"
+            implementationClass = "dev.reformator.stacktracedecoroutinator.buildsrc.ApplyIntrinsicsPlugin"
         }
     }
 }

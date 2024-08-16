@@ -2,84 +2,91 @@
 
 package dev.reformator.stacktracedecoroutinator.runtime.internal
 
-import unknownSpecFactory
-import java.lang.invoke.MethodHandle
+import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.intrinsics.FailureResult
+import dev.reformator.stacktracedecoroutinator.intrinsics.toResult
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
-import kotlin.coroutines.jvm.internal.BaseContinuationImpl
 
 internal val awakenerFileClassName = getFileClass().name
 
-internal fun BaseContinuationImpl.awake(result: Result<Any?>) {
+internal fun BaseContinuation.awake(result: Any?) {
     val baseContinuations = buildList {
         var completion: Continuation<Any?> = this@awake
-        while (completion is BaseContinuationImpl) {
+        while (completion is BaseContinuation) {
             add(completion)
             completion = completion.completion!!
         }
     }
 
-    val stacktraceElements = stacktraceElementRegistry.getStacktraceElements(baseContinuations)
-    if (result.isFailure && recoveryExplicitStacktrace) {
-        val exception = JavaUtils().retrieveResultThrowable(result)
+    val stacktraceElements = stacktraceElementsFactory.getStacktraceElements(baseContinuations.toSet())
+    if (result.toResult.isFailure && recoveryExplicitStacktrace) {
+        val exception = (result as FailureResult).exception
         recoveryExplicitStacktrace(exception, baseContinuations, stacktraceElements)
     }
 
-    val specResult = callSpecMethods(baseContinuations, stacktraceElements, result)
-    if (specResult === COROUTINE_SUSPENDED) return
+    val specResult = if (baseContinuations.size > 1) {
+        callSpecMethods(
+            baseContinuations = baseContinuations,
+            stacktraceElements = stacktraceElements,
+            result = result
+        ).also {
+            if (it === COROUTINE_SUSPENDED) return
+        }
+    } else {
+        result
+    }
 
-    val lastBaseContinuationResult = baseContinuations.last().callInvokeSuspend(Result.success(specResult))
+    val lastBaseContinuationResult = baseContinuations.last().callInvokeSuspend(specResult)
     if (lastBaseContinuationResult === COROUTINE_SUSPENDED) return
 
     baseContinuations.last().completion!!.resumeWith(Result.success(lastBaseContinuationResult))
 }
 
+private val unknownStacktraceElement = StacktraceElement(
+    lineNumber = -1,
+    className = "Unknown",
+    methodName = "unknown",
+    fileName = null
+)
+
 private fun callSpecMethods(
-    baseContinuations: List<BaseContinuationImpl>,
+    baseContinuations: List<BaseContinuation>,
     stacktraceElements: StacktraceElements,
-    result: Result<Any?>
+    result: Any?
 ): Any? {
-    val specFactories = specRegistry.getSpecFactories(stacktraceElements.possibleElements)
-    var prevHandle: MethodHandle? = null
-    var prevSpec: Any? = null
+    val specFactories = specMethodsRegistry.getSpecMethodFactoriesByStacktraceElement(
+        stacktraceElements.possibleElements
+    )
+    var specAndItsMethodHandle: SpecAndItsMethodHandle? = null
     (1 ..< baseContinuations.size).forEach { index ->
         val continuation = baseContinuations[index]
-        val element = stacktraceElements.continuation2Element[continuation]
-        val factory = element?.let { specFactories[it] } ?: unknownSpecFactory
-        val lineNumber = element?.lineNumber ?: 0
-        val prevContinuation = baseContinuations[index - 1]
-        prevSpec = if (prevHandle != null) {
-            factory.createCallingNextHandle(
-                lineNumber = lineNumber,
-                nextHandle = prevHandle!!,
-                nextSpec = prevSpec!!,
-                nextContinuation = prevContinuation
-            )
-        } else {
-            factory.createNotCallingNextHandle(
-                lineNumber = lineNumber,
-                nextContinuation = prevContinuation
-            )
-        }
-        prevHandle = factory.handle
+        val element = stacktraceElements.elementsByContinuation[continuation] ?: unknownStacktraceElement
+        val factory = specFactories[element] ?: UnknownSpecMethodsFactory
+        val nextContinuation = baseContinuations[index - 1]
+        specAndItsMethodHandle = factory.getSpecAndItsMethodHandle(
+            element = element,
+            nextSpec = specAndItsMethodHandle,
+            nextContinuation = nextContinuation
+        )
     }
-    return if (prevHandle != null) {
-        prevHandle!!.invoke(prevSpec, JavaUtils().retrieveResultValue(result))
+    return if (specAndItsMethodHandle != null) {
+        specAndItsMethodHandle!!.specMethodHandle.invoke(specAndItsMethodHandle!!.spec, result)
     } else {
-        JavaUtils().retrieveResultValue(result)
+        result
     }
 }
 
 private fun recoveryExplicitStacktrace(
     exception: Throwable,
-    baseContinuations: List<BaseContinuationImpl>,
+    baseContinuations: List<BaseContinuation>,
     stacktraceElements: StacktraceElements
 ) {
     val recoveredStacktrace = Array(exception.stackTrace.size + baseContinuations.size + 1) {
         when {
             it < baseContinuations.size -> {
                 val continuation = baseContinuations[it]
-                val element = stacktraceElements.continuation2Element[continuation]
+                val element = stacktraceElements.elementsByContinuation[continuation]
                 if (element == null) {
                     artificialFrame("unknown")
                 } else {
@@ -95,3 +102,4 @@ private fun recoveryExplicitStacktrace(
 
 private fun artificialFrame(message: String) =
     StackTraceElement("", "", message, -1)
+

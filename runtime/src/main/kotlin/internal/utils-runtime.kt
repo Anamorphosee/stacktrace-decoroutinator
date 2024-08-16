@@ -2,30 +2,67 @@
 
 package dev.reformator.stacktracedecoroutinator.runtime.internal
 
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorSpec
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorTransformed
-import java.lang.invoke.MethodHandles
+import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.intrinsics._Assertions
+import dev.reformator.stacktracedecoroutinator.intrinsics.createFailure
+import dev.reformator.stacktracedecoroutinator.intrinsics.probeCoroutineResumed
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodType
-import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
-import kotlin.coroutines.jvm.internal.BaseContinuationImpl
-import kotlin.coroutines.jvm.internal.JavaUtilsImpl
 
 //not getting by reflection because it has not to lead to loading the class
 const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 
-inline val Class<*>.isDecoroutinatorBaseContinuation: Boolean
-    get() = isAnnotationPresent(DecoroutinatorMarker::class.java)
+const val UNKNOWN_LINE_NUMBER = -1
 
-val Class<*>.isDecoroutinatorTransformed: Boolean
-    get() = getDeclaredAnnotation(DecoroutinatorTransformed::class.java)?.version == TRANSFORMED_VERSION
+inline fun assert(check: () -> Boolean) {
+    if (_Assertions.ENABLED && !check()) {
+        throw AssertionError()
+    }
+}
 
-val lookup: MethodHandles.Lookup = MethodHandles.publicLookup()
-
-fun Continuation<*>.callInvokeSuspend(result: Result<Any?>): Any? =
-    (this as BaseContinuationImpl).callInvokeSuspend(result)
+@Suppress("NOTHING_TO_INLINE")
+inline fun BaseContinuation.callInvokeSuspend(result: Any?): Any? {
+    probeCoroutineResumed(this)
+    val newResult = try {
+        invokeSuspendHandle!!.invokeExact(this, result)
+    } catch (exception: Throwable) {
+        return createFailure(exception)
+    }
+    if (newResult === COROUTINE_SUSPENDED) {
+        return newResult
+    }
+    releaseInterceptedHandle!!.invokeExact(this)
+    return newResult
+}
 
 internal const val TRANSFORMED_VERSION = 0
+
+@Target(AnnotationTarget.FUNCTION)
+@Retention
+internal annotation class FunctionMarker
+
+internal class DecoroutinatorSpecImpl(
+    override val lineNumber: Int,
+    private val nextSpecAndItsMethod: SpecAndItsMethodHandle?,
+    private val nextContinuation: BaseContinuation
+): DecoroutinatorSpec {
+    override val isLastSpec: Boolean
+        get() = nextSpecAndItsMethod == null
+
+    override val nextHandle: MethodHandle
+        get() = nextSpecAndItsMethod!!.specMethodHandle
+
+    override val nextSpec: Any
+        get() = nextSpecAndItsMethod!!.spec
+
+    override val coroutineSuspendedMarker: Any
+        get() = COROUTINE_SUSPENDED
+
+    override fun resumeNext(result: Any?): Any? =
+        nextContinuation.callInvokeSuspend(result)
+}
 
 internal val specMethodType = MethodType.methodType(
     Object::class.java,
@@ -33,60 +70,8 @@ internal val specMethodType = MethodType.methodType(
     Object::class.java
 )
 
-internal interface JavaUtils {
-    fun retrieveResultValue(result: Result<*>): Any?
-    fun retrieveResultThrowable(result: Result<*>): Throwable
-    fun probeCoroutineResumed(frame: Continuation<*>)
-    fun getStackTraceElementImpl(continuation: BaseContinuationImpl): StackTraceElement?
-    fun createFailureResult(exception: Throwable): Any
-    fun baseContinuationInvokeSuspend(baseContinuation: BaseContinuationImpl, result: Result<Any?>): Any?
-    fun baseContinuationReleaseIntercepted(baseContinuation: BaseContinuationImpl)
-
-    companion object {
-        private val impl = JavaUtilsImpl()
-
-        operator fun invoke(): JavaUtils = impl
-    }
-}
-
-internal fun BaseContinuationImpl.callInvokeSuspend(result: Result<Any?>): Any? {
-    JavaUtils().probeCoroutineResumed(this)
-    val newResult = try {
-        JavaUtils().baseContinuationInvokeSuspend(this, result)
-    } catch (exception: Throwable) {
-        return JavaUtils().createFailureResult(exception)
-    }
-    if (newResult === COROUTINE_SUSPENDED) {
-        return newResult
-    }
-    JavaUtils().baseContinuationReleaseIntercepted(this)
-    return newResult
-}
-
-@Target(AnnotationTarget.CLASS)
-@Retention
-internal annotation class DecoroutinatorMarker
-
-@Target(AnnotationTarget.FUNCTION)
-@Retention
-internal annotation class FunctionMarker
-
 internal val Class<*>.markedFunctionName: String
     get() = methods.first { it.isAnnotationPresent(FunctionMarker::class.java) }.name
-
-@Suppress("NOTHING_TO_INLINE")
-internal inline fun callSpecMethod(spec: DecoroutinatorSpec, result: Any?): Any? {
-    val updatedResult = if (!spec.isLastSpec) {
-        val updatedResult: Any? = spec.nextHandle.invoke(spec.nextSpec, result)
-        if (updatedResult === spec.coroutineSuspendedMarker) {
-            return updatedResult
-        }
-        updatedResult
-    } else {
-        result
-    }
-    return spec.resumeNext(updatedResult)
-}
 
 internal fun getFileClass(): Class<*> {
     val stacktrace = Exception().stackTrace

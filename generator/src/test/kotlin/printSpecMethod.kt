@@ -2,7 +2,7 @@
 
 package printspecmethod
 
-import dev.reformator.stacktracedecoroutinator.generator.buildSpecMethodNode
+import dev.reformator.stacktracedecoroutinator.generator.internal.buildSpecMethodNode
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -19,11 +19,13 @@ fun main() {
         superName = Type.getInternalName(java.lang.Object::class.java)
         sourceFile = "internal/unknown.kt"
     }
-    classNode.methods = mutableListOf(buildSpecMethodNode(
+    classNode.methods = mutableListOf(
+        buildSpecMethodNode(
         methodName = "stacktraceMethod",
         lineNumbers = setOf(10, 20, 25, 30),
         makePrivate = true
-    ))
+    )
+    )
 
     val classWriter = ClassWriter(ClassWriter.COMPUTE_FRAMES)
     classNode.accept(classWriter)

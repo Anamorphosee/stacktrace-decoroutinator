@@ -2,7 +2,7 @@
 
 package showtransformedbasecontinuation
 
-import dev.reformator.stacktracedecoroutinator.generator.loadDecoroutinatorBaseContinuationClassBody
+import dev.reformator.stacktracedecoroutinator.generator.internal.loadDecoroutinatorBaseContinuationClassBody
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.util.TraceClassVisitor
 import java.io.PrintWriter

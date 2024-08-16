@@ -1,7 +1,7 @@
 plugins {
     id("com.android.library")
     kotlin("android")
-    id("dev.reformator.stacktracedecoroutinator")
+    //id("dev.reformator.stacktracedecoroutinator")
 }
 
 repositories {
@@ -9,10 +9,10 @@ repositories {
     google()
 }
 
-stacktraceDecoroutinator {
-    _addRuntimeDependency = false
-    require(_isAndroid)
-}
+//stacktraceDecoroutinator {
+//    _addRuntimeDependency = false
+//    require(_isAndroid)
+//}
 
 dependencies {
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")

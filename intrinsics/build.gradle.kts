@@ -9,6 +9,7 @@ repositories {
 }
 
 dependencies {
+    compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     testImplementation(kotlin("test"))
 }
 

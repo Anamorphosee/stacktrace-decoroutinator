@@ -26,15 +26,9 @@ fun getResourceAsStream(name: String): InputStream? =
 fun loadResource(name: String): ByteArray? =
     getResourceAsStream(name)?.use { it.readBytes() }
 
-fun loadDecoroutinatorBaseContinuationClassBody(): ByteArray =
-    loadResource("dev.reformator.stacktracedecoroutinator.decoroutinatorBaseContinuation.class")!!
+internal val String.internalName: String
+    get() = replace('.', '/')
+
 
 @Suppress("ClassName")
 private class _jvmcommonStub
-
-internal interface JavaUtils {
-    val metadataAnnotationClass: Class<*>
-    fun getDebugMetadataInfo(clazz: Class<*>): DebugMetadataInfo?
-
-    companion object: JavaUtils by JavaUtilsImpl()
-}

@@ -1,8 +1,11 @@
 @file:Suppress("PackageDirectoryMismatch")
+@file:JvmName("DecoroutinatorProviderApiKt")
 
 package dev.reformator.stacktracedecoroutinator.provider
 
-import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider
+import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
+import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.provider.internal.provider
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import kotlin.reflect.KClass
@@ -25,10 +28,27 @@ annotation class DecoroutinatorTransformed(
     val lineNumbersCounts: IntArray,
     val lineNumbers: IntArray,
     val baseContinuationClasses: Array<KClass<*>>,
-    val version: Int = 0
+    val version: Int
 )
 
-@Suppress("unused")
-fun registerTransformedClass(lookup: MethodHandles.Lookup) {
-    DecoroutinatorProvider.instance.registerTransformedClass(lookup)
+val isDecoroutinatorEnabled: Boolean
+    get() = provider.isDecoroutinatorEnabled
+
+val isBaseContinuationPrepared: Boolean
+    get() = provider.isBaseContinuationPrepared
+
+
+fun prepareBaseContinuation(lookup: MethodHandles.Lookup) {
+    provider.prepareBaseContinuation(lookup)
 }
+
+fun awakeBaseContinuation(baseContinuation: Any, result: Any?) {
+    provider.awakeBaseContinuation(baseContinuation, result)
+}
+
+fun registerTransformedClass(lookup: MethodHandles.Lookup) {
+    provider.registerTransformedClass(lookup)
+}
+
+val providerApiClass: Class<*>
+    @GetOwnerClass(deleteAfterModification = true) get() { fail() }

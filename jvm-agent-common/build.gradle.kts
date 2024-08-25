@@ -6,7 +6,6 @@ plugins {
     id("org.jetbrains.dokka")
     `maven-publish`
     signing
-    id("dev.reformator.stacktracedecoroutinator.downgrade-classes")
 }
 
 repositories {
@@ -14,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-runtime"))
+    implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation("org.ow2.asm:asm-util:${decoroutinatorVersions["asm"]}")
 

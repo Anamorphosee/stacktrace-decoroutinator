@@ -8,7 +8,6 @@ plugins {
     `maven-publish`
     signing
     jacoco
-    id("dev.reformator.stacktracedecoroutinator.downgrade-classes")
 }
 
 repositories {
@@ -16,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-runtime"))
+    implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
     implementation("net.bytebuddy:byte-buddy-agent:${decoroutinatorVersions["byteBuddy"]}")
 

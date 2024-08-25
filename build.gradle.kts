@@ -2,9 +2,7 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        maven {
-            url = uri("https://plugins.gradle.org/m2/")
-        }
+        gradlePluginPortal()
     }
     dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${decoroutinatorVersions["kotlin"]}")
@@ -12,6 +10,8 @@ buildscript {
         classpath("org.jetbrains.dokka:dokka-gradle-plugin:${decoroutinatorVersions["dokka"]}")
         classpath("com.android.tools.build:gradle:${decoroutinatorVersions["androidGradle"]}")
         classpath("com.gradle.publish:plugin-publish-plugin:${decoroutinatorVersions["pluginPublish"]}")
+        classpath("dev.reformator.bytecodeprocessor:bytecode-processor-plugins")
+        classpath("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     }
 }
 

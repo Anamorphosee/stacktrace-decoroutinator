@@ -20,7 +20,7 @@ dependencies {
     androidTestImplementation("junit:junit:${decoroutinatorVersions["junit4"]}")
 
     androidTestRuntimeOnly("androidx.test:runner:${decoroutinatorVersions["androidTestRunner"]}")
-    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-runtime"))
+    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-common"))
 }
 
 android {

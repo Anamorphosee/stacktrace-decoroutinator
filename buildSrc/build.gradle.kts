@@ -56,15 +56,12 @@ kotlin {
     }
 }
 
-val javaSources = sourceSets.main.get().java
 val kotlinSources = sourceSets.main.get().kotlin
 //javaSources.srcDirs("../runtime/src/main/java")
 //kotlinSources.srcDirs("../runtime/src/main/kotlin")
 //javaSources.srcDirs("../generator/src/main/java")
 //kotlinSources.srcDirs("../generator/src/main/kotlin")
 //kotlinSources.srcDirs("../gradle-plugin/src/main/kotlin")
-kotlinSources.srcDirs("../intrinsics/src/main/kotlin")
-javaSources.exclude("**/module-info.java")
 
 //tasks.named("classes") {
 //    doLast {
@@ -97,13 +94,5 @@ gradlePlugin {
 //            id = "dev.reformator.stacktracedecoroutinator"
 //            implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPlugin"
 //        }
-        create("downgradeClassesPlugin") {
-            id = "dev.reformator.stacktracedecoroutinator.downgrade-classes"
-            implementationClass = "dev.reformator.stacktracedecoroutinator.buildsrc.DowngradeClassesPlugin"
-        }
-        create("applyIntrinsicsPlugin") {
-            id = "dev.reformator.stacktracedecoroutinator.apply-intrinsics"
-            implementationClass = "dev.reformator.stacktracedecoroutinator.buildsrc.ApplyIntrinsicsPlugin"
-        }
     }
 }

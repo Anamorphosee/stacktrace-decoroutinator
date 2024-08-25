@@ -6,7 +6,6 @@ plugins {
     `maven-publish`
     signing
     id("com.gradle.plugin-publish")
-    id("dev.reformator.stacktracedecoroutinator.downgrade-classes")
 }
 
 repositories {
@@ -35,7 +34,7 @@ afterEvaluate {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-runtime"))
+    implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation("io.github.microutils:kotlin-logging-jvm:${decoroutinatorVersions["kotlinLoggingJvm"]}")
 

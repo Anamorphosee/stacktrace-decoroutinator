@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    testRuntimeOnly(project(":stacktrace-decoroutinator-runtime"))
+    testRuntimeOnly(project(":stacktrace-decoroutinator-common"))
 
     testImplementation(project(":test-utils"))
     testImplementation(kotlin("test"))

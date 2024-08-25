@@ -1,3 +1,4 @@
+import dev.reformator.bytecodeprocessor.plugins.*
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -6,7 +7,7 @@ plugins {
     id("org.jetbrains.dokka")
     `maven-publish`
     signing
-    id("dev.reformator.stacktracedecoroutinator.downgrade-classes")
+    id("dev.reformator.bytecodeprocessor")
 }
 
 repositories {
@@ -14,8 +15,17 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains:annotations:${decoroutinatorVersions["annotations"]}")
+    compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+
     testImplementation(kotlin("test"))
+}
+
+bytecodeProcessor {
+    processors = setOf(
+        RemoveKotlinStdlibProcessor(),
+        GetOwnerClassProcessor(),
+        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics")
+    )
 }
 
 tasks.test {
@@ -33,7 +43,6 @@ tasks.withType<JavaCompile> {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll(listOf("-Xallow-kotlin-package"))
         jvmTarget = JvmTarget.JVM_1_8
     }
 }

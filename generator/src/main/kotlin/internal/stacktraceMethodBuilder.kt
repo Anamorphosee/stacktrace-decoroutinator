@@ -8,7 +8,7 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.lang.invoke.MethodHandle
 
-fun buildSpecMethodNode(methodName: String, lineNumbers: Set<Int>, makePrivate: Boolean): MethodNode {
+internal fun buildSpecMethodNode(methodName: String, lineNumbers: Set<Int>, makePrivate: Boolean): MethodNode {
     val result = MethodNode(Opcodes.ASM9).apply {
         access = if (makePrivate) Opcodes.ACC_PRIVATE else Opcodes.ACC_PUBLIC
         access = access or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC

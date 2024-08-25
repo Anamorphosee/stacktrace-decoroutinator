@@ -2,6 +2,7 @@
 
 package org.gradle.kotlin.dsl
 
+import org.gradle.api.Project
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.util.*

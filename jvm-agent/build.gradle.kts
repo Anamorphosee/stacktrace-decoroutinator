@@ -9,7 +9,6 @@ plugins {
     `maven-publish`
     signing
     jacoco
-    id("dev.reformator.stacktracedecoroutinator.downgrade-classes")
 }
 
 repositories {

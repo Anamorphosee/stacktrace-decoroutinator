@@ -4,22 +4,6 @@ package dev.reformator.stacktracedecoroutinator.test
 
 import org.junit.jupiter.api.Assertions.assertTrue
 
-fun getLineNumber(): Int {
-    val stacktrace = Exception().stackTrace
-    val stacktraceIndex = stacktrace.indexOfFirst {
-        it.methodName == "getLineNumber"
-    } + 1
-    return stacktrace[stacktraceIndex].lineNumber
-}
-
-fun getFileName(): String {
-    val stacktrace = Exception().stackTrace
-    val stacktraceIndex = stacktrace.indexOfFirst {
-        it.methodName == "getFileName"
-    } + 1
-    return stacktrace[stacktraceIndex].fileName!!
-}
-
 fun checkStacktrace(vararg elements: StackTraceElement) {
     if (elements.isEmpty()) {
         return

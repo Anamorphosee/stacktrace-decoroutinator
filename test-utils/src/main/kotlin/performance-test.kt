@@ -220,8 +220,7 @@ open class PerformanceTest {
                         }
                         COROUTINE_SUSPENDED
                     }
-                    val endTime = System.nanoTime()
-                    val time = endTime - startResumeTime
+                    val time = System.nanoTime() - startResumeTime
                     log.info {
                         "resume time for depth $depth #$index: $time ns"
                     }

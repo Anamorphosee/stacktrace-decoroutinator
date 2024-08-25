@@ -1,5 +1,9 @@
+import dev.reformator.bytecodeprocessor.plugins.*
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     kotlin("jvm")
+    id("dev.reformator.bytecodeprocessor")
 }
 
 repositories {
@@ -7,6 +11,8 @@ repositories {
 }
 
 dependencies {
+    compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+
     //implementation(project(":stacktrace-decoroutinator-runtime"))
     implementation("org.junit.jupiter:junit-jupiter-api:${decoroutinatorVersions["junit5"]}")
     implementation("junit:junit:${decoroutinatorVersions["junit4"]}")
@@ -17,6 +23,31 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic:${decoroutinatorVersions["logbackClassic"]}")
 }
 
+bytecodeProcessor {
+    processors = setOf(
+        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
+        GetCurrentFileNameProcessor,
+        GetCurrentLineNumberProcessor
+    )
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.addAll(listOf("-parameters", "-Xlint:-module"))
+}
+
 kotlin {
-    jvmToolchain(8)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+    }
+}
+
+sourceSets {
+    main {
+        kotlin.destinationDirectory = java.destinationDirectory
+    }
 }

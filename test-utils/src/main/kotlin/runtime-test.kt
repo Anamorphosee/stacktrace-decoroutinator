@@ -1,6 +1,8 @@
 package dev.reformator.stacktracedecoroutinator.test
 
 //import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntimeApi
+import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
+import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
@@ -12,8 +14,7 @@ import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
-
-private val fileName = getFileName()
+import kotlin.reflect.KFunction
 
 class TestException(message: String): Exception(message)
 
@@ -56,8 +57,8 @@ open class RuntimeTest {
             (1..10).forEach {
                 assertEquals(StackTraceElement(
                     RuntimeTest::class.java.typeName,
-                    "resumeWithExceptionRec",
-                    fileName,
+                    RuntimeTest::resumeWithExceptionRec.name,
+                    currentFileName,
                     resumeWithExceptionRecBaseLineNumber + 8
                 ), e.stackTrace[it])
             }
@@ -106,7 +107,7 @@ open class RuntimeTest {
     private var resumeWithExceptionRecBaseLineNumber: Int = 0
 
     private suspend fun resumeWithExceptionRec(depth: Int) {
-        resumeWithExceptionRecBaseLineNumber = getLineNumber()
+        resumeWithExceptionRecBaseLineNumber = currentLineNumber
         if (depth == 0) {
             suspendCancellableCoroutine<Unit> { continuation ->
                 ForkJoinPool.commonPool().execute {
@@ -127,8 +128,8 @@ open class RuntimeTest {
         val checkedStacktrace = lineNumberOffsets.subList(0, index).reversed().map {
             StackTraceElement(
                 RuntimeTest::class.java.typeName,
-                "rec",
-                fileName,
+                RuntimeTest::rec.name,
+                currentFileName,
                 recBaseLineNumber + it
             )
         }.toTypedArray()
@@ -142,7 +143,7 @@ open class RuntimeTest {
             ""
         } else {
             val previousMessage = try {
-                recBaseLineNumber = getLineNumber() + 2
+                recBaseLineNumber = currentLineNumber + 2
                 val previousMessage = when (lineNumberOffsets[index]) {
                     0 -> rec(lineNumberOffsets, index + 1)
                     1 -> rec(lineNumberOffsets, index + 1)
@@ -176,11 +177,11 @@ open class RuntimeTest {
 
     @Suppress("UNUSED_PARAMETER")
     private suspend fun overload(par: Int) {
-        val lineNumber = getLineNumber() + 1
+        val lineNumber = currentLineNumber + 1
         suspendResumeAndCheckStack(StackTraceElement(
             RuntimeTest::class.java.typeName,
-            "overload",
-            fileName,
+            run {val x: suspend (Int) -> Unit = ::overload; x as KFunction<*>}.name,
+            currentFileName,
             lineNumber
         ))
         tailCallDeoptimize()
@@ -188,11 +189,11 @@ open class RuntimeTest {
 
     @Suppress("UNUSED_PARAMETER")
     private suspend fun overload(par: String) {
-        val lineNumber = getLineNumber() + 1
+        val lineNumber = currentLineNumber + 1
         suspendResumeAndCheckStack(StackTraceElement(
             RuntimeTest::class.java.typeName,
-            "overload",
-            fileName,
+            run {val x: suspend (String) -> Unit = ::overload; x as KFunction<*>}.name,
+            currentFileName,
             lineNumber
         ))
         tailCallDeoptimize()

@@ -1,5 +1,5 @@
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider;
-import dev.reformator.stacktracedecoroutinator.common.internal.StacktraceElementsFactory;
+import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsRegistry;
 import dev.reformator.stacktracedecoroutinator.common.internal.Provider;
 
 module dev.reformator.stacktracedecoroutinator.common {
@@ -10,9 +10,12 @@ module dev.reformator.stacktracedecoroutinator.common {
     requires dev.reformator.stacktracedecoroutinator.provider;
 
     exports dev.reformator.stacktracedecoroutinator.common;
-    exports dev.reformator.stacktracedecoroutinator.common.internal to dev.reformator.stacktracedecoroutinator.generator;
+    exports dev.reformator.stacktracedecoroutinator.common.internal to
+            dev.reformator.stacktracedecoroutinator.generator,
+            dev.reformator.stacktracedecoroutinator.jvmagentcommon,
+            dev.reformator.stacktracedecoroutinator.generator.tests;
 
     provides DecoroutinatorProvider with Provider;
 
-    uses StacktraceElementsFactory;
+    uses SpecMethodsRegistry;
 }

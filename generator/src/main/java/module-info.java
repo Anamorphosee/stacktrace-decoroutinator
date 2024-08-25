@@ -10,5 +10,8 @@ module dev.reformator.stacktracedecoroutinator.generator {
     requires dev.reformator.stacktracedecoroutinator.provider;
     requires dev.reformator.stacktracedecoroutinator.common;
 
+    exports dev.reformator.stacktracedecoroutinator.generator.internal to
+            dev.reformator.stacktracedecoroutinator.generator.tests;
+
     provides SpecMethodsRegistry with GeneratorSpecMethodsRegistry;
 }

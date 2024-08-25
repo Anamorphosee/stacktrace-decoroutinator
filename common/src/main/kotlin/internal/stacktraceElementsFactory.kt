@@ -32,8 +32,8 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
             if (spec.elementsByLabel != null) {
                 continuations.forEach { continuation ->
                     val label = @Suppress("UNCHECKED_CAST")
-                    (spec.labelExtractor as LabelExtractor<BaseContinuation>).getLabel(continuation)
-                    val element = spec.elementsByLabel[label]
+                        (spec.labelExtractor as LabelExtractor<BaseContinuation>).getLabel(continuation)
+                    val element = spec.elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
                     elementsByContinuation[continuation] = element
                 }
                 possibleElements.addAll(spec.elementsByLabel)

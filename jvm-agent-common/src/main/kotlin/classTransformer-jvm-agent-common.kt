@@ -2,11 +2,9 @@
 
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon
 
+import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.loadResource
 import dev.reformator.stacktracedecoroutinator.generator.internal.tryTransformForDecoroutinator
-import dev.reformator.stacktracedecoroutinator.runtime.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.runtime.isDecoroutinatorBaseContinuation
-import dev.reformator.stacktracedecoroutinator.runtime.isDecoroutinatorTransformed
 import org.objectweb.asm.Type
 import java.io.ByteArrayInputStream
 import java.lang.instrument.ClassFileTransformer

@@ -19,8 +19,7 @@ fun main() {
         superName = Type.getInternalName(java.lang.Object::class.java)
         sourceFile = "internal/unknown.kt"
     }
-    classNode.methods = mutableListOf(
-        buildSpecMethodNode(
+    classNode.methods = mutableListOf(buildSpecMethodNode(
         methodName = "stacktraceMethod",
         lineNumbers = setOf(10, 20, 25, 30),
         makePrivate = true

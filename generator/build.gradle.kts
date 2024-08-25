@@ -117,6 +117,17 @@ abstract class Transform: TransformAction<TransformParameters.None> {
                             val clazz = input.getInputStream(entry).use { getClassNode(it) }
                             transformBaseContinuation(clazz)
                             output.write(clazz.classBody)
+                        } else if (entry.name.endsWith("/module-info.class")) {
+                            val clazz = input.getInputStream(entry).use { getClassNode(it) }
+                            if (clazz.module.requires == null) {
+                                clazz.module.requires = mutableListOf()
+                            }
+                            clazz.module.requires.add(ModuleRequireNode(
+                                "dev.reformator.stacktracedecoroutinator.provider",
+                                0,
+                                null
+                            ))
+                            output.write(clazz.classBody)
                         } else if (!entry.isDirectory) {
                             input.getInputStream(entry).use { it.copyTo(output) }
                         }

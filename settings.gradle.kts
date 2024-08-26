@@ -12,7 +12,8 @@ include(
     "intrinsics",
     "test-utils",
     "gradle-plugin-tests",
-    "gradle-plugin-android-tests"
+    "gradle-plugin-android-tests",
+    "jvm-agent-tests"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"

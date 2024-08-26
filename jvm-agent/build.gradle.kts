@@ -9,7 +9,6 @@ plugins {
     id("com.github.johnrengelman.shadow")
     `maven-publish`
     signing
-    jacoco
     id("dev.reformator.bytecodeprocessor")
 }
 
@@ -46,15 +45,7 @@ val shadowJarTask = tasks.named<ShadowJar>("shadowJar") {
 
 tasks.test {
     useJUnitPlatform()
-    dependsOn(shadowJarTask)
-    val agentJar = shadowJarTask.get().outputs.files.singleFile
-    jvmArgs(
-        "-javaagent:${agentJar.absolutePath}",
-        "-Ddev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy=SYSTEM_RESOURCE"
-    )
-    extensions.configure(JacocoTaskExtension::class) {
-        includes = listOf("JacocoInstrumentedMethodTest*")
-    }
+    dependsOn(project(":jvm-agent-tests").tasks.test)
 }
 
 java {

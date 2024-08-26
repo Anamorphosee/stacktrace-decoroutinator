@@ -8,17 +8,6 @@ import java.lang.reflect.Field
 import java.util.concurrent.ConcurrentHashMap
 
 internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
-    init {
-        if (supportsVarHandles) {
-            TransformedClassesRegistry.addListener { _, spec ->
-                updateLabelExtractor(spec)
-            }
-            TransformedClassesRegistry.transformedClasses.forEach { (_, spec) ->
-                updateLabelExtractor(spec)
-            }
-        }
-    }
-
     override fun getStacktraceElements(continuations: Set<BaseContinuation>): StacktraceElements {
         val elementsByContinuation = mutableMapOf<BaseContinuation, StacktraceElement>()
         val possibleElements = mutableSetOf<StacktraceElement>()
@@ -46,6 +35,17 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     }
 
     private val specs: MutableMap<Class<out BaseContinuation>, BaseContinuationClassSpec<*>> = ConcurrentHashMap()
+
+    init {
+        if (supportsVarHandles) {
+            TransformedClassesRegistry.addListener { _, spec ->
+                updateLabelExtractor(spec)
+            }
+            TransformedClassesRegistry.transformedClasses.forEach { (_, spec) ->
+                updateLabelExtractor(spec)
+            }
+        }
+    }
 
     private fun interface LabelExtractor<in T: BaseContinuation> {
         fun getLabel(baseContinuation: T): Int

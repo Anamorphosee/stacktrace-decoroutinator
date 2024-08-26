@@ -13,22 +13,51 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.io.InputStream
 import java.lang.invoke.MethodHandles
+import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
 
-class TransformationStatus(
-    updatedBody: ByteArray?,
-    needReadProviderModule: Boolean
+class ClassBodyTransformationStatus(
+    val updatedBody: ByteArray?,
+    val needReadProviderModule: Boolean
 )
 
-fun tryTransformForDecoroutinator(
+class NeedTransformationStatus(
+    val needTransformation: Boolean,
+    val needReadProviderModule: Boolean
+)
+
+val Class<*>.needTransformation: NeedTransformationStatus
+    get() {
+        getDeclaredAnnotation(DecoroutinatorTransformed::class.java)?.let { transformedAnnotation ->
+            return if (transformedAnnotation.version < TRANSFORMED_VERSION) {
+                fullNeedTransformationStatus
+            } else if (transformedAnnotation.version == TRANSFORMED_VERSION) {
+                readProviderNeedTransformationStatus
+            } else {
+                error("class [$name]'s transformed meta has version [${transformedAnnotation.version}]. " +
+                        "Please update Decoroutinator")
+            }
+        }
+        if (name == BASE_CONTINUATION_CLASS_NAME) {
+            return fullNeedTransformationStatus
+        }
+        declaredMethods.forEach { method ->
+            if (method.isSuspend) {
+                return fullNeedTransformationStatus
+            }
+        }
+        return noNeedTransformationStatus
+    }
+
+fun transformClassBody(
     classBody: InputStream,
     metadataResolver: (className: String) -> DebugMetadataInfo?
-): TransformationStatus {
-    val node = getClassNode(classBody) ?: return noTransformationStatus
+): ClassBodyTransformationStatus {
+    val node = getClassNode(classBody) ?: return noClassBodyTransformationStatus
     val version = node.decoroutinatorTransformedVersion
     if (version != null) {
         if (version == TRANSFORMED_VERSION) {
-            return readProviderTransformationStatus
+            return readProviderClassBodyTransformationStatus
         }
         if (version > TRANSFORMED_VERSION) {
             error("class [${node.name}]'s transformed meta has version [$version]. Please update Decoroutinator")
@@ -36,14 +65,14 @@ fun tryTransformForDecoroutinator(
     }
     if (node.name == BASE_CONTINUATION_CLASS_NAME.internalName) {
         transformBaseContinuation(node)
-        return TransformationStatus(
+        return ClassBodyTransformationStatus(
             updatedBody = node.classBody,
             needReadProviderModule = true
         )
     }
-    val transformationInfo = node.getClassTransformationInfo(metadataResolver) ?: return noTransformationStatus
+    val transformationInfo = node.getClassTransformationInfo(metadataResolver) ?: return noClassBodyTransformationStatus
     node.transform(transformationInfo)
-    return TransformationStatus(
+    return ClassBodyTransformationStatus(
         updatedBody = node.classBody,
         needReadProviderModule = true
     )
@@ -129,14 +158,29 @@ fun getDebugMetadataInfoFromClass(clazz: Class<*>): DebugMetadataInfo? =
         )
     }
 
-private val noTransformationStatus = TransformationStatus(
+private val noClassBodyTransformationStatus = ClassBodyTransformationStatus(
     updatedBody = null,
     needReadProviderModule = false
 )
 
-private val readProviderTransformationStatus = TransformationStatus(
+private val readProviderClassBodyTransformationStatus = ClassBodyTransformationStatus(
     updatedBody = null,
     needReadProviderModule = true
+)
+
+private val fullNeedTransformationStatus = NeedTransformationStatus(
+    needTransformation = true,
+    needReadProviderModule = true
+)
+
+private val readProviderNeedTransformationStatus = NeedTransformationStatus(
+    needTransformation = false,
+    needReadProviderModule = true
+)
+
+private val noNeedTransformationStatus = NeedTransformationStatus(
+    needTransformation = false,
+    needReadProviderModule = false
 )
 
 private data class ClassTransformationInfo(
@@ -270,6 +314,9 @@ private val MethodNode.hasCode: Boolean
 
 private val MethodNode.isSuspend: Boolean
     get() = desc.endsWith("${Type.getDescriptor(Continuation::class.java)})${Type.getDescriptor(Object::class.java)}")
+
+private val Method.isSuspend: Boolean
+    get() = parameters.isNotEmpty() && parameters.last().type == Continuation::class.java && returnType == Object::class.java
 
 private fun MethodNode.getDebugMetadataInfo(
     classInternalName: String,

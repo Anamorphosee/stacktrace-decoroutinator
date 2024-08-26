@@ -4,7 +4,7 @@ package dev.reformator.stacktracedecoroutinator.gradleplugin
 
 import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
 import dev.reformator.stacktracedecoroutinator.generator.internal.loadResource
-import dev.reformator.stacktracedecoroutinator.generator.internal.tryTransformForDecoroutinator
+import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import mu.KotlinLogging
 import org.gradle.api.Action
 import org.gradle.api.Plugin
@@ -255,7 +255,7 @@ private inline fun transformZip(
                 var newBody: ByteArray? = null
                 if (entry.name.isClass) {
                     newBody = input.getInputStream(entry).use { classBody ->
-                        tryTransformForDecoroutinator(
+                        transformClassBody(
                             className = entry.name.removeSuffix(".$CLASS_EXTENSION").replace('/', '.'),
                             classBody = classBody,
                             metadataResolver = metadataResolver@{ metadataClassName ->
@@ -287,7 +287,7 @@ private inline fun transformClassesDir(
         val relativePath = file.relativeTo(root)
         if (file.isFile && file.isClass) {
             val transformedBody = file.inputStream().use { classBody ->
-                tryTransformForDecoroutinator(
+                transformClassBody(
                     className = relativePath.path.removeSuffix(".$CLASS_EXTENSION").replace(File.separatorChar, '.'),
                     classBody = classBody,
                     metadataResolver = { metadataClassName ->

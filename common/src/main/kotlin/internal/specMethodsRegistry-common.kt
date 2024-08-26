@@ -92,11 +92,6 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
 }
 
 internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
-    init {
-        TransformedClassesRegistry.addListener(this::register)
-        TransformedClassesRegistry.transformedClasses.forEach(this::register)
-    }
-
     override fun getSpecMethodFactoriesByStacktraceElement(
         elements: Set<StacktraceElement>
     ): Map<StacktraceElement, SpecMethodsFactory> {
@@ -121,6 +116,11 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
     }
 
     private val classesByName: MutableMap<String, ClassSpec> = ConcurrentHashMap()
+
+    init {
+        TransformedClassesRegistry.addListener(this::register)
+        TransformedClassesRegistry.transformedClasses.forEach(this::register)
+    }
 
     private class MethodSpec(
         val lineNumbers: IntArray,

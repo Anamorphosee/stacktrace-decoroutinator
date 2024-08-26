@@ -3,6 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.runtime
 
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.*
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.addDecoroutinatorTransformer
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock

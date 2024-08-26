@@ -1,3 +1,4 @@
+import dev.reformator.stacktracedecoroutinator.common.internal.CommonSettingsProvider;
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider;
 import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsRegistry;
 import dev.reformator.stacktracedecoroutinator.common.internal.Provider;
@@ -18,4 +19,5 @@ module dev.reformator.stacktracedecoroutinator.common {
     provides DecoroutinatorProvider with Provider;
 
     uses SpecMethodsRegistry;
+    uses CommonSettingsProvider;
 }

@@ -31,6 +31,15 @@ fun interface SpecMethodsFactory {
     ): SpecAndItsMethodHandle
 }
 
+interface CommonSettingsProvider {
+    val decoroutinatorEnabled: Boolean
+        get() = System.getProperty(ENABLED_PROPERTY, "true").toBoolean()
+
+    val recoveryExplicitStacktrace: Boolean
+        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true")
+            .toBoolean()
+}
+
 internal data class StacktraceElements(
     val elementsByContinuation: Map<BaseContinuation, StacktraceElement>,
     val possibleElements: Set<StacktraceElement>

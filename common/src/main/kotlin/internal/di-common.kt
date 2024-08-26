@@ -6,11 +6,11 @@ import java.util.ServiceLoader
 
 internal const val ENABLED_PROPERTY = "dev.reformator.stacktracedecoroutinator.enabled"
 
-internal val enabled = System.getProperty(ENABLED_PROPERTY, "true").toBoolean()
+internal val settingsProvider = ServiceLoader.load(CommonSettingsProvider::class.java).firstOrNull() ?:
+    object: CommonSettingsProvider {}
 
-internal val recoveryExplicitStacktrace =
-    System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true")
-        .toBoolean()
+internal val enabled = settingsProvider.decoroutinatorEnabled
+internal val recoveryExplicitStacktrace = settingsProvider.recoveryExplicitStacktrace
 
 internal var invokeSuspendHandle: MethodHandle? = null
 internal var releaseInterceptedHandle: MethodHandle? = null

@@ -1,3 +1,4 @@
+import dev.reformator.bytecodeprocessor.plugins.GetOwnerClassProcessor
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -6,6 +7,7 @@ plugins {
     id("org.jetbrains.dokka")
     `maven-publish`
     signing
+    id("dev.reformator.bytecodeprocessor")
 }
 
 repositories {
@@ -13,11 +15,19 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation("org.ow2.asm:asm-util:${decoroutinatorVersions["asm"]}")
 
     testImplementation(kotlin("test"))
+}
+
+bytecodeProcessor {
+    processors = setOf(GetOwnerClassProcessor(setOf(GetOwnerClassProcessor.MethodKey(
+        className = "dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt",
+        methodName = "getProviderApiClass"
+    ))))
 }
 
 tasks.test {
@@ -27,6 +37,10 @@ tasks.test {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_9
     targetCompatibility = JavaVersion.VERSION_1_9
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.addAll(listOf("-parameters", "-Xlint:-module"))
 }
 
 kotlin {

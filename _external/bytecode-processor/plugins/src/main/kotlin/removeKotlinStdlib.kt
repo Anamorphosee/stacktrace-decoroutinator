@@ -54,6 +54,17 @@ class RemoveKotlinStdlibProcessor(
                             instruction.desc = "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(String::class.java)})${Type.getDescriptor(Object::class.java)}"
                             method.instructions.insert(instruction, InsnNode(Opcodes.POP))
                             clazz.markModified()
+                        } else if (
+                            instruction.opcode == Opcodes.INVOKESTATIC
+                            && instruction.owner == Type.getInternalName(Intrinsics::class.java)
+                            && instruction.name == run { val x: (Any) -> Unit = Intrinsics::checkNotNull; x as KFunction<*> }.name
+                            && instruction.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
+                        ) {
+                            instruction.owner = Type.getInternalName(Objects::class.java)
+                            instruction.name = run { val x: (Any) -> Any = Objects::requireNonNull; x as KFunction<*> }.name
+                            instruction.desc = "(${Type.getDescriptor(Object::class.java)})${Type.getDescriptor(Object::class.java)}"
+                            method.instructions.insert(instruction, InsnNode(Opcodes.POP))
+                            clazz.markModified()
                         }
                     }
                 }

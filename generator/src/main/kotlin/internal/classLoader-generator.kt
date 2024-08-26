@@ -18,7 +18,7 @@ import java.lang.reflect.Constructor
 import java.util.function.Function
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
-internal class DecoroutinatorClassLoader: ClassLoader() {
+internal class DecoroutinatorClassLoader: ClassLoader(null) {
     fun buildClassAndGetSpecHandlesByMethod(
         className: String,
         fileName: String?,

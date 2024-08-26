@@ -1,4 +1,5 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import dev.reformator.bytecodeprocessor.plugins.RemoveKotlinStdlibProcessor
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -9,6 +10,7 @@ plugins {
     `maven-publish`
     signing
     jacoco
+    id("dev.reformator.bytecodeprocessor")
 }
 
 repositories {
@@ -16,6 +18,8 @@ repositories {
 }
 
 dependencies {
+    compileOnly(kotlin("stdlib"))
+
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common")) {
         exclude(group = "org.jetbrains.kotlin")
     }
@@ -25,14 +29,19 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")
 }
 
+bytecodeProcessor {
+    processors = setOf(RemoveKotlinStdlibProcessor())
+}
+
 val shadowJarTask = tasks.named<ShadowJar>("shadowJar") {
     manifest {
         attributes(mapOf(
-            "Premain-Class" to "dev.reformator.stacktracedecoroutinator.jvmagent.DecoroutinatorAgent"
+            "Premain-Class" to "dev.reformator.stacktracedecoroutinator.jvmagent.DecoroutinatorAgentKt"
         ))
     }
     archiveClassifier.set("")
-    relocate("org.objectweb.asm", "dev.reformator.asmrepack")
+    relocate("org.objectweb.asm", "dev.reformator.stacktracedecoroutinator.asmrepack")
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 tasks.test {
@@ -56,6 +65,12 @@ java {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
+    }
+}
+
+sourceSets {
+    main {
+        kotlin.destinationDirectory = java.destinationDirectory
     }
 }
 

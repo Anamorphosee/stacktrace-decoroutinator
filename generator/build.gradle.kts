@@ -174,11 +174,16 @@ bytecodeProcessor {
             "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
         )),
         MakeStaticProcessor,
-        GetOwnerClassProcessor(setOf(
-            GetOwnerClassProcessor.MethodKey(
-                className = "dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt",
-                methodName = "getProviderApiClass"
-        )))
+        GetOwnerClassProcessor(setOf(GetOwnerClassProcessor.MethodKey(
+            className = "dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt",
+            methodName = "getProviderApiClass"
+        ))),
+        RemoveKotlinStdlibProcessor(
+            includeClassNames = setOf(
+                Regex("dev.reformator.stacktracedecoroutinator.generator.internal.GeneratorSpecImpl")
+            ),
+            includeModuleInfo = false
+        )
     )
 }
 

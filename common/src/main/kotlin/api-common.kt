@@ -16,7 +16,7 @@ import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 
 data class DecoroutinatorStatus(val successful: Boolean, val description: String)
 
-object DecoroutinatorRuntimeApi {
+object DecoroutinatorCommonApi {
 
 
     /**
@@ -176,7 +176,7 @@ object DecoroutinatorRuntimeApi {
 }
 
 private fun getStatusSample() {
-    val status = DecoroutinatorRuntimeApi.getStatus { it() }
+    val status = DecoroutinatorCommonApi.getStatus { it() }
     if (status.successful) {
         println("Decoroutinator is performing properly.")
     } else {

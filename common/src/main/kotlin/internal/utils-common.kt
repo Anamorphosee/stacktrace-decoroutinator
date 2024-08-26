@@ -7,6 +7,7 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics.createFailure
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineResumed
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodType
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
@@ -26,6 +27,17 @@ inline fun assert(check: () -> Boolean) {
 
 fun BaseContinuation.publicCallInvokeSuspend(result: Any?): Any? =
     callInvokeSuspend(result)
+
+val Class<*>.isTransformed: Boolean
+    get() {
+        val transformed = getDeclaredAnnotation(DecoroutinatorTransformed::class.java) ?: return false
+        if (transformed.version > TRANSFORMED_VERSION) {
+            error("Class [$this] has transformed meta of version [${transformed.version}]. Please update Decoroutinator")
+        }
+        return transformed.version == TRANSFORMED_VERSION
+    }
+
+internal const val ENABLED_PROPERTY = "dev.reformator.stacktracedecoroutinator.enabled"
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun BaseContinuation.callInvokeSuspend(result: Any?): Any? {

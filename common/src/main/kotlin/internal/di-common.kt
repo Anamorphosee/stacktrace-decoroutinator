@@ -4,8 +4,6 @@ import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import java.util.ServiceLoader
 
-internal const val ENABLED_PROPERTY = "dev.reformator.stacktracedecoroutinator.enabled"
-
 internal val settingsProvider = ServiceLoader.load(CommonSettingsProvider::class.java).firstOrNull() ?:
     object: CommonSettingsProvider {}
 

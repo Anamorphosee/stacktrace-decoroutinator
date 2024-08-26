@@ -14,7 +14,9 @@ module dev.reformator.stacktracedecoroutinator.common {
     exports dev.reformator.stacktracedecoroutinator.common.internal to
             dev.reformator.stacktracedecoroutinator.generator,
             dev.reformator.stacktracedecoroutinator.jvmagentcommon,
-            dev.reformator.stacktracedecoroutinator.generator.tests;
+            dev.reformator.stacktracedecoroutinator.jvm,
+            dev.reformator.stacktracedecoroutinator.generator.tests,
+            dev.reformator.stacktracedecoroutinator.jvm.tests;
 
     provides DecoroutinatorProvider with Provider;
 

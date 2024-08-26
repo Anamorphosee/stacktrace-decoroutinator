@@ -15,6 +15,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
     implementation("net.bytebuddy:byte-buddy-agent:${decoroutinatorVersions["byteBuddy"]}")
@@ -51,6 +52,12 @@ java {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
+    }
+}
+
+sourceSets {
+    main {
+        kotlin.destinationDirectory = java.destinationDirectory
     }
 }
 

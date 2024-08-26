@@ -8,7 +8,9 @@ module dev.reformator.stacktracedecoroutinator.jvmagentcommon {
     requires java.instrument;
     requires org.objectweb.asm;
 
-    exports dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal to dev.reformator.stacktracedecoroutinator.jvmagent;
+    exports dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal to
+            dev.reformator.stacktracedecoroutinator.jvmagent,
+            dev.reformator.stacktracedecoroutinator.jvm;
 
     uses JvmAgentCommonSettingsProvider;
 }

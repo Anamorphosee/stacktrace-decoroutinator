@@ -1,9 +1,9 @@
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
+import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmApi
 
 fun setupTest() {
     System.setProperty(
         "dev.reformator.stacktracedecoroutinator.jvmAgentDebugMetadataInfoResolveStrategy",
         "SYSTEM_RESOURCE"
     )
-    DecoroutinatorRuntime.load()
+    DecoroutinatorJvmApi.install()
 }

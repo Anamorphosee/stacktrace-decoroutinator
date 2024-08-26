@@ -1,4 +1,4 @@
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
+import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 
@@ -11,7 +11,7 @@ suspend fun rec(depth: Int) {
 }
 
 fun main() {
-    DecoroutinatorRuntime.load() // enable stacktrace-decoroutinator runtime
+    DecoroutinatorJvmApi.install() // enable stacktrace-decoroutinator runtime
     try {
         runBlocking {
             rec(10)

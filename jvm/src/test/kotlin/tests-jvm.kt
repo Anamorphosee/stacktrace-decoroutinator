@@ -1,6 +1,7 @@
-import dev.reformator.stacktracedecoroutinator.runtime.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
-import dev.reformator.stacktracedecoroutinator.runtime.isDecoroutinatorBaseContinuation
+import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.common.internal.TRANSFORMED_VERSION
+import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmApi
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty
@@ -50,8 +51,17 @@ class ReloadBaseContinuationTest {
     @Test
     fun reloadBaseContinuation() {
         val baseContinuationClass = Class.forName(BASE_CONTINUATION_CLASS_NAME)
-        assertFalse(baseContinuationClass.isDecoroutinatorBaseContinuation)
-        DecoroutinatorRuntime.load()
-        assertTrue(baseContinuationClass.isDecoroutinatorBaseContinuation)
+        assertFalse(baseContinuationClass.isTransformed)
+        DecoroutinatorJvmApi.install()
+        assertTrue(baseContinuationClass.isTransformed)
     }
 }
+
+val Class<*>.isTransformed: Boolean
+    get() {
+        val transformed = getDeclaredAnnotation(DecoroutinatorTransformed::class.java) ?: return false
+        if (transformed.version > TRANSFORMED_VERSION) {
+            error("Class [$this] has transformed meta of version [${transformed.version}]. Please update Decoroutinator")
+        }
+        return transformed.version == TRANSFORMED_VERSION
+    }

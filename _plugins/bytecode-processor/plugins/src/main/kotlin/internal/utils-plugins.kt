@@ -6,6 +6,9 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 
+val String.internalName: String
+    get() = replace('.', '/')
+
 internal fun List<AnnotationNode>?.find(type: Class<out Annotation>): AnnotationNode? =
     this?.find { it.desc == Type.getDescriptor(type) }
 
@@ -27,8 +30,6 @@ internal fun AnnotationNode.setParameter(name: String, value: Any) {
 internal val MethodNode.isStatic: Boolean
     get() = access and Opcodes.ACC_STATIC != 0
 
-internal val String.internalName: String
-    get() = replace('.', '/')
 
 internal fun ClassNode.getOrCreateClinit(): MethodNode =
     methods?.firstOrNull {

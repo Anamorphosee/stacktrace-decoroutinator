@@ -14,6 +14,9 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:${versions["kotlin"]}")
     implementation(project(":bytecode-processor-plugin-api"))
     implementation(project(":bytecode-processor-impl"))
+    implementation(project(":bytecode-processor-plugins"))
+    implementation(project(":bytecode-processor-intrinsics"))
+    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
     testImplementation(kotlin("test"))
 }
 

@@ -17,5 +17,5 @@ val versions: Map<String, String> = run {
             properties.load(input)
             properties.mapKeys { (key, _) -> key.toString() }.mapValues { (_, value) -> value.toString() }
         }
-    tryLoad(".") ?: tryLoad("..") ?: tryLoad("src") ?: tryLoad("")!!
+    tryLoad(".") ?: tryLoad("..") ?: tryLoad("../..")!!
 }

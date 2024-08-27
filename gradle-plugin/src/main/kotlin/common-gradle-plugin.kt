@@ -2,8 +2,10 @@
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
+import dev.reformator.bytecodeprocessor.intrinsics.gradleProjectVersion
+import dev.reformator.stacktracedecoroutinator.common.internal.TRANSFORMED_VERSION
+import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
 import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
-import dev.reformator.stacktracedecoroutinator.generator.internal.loadResource
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import mu.KotlinLogging
 import org.gradle.api.Action
@@ -17,18 +19,18 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Provider
+import org.gradle.kotlin.dsl.stacktraceDecoroutinator
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
-import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
-val decoroutinatorTransformedAttribute: Attribute<Boolean> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.transformed",
-    Boolean::class.javaObjectType
+val decoroutinatorTransformedVersionAttribute: Attribute<Int> = Attribute.of(
+    "dev.reformator.stacktracedecoroutinator.transformedVersion",
+    Int::class.javaObjectType
 )
 
 open class DecoroutinatorPluginExtension(project: Project) {
@@ -41,7 +43,7 @@ open class DecoroutinatorPluginExtension(project: Project) {
         ArtifactTypeDefinition.ZIP_TYPE,
         "aar",
     )
-    var _addRuntimeDependency = true
+    var _addCommonDependency = true
     var _runtimeOnlyConfigName = "runtimeOnly"
     var _implementationConfigName = "implementation"
     var _configurationsInclude = setOf(
@@ -58,26 +60,32 @@ class DecoroutinatorPlugin: Plugin<Project> {
     override fun apply(target: Project) {
         log.debug { "applying Decoroutinator plugin to ${target.name}" }
         with (target) {
-            val pluginExtension = extensions.create(EXTENSION_NAME, DecoroutinatorPluginExtension::class.java, target)
-            dependencies.attributesSchema.attribute(decoroutinatorTransformedAttribute)
+            val pluginExtension = extensions.create(
+                ::stacktraceDecoroutinator.name,
+                DecoroutinatorPluginExtension::class.java, target
+            )
+            dependencies.attributesSchema.attribute(decoroutinatorTransformedVersionAttribute)
 
             afterEvaluate { _ ->
                 if (pluginExtension.enabled) {
                     log.debug { "registering DecoroutinatorArtifactTransfomer for types [${pluginExtension._artifactTypes}]" }
                     pluginExtension._artifactTypes.forEach { artifactType ->
-                        dependencies.registerTransform(DecoroutinatorTransformAction::class.java) {
-                            it.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            it.from.attribute(decoroutinatorTransformedAttribute, false)
-                            it.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            it.to.attribute(decoroutinatorTransformedAttribute, true)
+                        (NO_TRANSFORMATION_VERSION until TRANSFORMED_VERSION).forEach { fromVersion ->
+                            dependencies.registerTransform(DecoroutinatorTransformAction::class.java) {
+                                it.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                                it.from.attribute(decoroutinatorTransformedVersionAttribute, fromVersion)
+                                it.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                                it.to.attribute(decoroutinatorTransformedVersionAttribute, TRANSFORMED_VERSION)
+                            }
                         }
-                        dependencies.artifactTypes.maybeCreate(artifactType).attributes.attribute(decoroutinatorTransformedAttribute, false)
+                        dependencies.artifactTypes.maybeCreate(artifactType).attributes
+                            .attribute(decoroutinatorTransformedVersionAttribute, NO_TRANSFORMATION_VERSION)
                     }
 
-                    if (pluginExtension._addRuntimeDependency) {
+                    if (pluginExtension._addCommonDependency) {
                         dependencies.add(
                             pluginExtension._implementationConfigName,
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-runtime:${pluginProperties["version"]}"
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-common:$gradleProjectVersion"
                         )
                     } else {
                         log.debug { "Skipped runtime dependency" }
@@ -85,10 +93,10 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     if (pluginExtension.addGeneratorDependency) {
                         val dependency = if (pluginExtension._isAndroid) {
                             log.debug { "add generator dependency for Android" }
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-android:${pluginProperties["version"]}"
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-android:$gradleProjectVersion"
                         } else {
                             log.debug { "add generator dependency for JVM" }
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:${pluginProperties["version"]}"
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:$gradleProjectVersion"
                         }
                         dependencies.add(pluginExtension._runtimeOnlyConfigName, dependency)
                     }
@@ -99,7 +107,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         configurations.all { config ->
                             if (includes.any { it.matches(config.name) } && excludes.all { !it.matches(config.name) }) {
                                 log.debug { "setting decoroutinatorTransformedAttribute for configuration [${config.name}]" }
-                                config.attributes.attribute(decoroutinatorTransformedAttribute, true)
+                                config.attributes.attribute(decoroutinatorTransformedVersionAttribute, TRANSFORMED_VERSION)
                             }
                         }
                     }
@@ -128,7 +136,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             conf.outgoing.variants.forEach { variant ->
                                 if (variant.artifacts.any { it.type in pluginExtension._artifactTypes }) {
                                     log.debug { "unsetting decoroutinatorTransformedAttribute for outgoing variant [${variant.name}] of cofiguarion [${conf.name}]" }
-                                    variant.attributes.attribute(decoroutinatorTransformedAttribute, false)
+                                    variant.attributes.attribute(decoroutinatorTransformedVersionAttribute, NO_TRANSFORMATION_VERSION)
                                 }
                             }
                         }
@@ -226,15 +234,10 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
     }
 }
 
-internal const val EXTENSION_NAME = "stacktraceDecoroutinator"
-private const val CLASS_EXTENSION = "class"
+private const val CLASS_EXTENSION = ".class"
+private const val MODULE_INFO_CLASS_NAME = "module-info.class"
+private const val NO_TRANSFORMATION_VERSION = -1
 private val log = KotlinLogging.logger { }
-
-private val pluginProperties = Properties().apply {
-    load(
-        ByteArrayInputStream(loadResource("dev.reformator.stacktracedecoroutinator.gradleplugin.properties"))
-    )
-}.mapKeys { (key, _) -> key.toString() }.mapValues { (_, value) -> value.toString() }
 
 private inline fun transformZip(
     zip: File,
@@ -243,37 +246,65 @@ private inline fun transformZip(
     closeEntry: () -> Unit
 ) {
     ZipFile(zip).use { input ->
+        var readProviderModule = false
+
         input.entries().asSequence().forEach { entry: ZipEntry ->
-            putNextEntry(ZipEntry(entry.name).apply {
-                entry.lastModifiedTime?.let { lastModifiedTime = it }
-                entry.lastAccessTime?.let { lastAccessTime = it }
-                entry.creationTime?.let { creationTime = it }
-                method = ZipEntry.DEFLATED
-                comment = entry.comment
-            })
-            if (!entry.isDirectory) {
-                var newBody: ByteArray? = null
-                if (entry.name.isClass) {
-                    newBody = input.getInputStream(entry).use { classBody ->
-                        transformClassBody(
-                            className = entry.name.removeSuffix(".$CLASS_EXTENSION").replace('/', '.'),
-                            classBody = classBody,
-                            metadataResolver = metadataResolver@{ metadataClassName ->
-                                val entryName = metadataClassName.replace('.', '/') + ".$CLASS_EXTENSION"
-                                val classEntry = input.getEntry(entryName) ?: return@metadataResolver null
-                                input.getInputStream(classEntry).use {
-                                    getDebugMetadataInfoFromClassBody(it)
+            if (entry.isDirectory || !entry.name.isModuleInfo) {
+                putNextEntry(ZipEntry(entry.name).apply {
+                    entry.lastModifiedTime?.let { lastModifiedTime = it }
+                    entry.lastAccessTime?.let { lastAccessTime = it }
+                    entry.creationTime?.let { creationTime = it }
+                    method = ZipEntry.DEFLATED
+                    comment = entry.comment
+                })
+                if (!entry.isDirectory) {
+                    var newBody: ByteArray? = null
+                    if (entry.name.isClass) {
+                        val transformationStatus = input.getInputStream(entry).use { classBody ->
+                            transformClassBody(
+                                classBody = classBody,
+                                metadataResolver = metadataResolver@{ metadataClassName ->
+                                    val entryName = metadataClassName.replace('.', '/') + CLASS_EXTENSION
+                                    val classEntry = input.getEntry(entryName) ?: return@metadataResolver null
+                                    input.getInputStream(classEntry).use {
+                                        getDebugMetadataInfoFromClassBody(it)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
+                        readProviderModule = readProviderModule || transformationStatus.needReadProviderModule
+                        newBody = transformationStatus.updatedBody
+                    }
+                    val modified = newBody != null
+                    (if (modified) ByteArrayInputStream(newBody) else input.getInputStream(entry)).use { body ->
+                        putFileBody(modified, body)
+                    }
+                }
+                closeEntry()
+            }
+        }
+
+        input.entries().asSequence().forEach { entry: ZipEntry ->
+            if (!entry.isDirectory && entry.name.isModuleInfo) {
+                putNextEntry(ZipEntry(entry.name).apply {
+                    entry.lastModifiedTime?.let { lastModifiedTime = it }
+                    entry.lastAccessTime?.let { lastAccessTime = it }
+                    entry.creationTime?.let { creationTime = it }
+                    method = ZipEntry.DEFLATED
+                    comment = entry.comment
+                })
+                var newBody: ByteArray? = null
+                if (readProviderModule) {
+                    newBody = input.getInputStream(entry).use { moduleInfoBody ->
+                        addReadProviderModuleToModuleInfo(moduleInfoBody)
                     }
                 }
                 val modified = newBody != null
-                (if (modified) ByteArrayInputStream(newBody) else input.getInputStream(entry)).use { body ->
+                (if (modified) newBody!!.inputStream() else input.getInputStream(entry)).use { body ->
                     putFileBody(modified, body)
                 }
+                closeEntry()
             }
-            closeEntry()
         }
     }
 }
@@ -283,12 +314,13 @@ private inline fun transformClassesDir(
     onDirectory: (relativePath: File) -> Unit,
     onFile: (relativePath: File, content: InputStream, modified: Boolean) -> Unit
 ) {
+    var readProviderModule = false
+
     root.walk().forEach { file ->
         val relativePath = file.relativeTo(root)
         if (file.isFile && file.isClass) {
-            val transformedBody = file.inputStream().use { classBody ->
+            val transformationStatus = file.inputStream().use { classBody ->
                 transformClassBody(
-                    className = relativePath.path.removeSuffix(".$CLASS_EXTENSION").replace(File.separatorChar, '.'),
                     classBody = classBody,
                     metadataResolver = { metadataClassName ->
                         val metadataClassRelativePath = metadataClassName.replace('.', File.separatorChar) + ".$CLASS_EXTENSION"
@@ -303,8 +335,9 @@ private inline fun transformClassesDir(
                     }
                 )
             }
-            if (transformedBody != null) {
-                onFile(relativePath, transformedBody.inputStream(), true)
+            readProviderModule = readProviderModule || transformationStatus.needReadProviderModule
+            if (transformationStatus.updatedBody != null) {
+                onFile(relativePath, transformationStatus.updatedBody!!.inputStream(), true)
                 return@forEach
             }
         }
@@ -314,6 +347,18 @@ private inline fun transformClassesDir(
             }
         } else {
             onDirectory(relativePath)
+        }
+    }
+
+    root.walk().forEach { file ->
+        if (file.isFile && file.isModuleInfo) {
+            val relativePath = file.relativeTo(root)
+            var newBody: ByteArray? = null
+            if (readProviderModule) {
+                newBody = file.inputStream().use { addReadProviderModuleToModuleInfo(it) }
+            }
+            val modified = newBody != null
+            onFile(relativePath, if (modified) newBody!!.inputStream() else file.inputStream(), modified)
         }
     }
 }
@@ -335,11 +380,14 @@ private fun transformClassesDirInPlace(dir: File) {
     )
 }
 
-private val String.extension: String
-    get() = substringAfterLast('.', "")
+private val String.isModuleInfo: Boolean
+    get() = substringAfterLast('/') == MODULE_INFO_CLASS_NAME
 
 private val String.isClass: Boolean
-    get() = extension == CLASS_EXTENSION
+    get() = endsWith(CLASS_EXTENSION) && !isModuleInfo
+
+private val File.isModuleInfo: Boolean
+    get() = name == MODULE_INFO_CLASS_NAME
 
 private val File.isClass: Boolean
-    get() = name.isClass
+    get() = name.endsWith(CLASS_EXTENSION) && !isModuleInfo

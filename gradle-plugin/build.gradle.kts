@@ -1,3 +1,4 @@
+import dev.reformator.bytecodeprocessor.gradleplugin.GetGradleProjectVersionProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -6,6 +7,7 @@ plugins {
     `maven-publish`
     signing
     id("com.gradle.plugin-publish")
+    id("dev.reformator.bytecodeprocessor")
 }
 
 repositories {
@@ -34,6 +36,8 @@ afterEvaluate {
 }
 
 dependencies {
+    compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation("io.github.microutils:kotlin-logging-jvm:${decoroutinatorVersions["kotlinLoggingJvm"]}")
@@ -41,14 +45,8 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-tasks.named("processResources").get().doLast {
-    val propertiesFile = layout.buildDirectory.get()
-        .dir("resources")
-        .dir("main")
-        .file("dev.reformator.stacktracedecoroutinator.gradleplugin.properties")
-    propertiesFile.asFile.outputStream().writer().use { output ->
-        output.write("version=$version\n")
-    }
+bytecodeProcessor {
+    processors = setOf(GetGradleProjectVersionProcessor(project))
 }
 
 java {

@@ -24,8 +24,9 @@ project(":jvm").name = "stacktrace-decoroutinator-jvm"
 project(":jvm-agent").name = "stacktrace-decoroutinator-jvm-agent"
 project(":generator-android").name = "stacktrace-decoroutinator-generator-android"
 
-includeBuild("_external/bytecode-processor")
+includeBuild("_plugins/bytecode-processor")
 
 pluginManagement {
-    includeBuild("_external/bytecode-processor")
+    includeBuild("_plugins/bytecode-processor")
+    includeBuild("_plugins/decoroutinatortest")
 }

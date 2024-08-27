@@ -78,7 +78,24 @@ fun transformClassBody(
     )
 }
 
-fun transformBaseContinuation(baseContinuation: ClassNode) {
+fun addReadProviderModuleToModuleInfo(moduleInfoBody: InputStream): ByteArray? {
+    val node = getClassNode(moduleInfoBody) ?: return null
+    val module = node.module ?: return null
+    val requires: MutableList<ModuleRequireNode> = module.requires ?: run {
+        val newRequires = mutableListOf<ModuleRequireNode>()
+        module.requires = newRequires
+        newRequires
+    }
+    if (requires.any { it.module == PROVIDER_MODULE_NAME }) return null
+    requires.add(ModuleRequireNode(
+        PROVIDER_MODULE_NAME,
+        0,
+        null
+    ))
+    return node.classBody
+}
+
+private fun transformBaseContinuation(baseContinuation: ClassNode) {
     val resumeWithMethod = baseContinuation.methods?.find {
         it.name == BaseContinuation::resumeWith.name && it.desc == "(${Type.getDescriptor(Object::class.java)})V"
                 && !it.isStatic
@@ -182,6 +199,8 @@ private val noNeedTransformationStatus = NeedTransformationStatus(
     needTransformation = false,
     needReadProviderModule = false
 )
+
+private const val PROVIDER_MODULE_NAME = "dev.reformator.stacktracedecoroutinator.provider"
 
 private data class ClassTransformationInfo(
     val fileName: String?,

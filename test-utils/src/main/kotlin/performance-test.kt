@@ -1,7 +1,7 @@
 package dev.reformator.stacktracedecoroutinator.test
 
 import kotlinx.coroutines.runBlocking
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.concurrent.thread
 import kotlin.coroutines.resume
 import kotlin.random.Random

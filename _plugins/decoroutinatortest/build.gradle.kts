@@ -30,7 +30,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:${versions["kotlin"]}")
     implementation("org.ow2.asm:asm-util:${versions["asm"]}")
-    implementation("io.github.microutils:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
+    implementation("io.github.oshai:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
 }
 
 bytecodeProcessor {

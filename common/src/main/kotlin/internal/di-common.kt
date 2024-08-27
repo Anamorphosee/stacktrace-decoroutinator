@@ -4,6 +4,18 @@ import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import java.util.ServiceLoader
 
+internal val supportsVarHandles = run {
+    @Suppress("ClassName")
+    class _stub {
+        @Suppress("unused")
+        @JvmField var field: Int = 0
+    }
+    try {
+        MethodHandles.lookup().findVarHandle(_stub::class.java, "field", Int::class.javaPrimitiveType)
+        true
+    } catch (_: Throwable) { false }
+}
+
 internal val settingsProvider = ServiceLoader.load(CommonSettingsProvider::class.java).firstOrNull() ?:
     object: CommonSettingsProvider {}
 
@@ -18,14 +30,4 @@ internal val stacktraceElementsFactory: StacktraceElementsFactory = StacktraceEl
 internal val specMethodsRegistry: SpecMethodsRegistry =
     ServiceLoader.load(SpecMethodsRegistry::class.java).firstOrNull() ?: SpecMethodsRegistryImpl
 
-internal val supportsVarHandles = run {
-    @Suppress("ClassName")
-    class _stub {
-        @Suppress("unused")
-        @JvmField var field: Int = 0
-    }
-    try {
-        MethodHandles.lookup().findVarHandle(_stub::class.java, "field", Int::class.javaPrimitiveType)
-        true
-    } catch (_: Throwable) { false }
-}
+

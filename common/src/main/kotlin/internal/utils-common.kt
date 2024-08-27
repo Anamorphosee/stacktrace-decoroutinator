@@ -17,7 +17,7 @@ const val DEBUG_METADATA_CLASS_NAME = "kotlin.coroutines.jvm.internal.DebugMetad
 
 const val TRANSFORMED_VERSION = 0
 
-const val UNKNOWN_LINE_NUMBER = -1
+const val UNKNOWN_LINE_NUMBER = 0
 
 inline fun assert(check: () -> Boolean) {
     if (_Assertions.ENABLED && !check()) {

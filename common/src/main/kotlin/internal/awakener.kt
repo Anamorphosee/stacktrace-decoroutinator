@@ -47,7 +47,7 @@ internal fun BaseContinuation.awake(result: Any?) {
 }
 
 private val unknownStacktraceElement = StacktraceElement(
-    lineNumber = -1,
+    lineNumber = UNKNOWN_LINE_NUMBER,
     className = "Unknown",
     methodName = "unknown",
     fileName = null

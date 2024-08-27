@@ -7,7 +7,7 @@ import dev.reformator.stacktracedecoroutinator.common.internal.TRANSFORMED_VERSI
 import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
 import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -118,7 +118,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         tasks.all { task ->
                             if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
                                 log.debug { "setting transform classes action for task [${task.name}]" }
-                                task.doLast {
+                                task.doLast { _ ->
                                     task.outputs.files.files.forEach { classes ->
                                         if (classes.isDirectory) {
                                             transformClassesDirInPlace(classes)
@@ -323,7 +323,7 @@ private inline fun transformClassesDir(
                 transformClassBody(
                     classBody = classBody,
                     metadataResolver = { metadataClassName ->
-                        val metadataClassRelativePath = metadataClassName.replace('.', File.separatorChar) + ".$CLASS_EXTENSION"
+                        val metadataClassRelativePath = metadataClassName.replace('.', File.separatorChar) + CLASS_EXTENSION
                         val classPath = root.resolve(metadataClassRelativePath)
                         if (classPath.isFile) {
                             classPath.inputStream().use {

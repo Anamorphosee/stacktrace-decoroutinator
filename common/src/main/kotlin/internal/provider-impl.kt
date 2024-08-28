@@ -11,24 +11,30 @@ internal class Provider: DecoroutinatorProvider {
     override val isDecoroutinatorEnabled: Boolean
         get() = enabled
 
-    override val isBaseContinuationPrepared: Boolean
-        get() = invokeSuspendHandle != null && releaseInterceptedHandle != null
+    override val cookie: Any?
+        get() = dev.reformator.stacktracedecoroutinator.common.internal.cookie
 
-    override fun prepareBaseContinuation(lookup: MethodHandles.Lookup) {
-        invokeSuspendHandle = lookup.findVirtual(
+    override fun prepareCookie(lookup: MethodHandles.Lookup): Any {
+        val invokeSuspendHandle = lookup.findVirtual(
             BaseContinuation::class.java,
             "invokeSuspend",
             MethodType.methodType(Any::class.java, Any::class.java)
         )
-        releaseInterceptedHandle = lookup.findVirtual(
+        val releaseInterceptedHandle = lookup.findVirtual(
             BaseContinuation::class.java,
             "releaseIntercepted",
             MethodType.methodType(Void::class.javaPrimitiveType)
         )
+        val cookie = Cookie(
+            invokeSuspendHandle = invokeSuspendHandle,
+            releaseInterceptedHandle = releaseInterceptedHandle
+        )
+        dev.reformator.stacktracedecoroutinator.common.internal.cookie = cookie
+        return cookie
     }
 
-    override fun awakeBaseContinuation(baseContinuation: Any, result: Any?) {
-        (baseContinuation as BaseContinuation).awake(result)
+    override fun awakeBaseContinuation(cookie: Any, baseContinuation: Any, result: Any?) {
+        (baseContinuation as BaseContinuation).awake(cookie as Cookie, result)
     }
 
     override fun registerTransformedClass(lookup: MethodHandles.Lookup) {

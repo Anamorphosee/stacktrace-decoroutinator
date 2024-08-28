@@ -25,6 +25,7 @@ data class SpecAndItsMethodHandle(
 
 fun interface SpecMethodsFactory {
     fun getSpecAndItsMethodHandle(
+        cookie: Cookie,
         element: StacktraceElement,
         nextContinuation: BaseContinuation,
         nextSpec: SpecAndItsMethodHandle?
@@ -39,6 +40,11 @@ interface CommonSettingsProvider {
         get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true")
             .toBoolean()
 }
+
+class Cookie(
+    val invokeSuspendHandle: MethodHandle,
+    val releaseInterceptedHandle: MethodHandle
+)
 
 internal data class StacktraceElements(
     val elementsByContinuation: Map<BaseContinuation, StacktraceElement>,

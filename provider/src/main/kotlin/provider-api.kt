@@ -10,6 +10,9 @@ import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import kotlin.reflect.KClass
 
+const val IS_DECOROUTINATOR_ENABLED_METHOD_NAME = "isDecoroutinatorEnabled"
+const val GET_COOKIE_METHOD_NAME = "getCookie"
+
 interface DecoroutinatorSpec {
     val lineNumber: Int
     val isLastSpec: Boolean
@@ -32,18 +35,21 @@ annotation class DecoroutinatorTransformed(
 )
 
 val isDecoroutinatorEnabled: Boolean
-    get() = provider.isDecoroutinatorEnabled
+    @JvmName(IS_DECOROUTINATOR_ENABLED_METHOD_NAME) get() = provider.isDecoroutinatorEnabled
 
-val isBaseContinuationPrepared: Boolean
-    get() = provider.isBaseContinuationPrepared
+val cookie: Any?
+    @JvmName(GET_COOKIE_METHOD_NAME) get() = provider.cookie
 
 
-fun prepareBaseContinuation(lookup: MethodHandles.Lookup) {
-    provider.prepareBaseContinuation(lookup)
-}
+fun prepareCookie(lookup: MethodHandles.Lookup): Any =
+    provider.prepareCookie(lookup)
 
-fun awakeBaseContinuation(baseContinuation: Any, result: Any?) {
-    provider.awakeBaseContinuation(baseContinuation, result)
+fun awakeBaseContinuation(cookie: Any, baseContinuation: Any, result: Any?) {
+    provider.awakeBaseContinuation(
+        cookie = cookie,
+        baseContinuation = baseContinuation,
+        result = result
+    )
 }
 
 fun registerTransformedClass(lookup: MethodHandles.Lookup) {

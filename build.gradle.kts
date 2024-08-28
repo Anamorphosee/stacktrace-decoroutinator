@@ -12,6 +12,7 @@ buildscript {
         classpath("com.gradle.publish:plugin-publish-plugin:${decoroutinatorVersions["pluginPublish"]}")
         classpath("dev.reformator.bytecodeprocessor:bytecode-processor-plugins")
         classpath("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+        classpath("dev.reformator.decoroutinatortest:decoroutinatortest")
     }
 }
 

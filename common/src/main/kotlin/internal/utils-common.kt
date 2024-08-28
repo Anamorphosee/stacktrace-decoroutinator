@@ -25,8 +25,8 @@ inline fun assert(check: () -> Boolean) {
     }
 }
 
-fun BaseContinuation.publicCallInvokeSuspend(result: Any?): Any? =
-    callInvokeSuspend(result)
+fun BaseContinuation.publicCallInvokeSuspend(cookie: Cookie, result: Any?): Any? =
+    callInvokeSuspend(cookie, result)
 
 val Class<*>.isTransformed: Boolean
     get() {
@@ -40,21 +40,22 @@ val Class<*>.isTransformed: Boolean
 internal const val ENABLED_PROPERTY = "dev.reformator.stacktracedecoroutinator.enabled"
 
 @Suppress("NOTHING_TO_INLINE")
-internal inline fun BaseContinuation.callInvokeSuspend(result: Any?): Any? {
+internal inline fun BaseContinuation.callInvokeSuspend(cookie: Cookie, result: Any?): Any? {
     probeCoroutineResumed(this)
     val newResult = try {
-        invokeSuspendHandle!!.invokeExact(this, result)
+        cookie.invokeSuspendHandle.invokeExact(this, result)
     } catch (exception: Throwable) {
         return createFailure(exception)
     }
     if (newResult === COROUTINE_SUSPENDED) {
         return newResult
     }
-    releaseInterceptedHandle!!.invokeExact(this)
+    cookie.releaseInterceptedHandle.invokeExact(this)
     return newResult
 }
 
 internal class DecoroutinatorSpecImpl(
+    private val cookie: Cookie,
     override val lineNumber: Int,
     private val nextSpecAndItsMethod: SpecAndItsMethodHandle?,
     private val nextContinuation: BaseContinuation
@@ -72,7 +73,7 @@ internal class DecoroutinatorSpecImpl(
         get() = COROUTINE_SUSPENDED
 
     override fun resumeNext(result: Any?): Any? =
-        nextContinuation.callInvokeSuspend(result)
+        nextContinuation.callInvokeSuspend(cookie, result)
 }
 
 internal val specMethodType = MethodType.methodType(

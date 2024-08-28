@@ -7,9 +7,9 @@ import java.util.*
 
 interface DecoroutinatorProvider {
     val isDecoroutinatorEnabled: Boolean
-    val isBaseContinuationPrepared: Boolean
-    fun prepareBaseContinuation(lookup: MethodHandles.Lookup)
-    fun awakeBaseContinuation(baseContinuation: Any, result: Any?)
+    val cookie: Any?
+    fun prepareCookie(lookup: MethodHandles.Lookup): Any
+    fun awakeBaseContinuation(cookie: Any, baseContinuation: Any, result: Any?)
     fun registerTransformedClass(lookup: MethodHandles.Lookup)
 }
 

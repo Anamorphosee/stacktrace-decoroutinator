@@ -127,6 +127,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
         val specMethod: MethodHandle
     ): SpecMethodsFactory {
         override fun getSpecAndItsMethodHandle(
+            cookie: Cookie,
             element: StacktraceElement,
             nextContinuation: BaseContinuation,
             nextSpec: SpecAndItsMethodHandle?
@@ -140,6 +141,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             return SpecAndItsMethodHandle(
                 specMethodHandle = specMethod,
                 spec = DecoroutinatorSpecImpl(
+                    cookie = cookie,
                     lineNumber = element.lineNumber,
                     nextSpecAndItsMethod = nextSpec,
                     nextContinuation = nextContinuation,

@@ -3,6 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
 import dev.reformator.bytecodeprocessor.intrinsics.MakeStatic
+import dev.reformator.stacktracedecoroutinator.common.internal.Cookie
 import dev.reformator.stacktracedecoroutinator.common.internal.SpecAndItsMethodHandle
 import dev.reformator.stacktracedecoroutinator.common.internal.publicCallInvokeSuspend
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
@@ -36,6 +37,7 @@ internal class DecoroutinatorClassLoader: ClassLoader(null) {
     }
 
     fun getSpec(
+        cookie: Cookie,
         lineNumber: Int,
         nextContinuation: BaseContinuation,
         nextSpec: SpecAndItsMethodHandle?
@@ -45,7 +47,7 @@ internal class DecoroutinatorClassLoader: ClassLoader(null) {
             nextSpec?.specMethodHandle,
             nextSpec?.spec,
             COROUTINE_SUSPENDED,
-            Function { result: Any? -> nextContinuation.publicCallInvokeSuspend(result) }
+            Function { result: Any? -> nextContinuation.publicCallInvokeSuspend(cookie, result) }
         )
 
     private val specClass = defineClass(DecoroutinatorSpec::class.java)

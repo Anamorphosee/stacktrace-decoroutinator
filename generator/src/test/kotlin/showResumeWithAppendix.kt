@@ -1,7 +1,7 @@
 import dev.reformator.stacktracedecoroutinator.provider.awakeBaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.isBaseContinuationPrepared
+import dev.reformator.stacktracedecoroutinator.provider.cookie
 import dev.reformator.stacktracedecoroutinator.provider.isDecoroutinatorEnabled
-import dev.reformator.stacktracedecoroutinator.provider.prepareBaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.prepareCookie
 import java.lang.invoke.MethodHandles
 
 class BaseContinuation
@@ -9,10 +9,7 @@ class BaseContinuation
 @Suppress("unused")
 fun BaseContinuation.resumeWith(result: Any?) {
     if (isDecoroutinatorEnabled) {
-        if (!isBaseContinuationPrepared) {
-            prepareBaseContinuation(MethodHandles.lookup())
-        }
-        awakeBaseContinuation(this, result)
+        awakeBaseContinuation(cookie ?: prepareCookie(MethodHandles.lookup()), this, result)
         return
     }
     default()

@@ -36,6 +36,7 @@ internal object UnknownSpecMethodsFactory: SpecMethodsFactory {
     )
 
     override fun getSpecAndItsMethodHandle(
+        cookie: Cookie,
         element: StacktraceElement,
         nextContinuation: BaseContinuation,
         nextSpec: SpecAndItsMethodHandle?
@@ -43,6 +44,7 @@ internal object UnknownSpecMethodsFactory: SpecMethodsFactory {
         SpecAndItsMethodHandle(
             specMethodHandle = specMethodHandle,
             spec = Spec(
+                cookie = cookie,
                 _nextHandle = nextSpec?.specMethodHandle,
                 _nextSpec = nextSpec?.spec,
                 nextContinuation = nextContinuation
@@ -50,6 +52,7 @@ internal object UnknownSpecMethodsFactory: SpecMethodsFactory {
         )
 
     private class Spec(
+        private val cookie: Cookie,
         private val _nextHandle: MethodHandle?,
         private val _nextSpec: Any?,
         private val nextContinuation: BaseContinuation
@@ -70,7 +73,7 @@ internal object UnknownSpecMethodsFactory: SpecMethodsFactory {
             get() = COROUTINE_SUSPENDED
 
         override fun resumeNext(result: Any?): Any? =
-            nextContinuation.callInvokeSuspend(result)
+            nextContinuation.callInvokeSuspend(cookie, result)
     }
 }
 

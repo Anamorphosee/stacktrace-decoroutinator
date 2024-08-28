@@ -13,7 +13,7 @@ import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 internal val awakenerFileClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() = fail()
 
-internal fun BaseContinuation.awake(result: Any?) {
+internal fun BaseContinuation.awake(cookie: Cookie, result: Any?) {
     val baseContinuations = buildList {
         var completion: Continuation<Any?> = this@awake
         while (completion is BaseContinuation) {
@@ -30,6 +30,7 @@ internal fun BaseContinuation.awake(result: Any?) {
 
     val specResult = if (baseContinuations.size > 1) {
         callSpecMethods(
+            cookie = cookie,
             baseContinuations = baseContinuations,
             stacktraceElements = stacktraceElements,
             result = result
@@ -40,7 +41,7 @@ internal fun BaseContinuation.awake(result: Any?) {
         result
     }
 
-    val lastBaseContinuationResult = baseContinuations.last().callInvokeSuspend(specResult)
+    val lastBaseContinuationResult = baseContinuations.last().callInvokeSuspend(cookie, specResult)
     if (lastBaseContinuationResult === COROUTINE_SUSPENDED) return
 
     baseContinuations.last().completion!!.resumeWith(Result.success(lastBaseContinuationResult))
@@ -54,6 +55,7 @@ private val unknownStacktraceElement = StacktraceElement(
 )
 
 private fun callSpecMethods(
+    cookie: Cookie,
     baseContinuations: List<BaseContinuation>,
     stacktraceElements: StacktraceElements,
     result: Any?
@@ -68,6 +70,7 @@ private fun callSpecMethods(
         val factory = specFactories[element] ?: UnknownSpecMethodsFactory
         val nextContinuation = baseContinuations[index - 1]
         specAndItsMethodHandle = factory.getSpecAndItsMethodHandle(
+            cookie = cookie,
             element = element,
             nextSpec = specAndItsMethodHandle,
             nextContinuation = nextContinuation

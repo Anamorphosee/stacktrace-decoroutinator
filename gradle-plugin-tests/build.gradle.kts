@@ -19,6 +19,7 @@ repositories {
 
 dependencies {
     testCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+
     testRuntimeOnly(project(":stacktrace-decoroutinator-common"))
 
     testImplementation(project(":test-utils"))

@@ -23,12 +23,13 @@ internal class GeneratorSpecMethodsRegistry: BaseSpecMethodsRegistry() {
             lineNumbersByMethod = lineNumbersByMethod
         )
         return specHandlesByMethod.mapValues { (methodName, handle) ->
-            SpecMethodsFactory { element, nextContinuation, nextSpec ->
+            SpecMethodsFactory { cookie, element, nextContinuation, nextSpec ->
                 assert { element.className == className }
                 assert { element.fileName == fileName }
                 assert { element.methodName == methodName }
                 assert { element.lineNumber in lineNumbersByMethod[element.methodName]!! }
                 val spec = loader.getSpec(
+                    cookie = cookie,
                     lineNumber = element.lineNumber,
                     nextContinuation = nextContinuation,
                     nextSpec = nextSpec

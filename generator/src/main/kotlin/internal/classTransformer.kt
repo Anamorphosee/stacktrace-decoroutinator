@@ -97,15 +97,14 @@ fun addReadProviderModuleToModuleInfo(moduleInfoBody: InputStream): ByteArray? {
 
 private fun transformBaseContinuation(baseContinuation: ClassNode) {
     val resumeWithMethod = baseContinuation.methods?.find {
-        it.name == BaseContinuation::resumeWith.name && it.desc == "(${Type.getDescriptor(Object::class.java)})V"
-                && !it.isStatic
+        it.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}" && !it.isStatic
     } ?: error("[${BaseContinuation::resumeWith.name}] method is not found")
 
     resumeWithMethod.instructions.insertBefore(resumeWithMethod.instructions.first, InsnList().apply {
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
-            ::isDecoroutinatorEnabled.name,
+            IS_DECOROUTINATOR_ENABLED_METHOD_NAME,
             "()${Type.BOOLEAN_TYPE.descriptor}"
         ))
         val defaultAwakeLabel = LabelNode()
@@ -116,14 +115,16 @@ private fun transformBaseContinuation(baseContinuation: ClassNode) {
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
-            ::isBaseContinuationPrepared.name,
-            "()${Type.BOOLEAN_TYPE.descriptor}"
+            GET_COOKIE_METHOD_NAME,
+            "()${Type.getDescriptor(Object::class.java)}"
         ))
+        add(InsnNode(Opcodes.DUP))
         val decoroutinatorAwakeLabel = LabelNode()
         add(JumpInsnNode(
-            Opcodes.IFNE,
+            Opcodes.IFNONNULL,
             decoroutinatorAwakeLabel
         ))
+        add(InsnNode(Opcodes.POP))
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(MethodHandles::class.java),
@@ -133,18 +134,18 @@ private fun transformBaseContinuation(baseContinuation: ClassNode) {
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
-            ::prepareBaseContinuation.name,
-            "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})${Type.VOID_TYPE.descriptor}"
+            ::prepareCookie.name,
+            "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})${Type.getDescriptor(Object::class.java)}"
         ))
         add(decoroutinatorAwakeLabel)
-        add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
+        add(FrameNode(Opcodes.F_SAME1, 0, null, 1, arrayOf(Type.getInternalName(Object::class.java))))
         add(VarInsnNode(Opcodes.ALOAD, 0))
         add(VarInsnNode(Opcodes.ALOAD, 1))
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
             ::awakeBaseContinuation.name,
-            "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
+            "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
         ))
         add(InsnNode(Opcodes.RETURN))
         add(defaultAwakeLabel)
@@ -378,10 +379,10 @@ private val MethodNode.isStatic: Boolean
 
 private fun ClassNode.getOrCreateClinitMethod(): MethodNode =
     methods.firstOrNull {
-        it.name == "<clinit>" && it.desc == "()V" && it.isStatic
+        it.name == "<clinit>" && it.desc == "()${Type.VOID_TYPE.descriptor}" && it.isStatic
     } ?: MethodNode(Opcodes.ASM9).apply {
         name = "<clinit>"
-        desc = "()V"
+        desc = "()${Type.VOID_TYPE.descriptor}"
         access = Opcodes.ACC_STATIC or Opcodes.ACC_SYNTHETIC
         instructions.add(InsnNode(Opcodes.RETURN))
         methods.add(this)

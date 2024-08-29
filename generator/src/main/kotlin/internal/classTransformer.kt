@@ -212,7 +212,13 @@ private data class ClassTransformationInfo(
 private fun ClassNode.transform(classTransformationInfo: ClassTransformationInfo) {
     version = maxOf(version, Opcodes.V1_7)
     classTransformationInfo.lineNumbersByMethod.forEach { (methodName, lineNumbers) ->
-        methods.add(buildSpecMethodNode(methodName, lineNumbers, true))
+        methods.add(buildSpecMethodNode(
+            methodName = methodName,
+            lineNumbers = lineNumbers,
+            makePrivate = true,
+            specClassName = DecoroutinatorSpec::class.java.name,
+            isSpecInterface = true
+        ))
     }
 
     val clinit = getOrCreateClinitMethod()

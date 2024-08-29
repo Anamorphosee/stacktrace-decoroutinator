@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
+import java.util.Base64
 
 plugins {
     kotlin("jvm")
@@ -78,6 +79,7 @@ dependencies {
 
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     compileOnly(project(":intrinsics"))
+    compileOnly(project(":isolated-spec-class"))
 
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
@@ -98,15 +100,42 @@ bytecodeProcessor {
         GetOwnerClassProcessor(setOf(GetOwnerClassProcessor.MethodKey(
             className = "dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt",
             methodName = "getProviderApiClass"
-        ))),
-        RemoveKotlinStdlibProcessor(
-            includeClassNames = setOf(
-                Regex("dev.reformator.stacktracedecoroutinator.generator.internal.GeneratorSpecImpl")
-            ),
-            includeModuleInfo = false
-        )
+        )))
     )
 }
+
+val setupIsolatedSpecProcessorTask = tasks.create("setupIsolatedSpecProcessor") {
+    dependsOn(":isolated-spec-class:classes")
+    doLast {
+        val classesDir = project(":isolated-spec-class").layout.buildDirectory.get()
+            .dir("classes")
+            .dir("java")
+            .dir("main")
+            .asFile
+        val classFile =
+            classesDir.walk().find { it.isFile && it.extension == "class" && it.name != "module-info.class" }!!
+        val className = classFile.relativeTo(classesDir).path.removeSuffix(".class").replace(File.separator, ".")
+        val classBodyBase64 = Base64.getEncoder().encodeToString(classFile.readBytes())
+        bytecodeProcessor {
+            processors += setOf(
+                LoadConstantProcessor(
+                    mapOf(
+                        LoadConstantProcessor.Key(
+                            "dev.reformator.stacktracedecoroutinator.generator.internal.ClassLoaderGeneratorKt",
+                            "getIsolatedSpecClassName"
+                        ) to LoadConstantProcessor.Value(className),
+                        LoadConstantProcessor.Key(
+                            "dev.reformator.stacktracedecoroutinator.generator.internal.ClassLoaderGeneratorKt",
+                            "getIsolatedSpecClassBodyBase64"
+                        ) to LoadConstantProcessor.Value(classBodyBase64)
+                    )
+                )
+            )
+        }
+    }
+}
+
+tasks.named("compileKotlin").get().dependsOn(setupIsolatedSpecProcessorTask)
 
 afterEvaluate {
     configurations.testRuntimeClasspath.get().attributes.attribute(transformedAttribute, true)

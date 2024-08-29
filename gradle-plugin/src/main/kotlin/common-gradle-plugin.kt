@@ -1,8 +1,9 @@
 @file:Suppress("PackageDirectoryMismatch")
+@file:JvmName("CommonGradlePluginKt")
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
-import dev.reformator.bytecodeprocessor.intrinsics.gradleProjectVersion
+import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.stacktracedecoroutinator.common.internal.TRANSFORMED_VERSION
 import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
 import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
@@ -85,7 +86,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     if (pluginExtension._addCommonDependency) {
                         dependencies.add(
                             pluginExtension._implementationConfigName,
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-common:$gradleProjectVersion"
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-common:$projectVersionIntrinsic"
                         )
                     } else {
                         log.debug { "Skipped runtime dependency" }
@@ -93,10 +94,10 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     if (pluginExtension.addGeneratorDependency) {
                         val dependency = if (pluginExtension._isAndroid) {
                             log.debug { "add generator dependency for Android" }
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-android:$gradleProjectVersion"
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-android:$projectVersionIntrinsic"
                         } else {
                             log.debug { "add generator dependency for JVM" }
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:$gradleProjectVersion"
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:$projectVersionIntrinsic"
                         }
                         dependencies.add(pluginExtension._runtimeOnlyConfigName, dependency)
                     }
@@ -391,3 +392,6 @@ private val File.isModuleInfo: Boolean
 
 private val File.isClass: Boolean
     get() = name.endsWith(CLASS_EXTENSION) && !isModuleInfo
+
+private val projectVersionIntrinsic: String
+    @LoadConstant get() { error("intrinsics failed") }

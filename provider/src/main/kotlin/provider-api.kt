@@ -16,7 +16,7 @@ const val GET_COOKIE_METHOD_NAME = "getCookie"
 interface DecoroutinatorSpec {
     val lineNumber: Int
     val isLastSpec: Boolean
-    val nextHandle: MethodHandle
+    val nextSpecHandle: MethodHandle
     val nextSpec: Any
     val coroutineSuspendedMarker: Any
     fun resumeNext(result: Any?): Any?

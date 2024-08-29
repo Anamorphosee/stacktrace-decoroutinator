@@ -1,13 +1,15 @@
 @file:Suppress("PackageDirectoryMismatch")
+@file:JvmName("ClassLoaderGeneratorKt")
 
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
+import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.MakeStatic
+import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.common.internal.Cookie
 import dev.reformator.stacktracedecoroutinator.common.internal.SpecAndItsMethodHandle
 import dev.reformator.stacktracedecoroutinator.common.internal.publicCallInvokeSuspend
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
@@ -18,6 +20,8 @@ import java.lang.invoke.MethodType
 import java.lang.reflect.Constructor
 import java.util.function.Function
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 internal class DecoroutinatorClassLoader: ClassLoader(null) {
     fun buildClassAndGetSpecHandlesByMethod(
@@ -50,10 +54,9 @@ internal class DecoroutinatorClassLoader: ClassLoader(null) {
             Function { result: Any? -> nextContinuation.publicCallInvokeSuspend(cookie, result) }
         )
 
-    private val specClass = defineClass(DecoroutinatorSpec::class.java)
-    private val specImplClass = defineClass(GeneratorSpecImpl::class.java)
+    private val specClass = defineClass(isolatedSpecClassName, isolatedSpecClassBody)
     private val specMethodType: MethodType = MethodType.methodType(Any::class.java, specClass, Any::class.java)
-    private val specImplConstructor: Constructor<*> = specImplClass.getDeclaredConstructor(
+    private val specImplConstructor: Constructor<*> = specClass.getDeclaredConstructor(
         Int::class.javaPrimitiveType, // lineNumber
         MethodHandle::class.java, // nextSpecHandle
         Any::class.java, // nextSpec
@@ -72,12 +75,10 @@ internal class DecoroutinatorClassLoader: ClassLoader(null) {
             return defineClass(className, classBody, 0, classBody.size)
         }
     }
-
-    private fun defineClass(clazz: Class<*>): Class<*> {
-        val body = loadResource(clazz.name.replace('.', '/') + ".class")!!
-        return defineClass(clazz.name, body)
-    }
 }
+
+@OptIn(ExperimentalEncodingApi::class)
+private val isolatedSpecClassBody = Base64.Default.decode(isolatedSpecClassBodyBase64)
 
 private fun getClassBody(
     className: String,
@@ -95,7 +96,9 @@ private fun getClassBody(
                 buildSpecMethodNode(
                     methodName = methodName,
                     lineNumbers = lineNumbers,
-                    makePrivate = false
+                    makePrivate = false,
+                    specClassName = isolatedSpecClassName,
+                    isSpecInterface = false
                 )
             }
             .toList()
@@ -105,22 +108,8 @@ private fun getClassBody(
     return writer.toByteArray()
 }
 
-class GeneratorSpecImpl(
-    override val lineNumber: Int,
-    private val _nextHandle: MethodHandle?,
-    private val _nextSpec: Any?,
-    override val coroutineSuspendedMarker: Any,
-    private val resumeNext: Function<Any?, Any?>
-) : DecoroutinatorSpec {
-    override val nextHandle: MethodHandle
-        get() = _nextHandle!!
+private val isolatedSpecClassName: String
+    @LoadConstant get() { fail() }
 
-    override val nextSpec: Any
-        get() = _nextSpec!!
-
-    override val isLastSpec: Boolean
-        get() = _nextHandle == null
-
-    override fun resumeNext(result: Any?): Any? =
-        resumeNext.apply(result)
-}
+private val isolatedSpecClassBodyBase64: String
+    @LoadConstant get() { fail() }

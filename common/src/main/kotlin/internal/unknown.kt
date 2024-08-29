@@ -17,7 +17,7 @@ internal val unknownSpecClass: Class<*>
 @Suppress("unused")
 internal fun unknown(spec: DecoroutinatorSpec, result: Any?): Any? {
     val updatedResult = if (!spec.isLastSpec) {
-        val updatedResult: Any? = spec.nextHandle.invoke(spec.nextSpec, result)
+        val updatedResult: Any? = spec.nextSpecHandle.invoke(spec.nextSpec, result)
         if (updatedResult === spec.coroutineSuspendedMarker) {
             return updatedResult
         }
@@ -63,7 +63,7 @@ internal object UnknownSpecMethodsFactory: SpecMethodsFactory {
         override val isLastSpec: Boolean
             get() = _nextHandle == null
 
-        override val nextHandle: MethodHandle
+        override val nextSpecHandle: MethodHandle
             get() = _nextHandle!!
 
         override val nextSpec: Any

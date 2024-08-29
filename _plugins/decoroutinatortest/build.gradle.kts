@@ -1,4 +1,3 @@
-import dev.reformator.bytecodeprocessor.gradleplugin.GetGradleProjectVersionProcessor
 import dev.reformator.bytecodeprocessor.plugins.*
 import org.gradle.kotlin.dsl.versions
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -43,7 +42,20 @@ bytecodeProcessor {
         RemoveKotlinStdlibProcessor(includeClassNames = setOf(
             Regex("dev.reformator.stacktracedecoroutinator.generator.internal.GeneratorSpecImpl")
         )),
-        GetGradleProjectVersionProcessor(project)
+        LoadConstantProcessor(mapOf(
+            LoadConstantProcessor.Key(
+                "dev.reformator.stacktracedecoroutinator.gradleplugin.CommonGradlePluginKt",
+                "getProjectVersionIntrinsic"
+            ) to LoadConstantProcessor.Value("unspecified"),
+            LoadConstantProcessor.Key(
+                "dev.reformator.stacktracedecoroutinator.generator.internal.ClassLoaderGeneratorKt",
+                "getIsolatedSpecClassName"
+            ) to LoadConstantProcessor.Value(""),
+            LoadConstantProcessor.Key(
+                "dev.reformator.stacktracedecoroutinator.generator.internal.ClassLoaderGeneratorKt",
+                "getIsolatedSpecClassBodyBase64"
+            ) to LoadConstantProcessor.Value("")
+        ))
     )
 }
 

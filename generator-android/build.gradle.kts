@@ -81,6 +81,8 @@ dependencies {
 //        }
 //    })
 
+    compileOnly(project(":isolated-spec-class"))
+
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation("com.jakewharton.android.repackaged:dalvik-dx:${decoroutinatorVersions["dalvikDx"]}")
 

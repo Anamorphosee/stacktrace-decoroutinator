@@ -13,7 +13,8 @@ include(
     "test-utils",
     "gradle-plugin-tests",
     "gradle-plugin-android-tests",
-    "jvm-agent-tests"
+    "jvm-agent-tests",
+    "isolated-spec-class"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"

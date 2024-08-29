@@ -63,7 +63,7 @@ internal class DecoroutinatorSpecImpl(
     override val isLastSpec: Boolean
         get() = nextSpecAndItsMethod == null
 
-    override val nextHandle: MethodHandle
+    override val nextSpecHandle: MethodHandle
         get() = nextSpecAndItsMethod!!.specMethodHandle
 
     override val nextSpec: Any

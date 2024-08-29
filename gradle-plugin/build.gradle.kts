@@ -1,4 +1,4 @@
-import dev.reformator.bytecodeprocessor.gradleplugin.GetGradleProjectVersionProcessor
+import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -46,7 +46,12 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(GetGradleProjectVersionProcessor(project))
+    processors = setOf(LoadConstantProcessor(mapOf(
+        LoadConstantProcessor.Key(
+            "dev.reformator.stacktracedecoroutinator.gradleplugin.CommonGradlePluginKt",
+            "getProjectVersionIntrinsic"
+        ) to LoadConstantProcessor.Value(project.version)
+    )))
 }
 
 java {

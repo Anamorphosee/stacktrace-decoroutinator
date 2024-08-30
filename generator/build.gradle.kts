@@ -79,7 +79,6 @@ dependencies {
 
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     compileOnly(project(":intrinsics"))
-    compileOnly(project(":isolated-spec-class"))
 
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))

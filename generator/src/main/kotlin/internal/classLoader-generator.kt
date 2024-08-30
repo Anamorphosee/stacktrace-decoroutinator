@@ -46,7 +46,7 @@ internal class DecoroutinatorClassLoader: ClassLoader(null) {
         nextContinuation: BaseContinuation,
         nextSpec: SpecAndItsMethodHandle?
     ): Any =
-        specImplConstructor.newInstance(
+        specConstructor.newInstance(
             lineNumber,
             nextSpec?.specMethodHandle,
             nextSpec?.spec,
@@ -56,7 +56,7 @@ internal class DecoroutinatorClassLoader: ClassLoader(null) {
 
     private val specClass = defineClass(isolatedSpecClassName, isolatedSpecClassBody)
     private val specMethodType: MethodType = MethodType.methodType(Any::class.java, specClass, Any::class.java)
-    private val specImplConstructor: Constructor<*> = specClass.getDeclaredConstructor(
+    private val specConstructor: Constructor<*> = specClass.getDeclaredConstructor(
         Int::class.javaPrimitiveType, // lineNumber
         MethodHandle::class.java, // nextSpecHandle
         Any::class.java, // nextSpec

@@ -1,13 +1,8 @@
 @file:Suppress("PackageDirectoryMismatch")
+@file:JvmName("SpecMethodBuilderGeneratorAndroidKt")
 
 package dev.reformator.stacktracedecoroutinator.generatorandroid
 
-import dev.reformator.stacktracedecoroutinator.isolatedspecclass.GET_COROUTINE_SUSPENDED_MARKER_METHOD_NAME
-import dev.reformator.stacktracedecoroutinator.isolatedspecclass.GET_LINE_NUMBER_METHOD_NAME
-import dev.reformator.stacktracedecoroutinator.isolatedspecclass.GET_NEXT_SPEC_HANDLE_METHOD_NAME
-import dev.reformator.stacktracedecoroutinator.isolatedspecclass.GET_NEXT_SPEC_METHOD_NAME
-import dev.reformator.stacktracedecoroutinator.isolatedspecclass.IS_LAST_SPEC_METHOD_NAME
-import dev.reformator.stacktracedecoroutinator.isolatedspecclass.Spec
 import com.android.dx.dex.DexOptions
 import com.android.dx.dex.code.*
 import com.android.dx.dex.file.EncodedMethod
@@ -18,6 +13,9 @@ import com.android.dx.rop.cst.*
 import com.android.dx.rop.type.StdTypeList
 import com.android.dx.rop.type.Type
 import com.android.dx.util.IntList
+import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
+import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandle
 import java.lang.reflect.Modifier
 
@@ -79,8 +77,13 @@ internal fun buildSpecMethod(
     )
 }
 
+internal val isolatedSpecClassName: String
+    @LoadConstant get() { fail() }
 
-private val specClass = Type.internClassName(Spec::class.java.name.internalName)
+internal val String.internalName: String
+    get() = replace('.', '/')
+
+private val specClass = Type.internClassName(isolatedSpecClassName.internalName)
 private val methodHandleClass = Type.internClassName(MethodHandle::class.java.name.internalName)
 private val illegalArgumentExceptionClass = Type.internClassName(
     java.lang.IllegalArgumentException::class.java.name.internalName
@@ -111,7 +114,7 @@ private fun OutputFinisher.saveLineNumber() {
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(GET_LINE_NUMBER_METHOD_NAME),
+                CstString(getGetterMethodName(DecoroutinatorSpec::lineNumber.name)),
                 CstString("()${Type.INT.descriptor}")
             )
         )
@@ -131,7 +134,7 @@ private fun OutputFinisher.gotoIfLastSpec(label: CodeAddress) {
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(IS_LAST_SPEC_METHOD_NAME),
+                CstString(getGetterMethodName(DecoroutinatorSpec::isLastSpec.name)),
                 CstString("()${Type.BOOLEAN.descriptor}")
             )
         )
@@ -161,7 +164,7 @@ private fun OutputFinisher.callNextSpec(
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(GET_NEXT_SPEC_HANDLE_METHOD_NAME),
+                CstString(getGetterMethodName(DecoroutinatorSpec::nextSpecHandle.name)),
                 CstString("()${methodHandleClass.descriptor}")
             )
         )
@@ -178,7 +181,7 @@ private fun OutputFinisher.callNextSpec(
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(GET_NEXT_SPEC_METHOD_NAME),
+                CstString(getGetterMethodName(DecoroutinatorSpec::nextSpec.name)),
                 CstString("()${Type.OBJECT.descriptor}")
             )
         )
@@ -210,12 +213,12 @@ private fun OutputFinisher.callNextSpec(
                 ))
             )
         ))
+        add(SimpleInsn(
+            Dops.MOVE_RESULT_OBJECT,
+            it,
+            RegisterSpecList.make(result)
+        ))
     }
-    add(SimpleInsn(
-        Dops.MOVE_RESULT_OBJECT,
-        SourcePosition.NO_INFO,
-        RegisterSpecList.make(result)
-    ))
 }
 
 private fun OutputFinisher.returnSuspendedCoroutineMarkerIfResultIsIt() {
@@ -226,7 +229,7 @@ private fun OutputFinisher.returnSuspendedCoroutineMarkerIfResultIsIt() {
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(GET_COROUTINE_SUSPENDED_MARKER_METHOD_NAME),
+                CstString(getGetterMethodName(DecoroutinatorSpec::coroutineSuspendedMarker.name)),
                 CstString("()${Type.OBJECT.descriptor}")
             )
         )
@@ -268,17 +271,17 @@ private fun OutputFinisher.resumeNext(
             CstMethodRef(
                 CstType(specClass),
                 CstNat(
-                    CstString(Spec::resumeNext.name),
+                    CstString(DecoroutinatorSpec::resumeNext.name),
                     CstString("(${Type.OBJECT.descriptor})${Type.OBJECT.descriptor}")
                 )
             )
         ))
+        add(SimpleInsn(
+            Dops.MOVE_RESULT_OBJECT,
+            it,
+            RegisterSpecList.make(result)
+        ))
     }
-    add(SimpleInsn(
-        Dops.MOVE_RESULT_OBJECT,
-        SourcePosition.NO_INFO,
-        RegisterSpecList.make(result)
-    ))
 }
 
 private fun OutputFinisher.throwInvalidLine() {
@@ -422,5 +425,5 @@ private fun OutputFinisher.instructionsByLineNumbers(
     add(endLabel)
 }
 
-private val String.internalName: String
-    get() = replace('.', '/')
+private fun getGetterMethodName(propertyName: String): String =
+    if (propertyName.startsWith("is")) propertyName else "get${propertyName[0].uppercase()}${propertyName.substring(1)}"

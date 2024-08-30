@@ -18,19 +18,21 @@ class BytecodeProcessorPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             val extension = extensions.create(::bytecodeProcessor.name, BytecodeProcessorPluginExtension::class.java)
-            tasks.withType(AbstractCompile::class.java) { task ->
-                task.doLast { _ ->
-                    val processors = extension.processors
-                    if (processors.isNotEmpty()) {
-                        applyBytecodeProcessors(processors, task.destinationDirectory.get().asFile)
+            afterEvaluate { _ ->
+                tasks.withType(AbstractCompile::class.java) { task ->
+                    task.doLast { _ ->
+                        val processors = extension.processors
+                        if (processors.isNotEmpty()) {
+                            applyBytecodeProcessors(processors, task.destinationDirectory.get().asFile)
+                        }
                     }
                 }
-            }
-            tasks.withType(KotlinJvmCompile::class.java) { task ->
-                task.doLast { _ ->
-                    val processors = extension.processors
-                    if (processors.isNotEmpty()) {
-                        applyBytecodeProcessors(processors, task.destinationDirectory.get().asFile)
+                tasks.withType(KotlinJvmCompile::class.java) { task ->
+                    task.doLast { _ ->
+                        val processors = extension.processors
+                        if (processors.isNotEmpty()) {
+                            applyBytecodeProcessors(processors, task.destinationDirectory.get().asFile)
+                        }
                     }
                 }
             }

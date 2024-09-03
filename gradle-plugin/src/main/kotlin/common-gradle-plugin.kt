@@ -85,6 +85,10 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     if (pluginExtension._addCommonDependency) {
                         dependencies.add(
                             pluginExtension._implementationConfigName,
+                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-provider:$projectVersionIntrinsic"
+                        )
+                        dependencies.add(
+                            pluginExtension._implementationConfigName,
                             "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-common:$projectVersionIntrinsic"
                         )
                     } else {

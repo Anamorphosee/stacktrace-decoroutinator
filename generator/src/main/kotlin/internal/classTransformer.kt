@@ -156,10 +156,9 @@ private fun transformBaseContinuation(baseContinuation: ClassNode) {
         baseContinuation.visibleAnnotations = it
     })
     annotations.add(ClassTransformationInfo(
-        fileName = null,
         lineNumbersByMethod = emptyMap(),
         baseContinuationInternalClassNames = emptySet()
-    ).transformedAnnotation)
+    ).getTransformedAnnotation(baseContinuation))
 }
 
 fun getDebugMetadataInfoFromClassBody(body: InputStream): DebugMetadataInfo? =
@@ -171,7 +170,6 @@ fun getDebugMetadataInfoFromClass(clazz: Class<*>): DebugMetadataInfo? =
             specClassInternalClassName = it.className.internalName,
             baseContinuationInternalClassName = clazz.name.internalName,
             methodName = it.methodName,
-            fileName = it.sourceFile.ifEmpty { null },
             lineNumbers = it.lineNumbers.toSet()
         )
     }
@@ -204,7 +202,6 @@ private val noNeedTransformationStatus = NeedTransformationStatus(
 private const val PROVIDER_MODULE_NAME = "dev.reformator.stacktracedecoroutinator.provider"
 
 private data class ClassTransformationInfo(
-    val fileName: String?,
     val lineNumbersByMethod: Map<String, Set<Int>>,
     val baseContinuationInternalClassNames: Set<String>
 )
@@ -229,7 +226,7 @@ private fun ClassNode.transform(classTransformationInfo: ClassTransformationInfo
     if (visibleAnnotations == null) {
         visibleAnnotations = mutableListOf()
     }
-    visibleAnnotations.add(classTransformationInfo.transformedAnnotation)
+    visibleAnnotations.add(classTransformationInfo.getTransformedAnnotation(this))
 }
 
 private fun getClassNode(classBody: InputStream, skipCode: Boolean = false): ClassNode? {
@@ -267,7 +264,6 @@ private val ClassNode.decoroutinatorTransformedVersion: Int?
 
 private fun ClassNode.getClassTransformationInfo(metadataResolver: (className: String) -> DebugMetadataInfo?): ClassTransformationInfo? {
     val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
-    val fileNames = mutableSetOf<String>()
     val baseContinuationInternalClassNames = mutableSetOf<String>()
     val check = { info: DebugMetadataInfo? ->
         if (info != null && info.specClassInternalClassName == name) {
@@ -275,36 +271,71 @@ private fun ClassNode.getClassTransformationInfo(metadataResolver: (className: S
                 mutableSetOf(UNKNOWN_LINE_NUMBER)
             }
             currentLineNumbers.addAll(info.lineNumbers)
-            if (info.fileName != null) {
-                fileNames.add(info.fileName)
-            }
             baseContinuationInternalClassNames.add(info.baseContinuationInternalClassName)
         }
     }
     check(debugMetadataInfo)
     methods.orEmpty().forEach { method ->
-        if (method.hasCode && method.isSuspend) {
-            check(method.getDebugMetadataInfo(
-                classInternalName = name,
-                metadataResolver = metadataResolver
-            ))
+        when (val status = getCheckTransformationStatus(this, method)) {
+            is DefaultTransformationStatus -> check(metadataResolver(status.baseContinuationClassName))
+            is TailCallTransformationStatus -> tailCallDeopt(
+                completionVarIndex = status.completionVarIndex,
+                clazz = this,
+                method = method,
+                lineNumbersByMethod = lineNumbersByMethod,
+            )
+            null -> { }
         }
     }
     return if (lineNumbersByMethod.isNotEmpty()) {
-        val fileName = fileNames.run { when {
-            isEmpty() -> null
-            size == 1 -> single()
-            else -> throw IllegalStateException(
-                "class [$name] contains suspend fun metadata with multiple file names: [$this]"
-            )
-        } }
         ClassTransformationInfo(
-            fileName = fileName,
             lineNumbersByMethod = lineNumbersByMethod,
             baseContinuationInternalClassNames = baseContinuationInternalClassNames
         )
     } else {
         null
+    }
+}
+
+private fun tailCallDeopt(
+    completionVarIndex: Int,
+    clazz: ClassNode,
+    method: MethodNode,
+    lineNumbersByMethod: MutableMap<String, MutableSet<Int>>,
+) {
+    method.instructions.forEach { instruction ->
+        if (instruction is VarInsnNode && instruction.opcode == Opcodes.ALOAD && instruction.`var` == completionVarIndex) {
+            val lineNumber = generateSequence(instruction.previous, { it.previous })
+                .mapNotNull { it as? LineNumberNode }
+                .firstOrNull()?.line ?: UNKNOWN_LINE_NUMBER
+            val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(method.name) {
+                mutableSetOf(UNKNOWN_LINE_NUMBER)
+            }
+            currentLineNumbers.add(lineNumber)
+            method.instructions.insert(instruction, InsnList().apply {
+                if (clazz.sourceFile != null) {
+                    add(LdcInsnNode(clazz.sourceFile))
+                } else {
+                    add(InsnNode(Opcodes.ACONST_NULL))
+                }
+                add(LdcInsnNode(Type.getObjectType(clazz.name).className))
+                add(LdcInsnNode(method.name))
+                add(LdcInsnNode(lineNumber))
+                add(MethodInsnNode(
+                    Opcodes.INVOKESTATIC,
+                    Type.getInternalName(providerApiClass),
+                    ::getBaseContinuation.name,
+                    "(" +
+                            Type.getDescriptor(Object::class.java) +
+                            Type.getDescriptor(String::class.java) +
+                            Type.getDescriptor(String::class.java) +
+                            Type.getDescriptor(String::class.java) +
+                            Type.INT_TYPE.descriptor +
+                            ")${Type.getDescriptor(Object::class.java)}"
+                ))
+                add(TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Continuation::class.java)))
+            })
+        }
     }
 }
 
@@ -318,7 +349,6 @@ private val ClassNode.debugMetadataInfo: DebugMetadataInfo?
                     .toMap()
                 val internalClassName = (parameters["c"] as String).replace('.', '/')
                 val methodName = parameters["m"] as String
-                val fileName = (parameters["f"] as String).ifEmpty { null }
                 val lineNumbers = (parameters["l"] as List<Int>).toSet()
                 if (lineNumbers.isEmpty()) {
                     return null
@@ -327,7 +357,6 @@ private val ClassNode.debugMetadataInfo: DebugMetadataInfo?
                     specClassInternalClassName = internalClassName,
                     baseContinuationInternalClassName = name,
                     methodName = methodName,
-                    fileName = fileName,
                     lineNumbers = lineNumbers
                 )
             }
@@ -335,50 +364,100 @@ private val ClassNode.debugMetadataInfo: DebugMetadataInfo?
         return null
     }
 
-private val MethodNode.hasCode: Boolean
-    get() = instructions != null && instructions.size() > 0
-
-private val MethodNode.isSuspend: Boolean
-    get() = desc.endsWith("${Type.getDescriptor(Continuation::class.java)})${Type.getDescriptor(Object::class.java)}")
-
-private val Method.isSuspend: Boolean
-    get() = parameters.isNotEmpty() && parameters.last().type == Continuation::class.java && returnType == Object::class.java
-
-private fun MethodNode.getDebugMetadataInfo(
-    classInternalName: String,
-    metadataResolver: (className: String) -> DebugMetadataInfo?
-): DebugMetadataInfo? {
-    val continuationIndex = run {
-        var continuationIndex = 0
+private val MethodNode.lastArgumentIndex: Int
+    get() {
+        var result = 0
         if (!isStatic) {
-            continuationIndex++
+            result++
         }
         val arguments = Type.getArgumentTypes(desc)
         arguments.asSequence()
             .take(arguments.size - 1)
-            .forEach { continuationIndex += it.size }
-        continuationIndex
+            .forEach { result += it.size }
+        return result
     }
-    return instructions.asSequence()
-        .mapNotNull {
-            val next = it.next
-            if (it is VarInsnNode && it.opcode == Opcodes.ALOAD && it.`var` == continuationIndex &&
-                next != null && next is TypeInsnNode && next.opcode == Opcodes.INSTANCEOF) {
-                next
-            } else {
-                null
+
+private sealed interface CheckTransformationStatus
+private class DefaultTransformationStatus(val baseContinuationClassName: String): CheckTransformationStatus
+private class TailCallTransformationStatus(val completionVarIndex: Int): CheckTransformationStatus
+
+private fun getCheckTransformationStatus(clazz: ClassNode, method: MethodNode): CheckTransformationStatus? {
+    if (
+        method.name == "<init>"
+        || method.name == "<clinit>"
+        || !method.desc.endsWith("${Type.getDescriptor(Continuation::class.java)})${Type.getDescriptor(Object::class.java)}")
+        || method.instructions == null
+        || method.instructions.size() == 0
+    ) {
+        return null
+    }
+    val completionIndex = method.lastArgumentIndex
+    val baseContinuationClassNames = mutableSetOf<String>()
+    method.instructions.forEach { instruction ->
+        if (instruction is VarInsnNode) {
+            when (instruction.opcode) {
+                Opcodes.ISTORE, Opcodes.FSTORE, Opcodes.ASTORE -> {
+                    if (instruction.`var` == completionIndex) return null
+                }
+                Opcodes.LSTORE, Opcodes.DSTORE -> {
+                    if (instruction.`var` == completionIndex || instruction.`var` == completionIndex - 1) {
+                        return null
+                    }
+                }
+                Opcodes.ALOAD -> {
+                    if (instruction.`var` == completionIndex) {
+                        var next = instruction.next
+                        while (next != null) {
+                            if (next.opcode == -1) {
+                                next = next.next
+                            } else if (next is TypeInsnNode) {
+                                if (next.opcode == Opcodes.INSTANCEOF || next.opcode == Opcodes.CHECKCAST) {
+                                    baseContinuationClassNames.add(Type.getObjectType(next.desc).className)
+                                    break
+                                }
+                            } else if (next is MethodInsnNode) {
+                                if (next.opcode == Opcodes.INVOKESPECIAL && next.name == "<init>"
+                                    && next.desc == "(${Type.getDescriptor(Continuation::class.java)})${Type.VOID_TYPE.descriptor}"
+                                ) {
+                                    baseContinuationClassNames.add(Type.getObjectType(next.owner).className)
+                                }
+                                break
+                            } else {
+                                break
+                            }
+                        }
+                    }
+                }
             }
         }
-        .firstOrNull()?.let {
-            val continuationClassInternalName: String = it.desc
-            if (continuationClassInternalName != classInternalName) {
-                val continuationClassName = Type.getObjectType(it.desc).className
-                metadataResolver(continuationClassName)
-            } else {
-                null
-            }
+    }
+    return if (baseContinuationClassNames.size == 1) {
+        val baseContinuationClassName = baseContinuationClassNames.single()
+        if (baseContinuationClassName != Type.getObjectType(clazz.name).className) {
+            DefaultTransformationStatus(baseContinuationClassName)
+        } else {
+            null
         }
+    } else if (baseContinuationClassNames.isEmpty()) {
+        val hasCompletionLocalVar = method.localVariables.orEmpty().any { localVar ->
+            localVar.index == completionIndex && localVar.name == "\$completion"
+        }
+        val hasContinuationLocalVar = method.localVariables.orEmpty().any { localVar ->
+            localVar.name == "\$continuation"
+        }
+        val isMethodSynthetic = method.access and Opcodes.ACC_SYNTHETIC != 0
+        if (hasCompletionLocalVar && !hasContinuationLocalVar && !isMethodSynthetic) {
+            TailCallTransformationStatus(completionIndex)
+        } else {
+            null
+        }
+    } else {
+        null
+    }
 }
+
+private val Method.isSuspend: Boolean
+    get() = parameters.isNotEmpty() && parameters.last().type == Continuation::class.java && returnType == Object::class.java
 
 private val MethodNode.isStatic: Boolean
     get() = access and Opcodes.ACC_STATIC != 0
@@ -409,35 +488,34 @@ private fun buildCallRegisterLookupInstructions() = InsnList().apply {
     ))
 }
 
-private val ClassTransformationInfo.transformedAnnotation: AnnotationNode
-    get() {
-        val result = AnnotationNode(Opcodes.ASM9, Type.getDescriptor(DecoroutinatorTransformed::class.java))
-        val lineNumbers = lineNumbersByMethod.entries.toList()
-        result.values = buildList {
-            if (fileName != null) {
-                add(DecoroutinatorTransformed::fileName.name)
-                add(fileName)
-            } else {
-                add(DecoroutinatorTransformed::fileNamePresent.name)
-                add(false)
-            }
-            add(DecoroutinatorTransformed::methodNames.name)
-            add(lineNumbers.map { it.key })
-
-            add(DecoroutinatorTransformed::lineNumbersCounts.name)
-            add(lineNumbers.map { it.value.size })
-
-            add(DecoroutinatorTransformed::lineNumbers.name)
-            add(lineNumbers.flatMap { it.value })
-
-            add(DecoroutinatorTransformed::baseContinuationClasses.name)
-            add(baseContinuationInternalClassNames.map { Type.getObjectType(it) })
-
-            add(DecoroutinatorTransformed::version.name)
-            add(TRANSFORMED_VERSION)
+private fun ClassTransformationInfo.getTransformedAnnotation(clazz: ClassNode): AnnotationNode {
+    val result = AnnotationNode(Opcodes.ASM9, Type.getDescriptor(DecoroutinatorTransformed::class.java))
+    val lineNumbers = lineNumbersByMethod.entries.toList()
+    result.values = buildList {
+        if (clazz.sourceFile != null) {
+            add(DecoroutinatorTransformed::fileName.name)
+            add(clazz.sourceFile)
+        } else {
+            add(DecoroutinatorTransformed::fileNamePresent.name)
+            add(false)
         }
-        return result
+        add(DecoroutinatorTransformed::methodNames.name)
+        add(lineNumbers.map { it.key })
+
+        add(DecoroutinatorTransformed::lineNumbersCounts.name)
+        add(lineNumbers.map { it.value.size })
+
+        add(DecoroutinatorTransformed::lineNumbers.name)
+        add(lineNumbers.flatMap { it.value })
+
+        add(DecoroutinatorTransformed::baseContinuationClasses.name)
+        add(baseContinuationInternalClassNames.map { Type.getObjectType(it) })
+
+        add(DecoroutinatorTransformed::version.name)
+        add(TRANSFORMED_VERSION)
     }
+    return result
+}
 
 private val ClassNode.classBody: ByteArray
     get() {

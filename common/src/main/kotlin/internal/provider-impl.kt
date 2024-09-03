@@ -6,6 +6,7 @@ import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
+import kotlin.coroutines.Continuation
 
 internal class Provider: DecoroutinatorProvider {
     override val isDecoroutinatorEnabled: Boolean
@@ -40,4 +41,24 @@ internal class Provider: DecoroutinatorProvider {
     override fun registerTransformedClass(lookup: MethodHandles.Lookup) {
         TransformedClassesRegistry.registerTransformedClass(lookup)
     }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun getBaseContinuation(
+        completion: Any?,
+        fileName: String?,
+        className: String,
+        methodName: String,
+        lineNumber: Int
+    ): Any? =
+        if (tailCallDeoptimize && completion !== null) {
+            DecoroutinatorContinuationImpl(
+                completion = completion as Continuation<Any?>,
+                fileName = fileName,
+                className = className,
+                methodName = methodName,
+                lineNumber = lineNumber
+            )
+        } else {
+            completion
+        }
 }

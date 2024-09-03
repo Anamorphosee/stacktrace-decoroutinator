@@ -8,10 +8,14 @@ import dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.JvmAgentC
 internal class CommonSettingsProviderImpl: CommonSettingsProvider {
     companion object {
         var recoveryExplicitStacktrace: Boolean = false
+        var tailCallDeoptimize: Boolean = false
     }
 
     override val recoveryExplicitStacktrace: Boolean
         get() = CommonSettingsProviderImpl.recoveryExplicitStacktrace
+
+    override val tailCallDeoptimize: Boolean
+        get() = CommonSettingsProviderImpl.tailCallDeoptimize
 }
 
 internal class JvmAgentCommonSettingsProviderImpl: JvmAgentCommonSettingsProvider {

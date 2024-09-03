@@ -142,6 +142,7 @@ afterEvaluate {
 
 tasks.test {
     useJUnitPlatform()
+
 }
 
 java {

@@ -20,7 +20,6 @@ suspend inline fun callTraceInline(trace: List<Mock>, noinline end: suspend () -
     } else {
         trace[0].callTrace(trace.subList(1, trace.size), end)
     }
-    tailCallDeoptimize()
 }
 
 object Mock1: Mock {
@@ -180,8 +179,6 @@ val mocks = listOf(Mock1, Mock2, Mock3, Mock4, Mock5, Mock6, Mock7, Mock8, Mock9
     Mock42, Mock43, Mock44, Mock45, Mock46, Mock47, Mock48, Mock49, Mock50)
 
 private fun Random.getMocks(depth: Int) = List(depth) { mocks.random(this) }
-
-fun tailCallDeoptimize() { }
 
 @Suppress("JUnitMixedFramework")
 open class PerformanceTest {

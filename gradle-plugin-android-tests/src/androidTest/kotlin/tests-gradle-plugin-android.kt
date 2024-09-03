@@ -1,7 +1,6 @@
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import dev.reformator.stacktracedecoroutinator.test.checkStacktrace
-import dev.reformator.stacktracedecoroutinator.test.tailCallDeoptimize
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import org.junit.Test
@@ -14,7 +13,6 @@ class TestLocalFile {
 
     suspend fun fun1() {
         fun2(currentLineNumber)
-        tailCallDeoptimize()
     }
 
     suspend fun fun2(fun1LineNumber: Int) {
@@ -26,7 +24,6 @@ class TestLocalFile {
         )
         yield()
         fun3(fun1Frame, currentLineNumber)
-        tailCallDeoptimize()
     }
 
     suspend fun fun3(fun1Frame: StackTraceElement, fun2LineNumber: Int) {
@@ -38,5 +35,12 @@ class TestLocalFile {
         )
         yield()
         checkStacktrace(fun2Frame, fun1Frame)
+    }
+}
+
+class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
+    @Test
+    fun run() {
+        basic()
     }
 }

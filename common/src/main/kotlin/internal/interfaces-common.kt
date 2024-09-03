@@ -39,6 +39,10 @@ interface CommonSettingsProvider {
     val recoveryExplicitStacktrace: Boolean
         get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true")
             .toBoolean()
+
+    val tailCallDeoptimize: Boolean
+        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.tailCallDeoptimize", "true")
+            .toBoolean()
 }
 
 class Cookie(

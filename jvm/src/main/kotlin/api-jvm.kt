@@ -17,9 +17,11 @@ object DecoroutinatorJvmApi {
     fun install(
         recoveryExplicitStacktrace: Boolean = true,
         isBaseContinuationRedefinitionAllowed: Boolean = true,
-        isRedefinitionAllowed: Boolean = false
+        isRedefinitionAllowed: Boolean = false,
+        tailCallDeoptimize: Boolean = true,
     ) {
         CommonSettingsProviderImpl.recoveryExplicitStacktrace = recoveryExplicitStacktrace
+        CommonSettingsProviderImpl.tailCallDeoptimize = tailCallDeoptimize
         JvmAgentCommonSettingsProviderImpl.isBaseContinuationRedefinitionAllowed = isBaseContinuationRedefinitionAllowed
         JvmAgentCommonSettingsProviderImpl.isRedefinitionAllowed = isRedefinitionAllowed
         lock.withLock {

@@ -23,7 +23,7 @@ repositories {
 }
 
 android {
-    namespace = "dev.reformator.stacktracedecoroutinator.generatorruntimeandroidtests"
+    namespace = "dev.reformator.stacktracedecoroutinator.generatorandroid"
     compileSdk = 34
     defaultConfig {
         minSdk = 26

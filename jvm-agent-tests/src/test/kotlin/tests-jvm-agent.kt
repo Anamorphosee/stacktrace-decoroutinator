@@ -16,3 +16,10 @@ class JacocoInstrumentedMethodTest {
         jacocoInstrumentedMethod()
     }
 }
+
+class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
+    @Test
+    fun run() {
+        basic()
+    }
+}

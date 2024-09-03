@@ -13,10 +13,12 @@ import java.io.ByteArrayInputStream
 import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
 import java.security.ProtectionDomain
+import kotlin.coroutines.Continuation
 import kotlin.coroutines.suspendCoroutine
 
 fun addDecoroutinatorTransformer(inst: Instrumentation) {
     val transformer = DecoroutinatorClassFileTransformer(inst)
+    Class.forName(Continuation::class.java.name)
     inst.addTransformer(transformer, inst.isRetransformClassesSupported)
     Class.forName(BASE_CONTINUATION_CLASS_NAME)
     val stubClassPath = _preloadStub::class.java.name.replace('.', '/') + ".class"

@@ -1,8 +1,9 @@
 package dev.reformator.stacktracedecoroutinator.test
 
-//import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntimeApi
+import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
+import dev.reformator.bytecodeprocessor.intrinsics.fail
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
@@ -12,6 +13,9 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
+import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
 import kotlin.reflect.KFunction
@@ -206,3 +210,47 @@ open class RuntimeTest {
 
     private fun tailCallDeoptimize() { }
 }
+
+open class TailCallDeoptimizeTest {
+    fun basic() = runBlocking {
+        tailCallDeoptimizeBasicRec(recDepth)
+    }
+}
+
+private const val recDepth = 10
+private val recLineNumber = currentLineNumber + 3
+suspend fun tailCallDeoptimizeBasicRec(depth: Int) {
+    if (depth > 0) {
+        tailCallDeoptimizeBasicRecRec(depth - 1)
+    } else {
+        suspendCoroutineUninterceptedOrReturn { cont ->
+            ForkJoinPool.commonPool().execute {
+                cont.resume(Unit)
+            }
+            COROUTINE_SUSPENDED
+        }
+        val checkedStacktrace = (0 until recDepth * 2).map {
+            val (methodName, lineNumber) = if (it % 2 == 0) {
+                ::tailCallDeoptimizeBasicRecRec.name to recRecLineNumber
+            } else {
+                ::tailCallDeoptimizeBasicRec.name to recLineNumber
+            }
+            StackTraceElement(
+                currentFileClass.name,
+                methodName,
+                currentFileName,
+                lineNumber
+            )
+        }.toTypedArray()
+        checkStacktrace(*checkedStacktrace)
+    }
+}
+
+private val recRecLineNumber = currentLineNumber + 2
+suspend fun tailCallDeoptimizeBasicRecRec(depth: Int) {
+    tailCallDeoptimizeBasicRec(depth)
+}
+
+
+private val currentFileClass: Class<*>
+    @GetOwnerClass(deleteAfterModification = true) get() { fail() }

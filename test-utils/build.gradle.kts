@@ -27,7 +27,8 @@ bytecodeProcessor {
     processors = setOf(
         RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
         GetCurrentFileNameProcessor,
-        GetCurrentLineNumberProcessor
+        GetCurrentLineNumberProcessor,
+        GetOwnerClassProcessor()
     )
 }
 

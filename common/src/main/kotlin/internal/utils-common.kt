@@ -2,6 +2,8 @@
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
+import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
+import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.common.intrinsics._Assertions
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.createFailure
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineResumed
@@ -10,7 +12,10 @@ import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodType
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 
 const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 const val DEBUG_METADATA_CLASS_NAME = "kotlin.coroutines.jvm.internal.DebugMetadata"
@@ -81,3 +86,37 @@ internal val specMethodType = MethodType.methodType(
     DecoroutinatorSpec::class.java,
     Object::class.java
 )
+
+@ChangeClassName(toName = "kotlin.coroutines.jvm.internal.ContinuationImpl", deleteAfterChanging = true)
+internal abstract class ContinuationImpl(
+    @Suppress("UNUSED_PARAMETER") completion: Continuation<Any?>?
+): BaseContinuation(), CoroutineStackFrame {
+    protected abstract fun invokeSuspend(result: Any?): Any?
+
+    override val context: CoroutineContext
+        get() { fail() }
+
+    override val callerFrame: CoroutineStackFrame?
+        get() { fail() }
+
+    override fun getStackTraceElement(): StackTraceElement? { fail() }
+}
+
+internal class DecoroutinatorContinuationImpl(
+    completion: Continuation<Any?>,
+    val fileName: String?,
+    val className: String,
+    val methodName: String,
+    val lineNumber: Int
+): ContinuationImpl(completion) {
+    override fun invokeSuspend(result: Any?): Any? =
+        result
+
+    override fun getStackTraceElement(): StackTraceElement =
+        StackTraceElement(
+            className,
+            methodName,
+            fileName,
+            lineNumber
+        )
+}

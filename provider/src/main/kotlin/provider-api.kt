@@ -56,5 +56,20 @@ fun registerTransformedClass(lookup: MethodHandles.Lookup) {
     provider.registerTransformedClass(lookup)
 }
 
+fun getBaseContinuation(
+    completion: Any?,
+    fileName: String?,
+    className: String,
+    methodName: String,
+    lineNumber: Int
+): Any? =
+    provider.getBaseContinuation(
+        completion = completion,
+        fileName = fileName,
+        className = className,
+        methodName = methodName,
+        lineNumber = lineNumber
+    )
+
 val providerApiClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() { fail() }

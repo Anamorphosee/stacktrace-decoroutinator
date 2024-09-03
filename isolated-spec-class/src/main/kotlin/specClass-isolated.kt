@@ -7,6 +7,7 @@ import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandle
 import java.util.function.Function
 
+@Suppress("unused")
 @DeleteInterface(DecoroutinatorSpec::class)
 class IsolatedSpec(
     override val lineNumber: Int,

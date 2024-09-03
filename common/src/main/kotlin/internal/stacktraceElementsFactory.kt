@@ -8,24 +8,38 @@ import java.lang.reflect.Field
 import java.util.concurrent.ConcurrentHashMap
 
 internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
+    @Suppress("UNCHECKED_CAST")
     override fun getStacktraceElements(continuations: Set<BaseContinuation>): StacktraceElements {
         val elementsByContinuation = mutableMapOf<BaseContinuation, StacktraceElement>()
         val possibleElements = mutableSetOf<StacktraceElement>()
         continuations.groupBy { it.javaClass }.forEach { (baseContinuationClass, continuations) ->
-            val spec = specs.computeIfAbsent(baseContinuationClass) { _ ->
-                BaseContinuationClassSpec(
-                    clazz = baseContinuationClass,
-                    labelExtractor = DefaultLabelExtractor(baseContinuationClass)
-                )
-            }
-            if (spec.elementsByLabel != null) {
-                continuations.forEach { continuation ->
-                    val label = @Suppress("UNCHECKED_CAST")
-                        (spec.labelExtractor as LabelExtractor<BaseContinuation>).getLabel(continuation)
-                    val element = spec.elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
+            if (baseContinuationClass == DecoroutinatorContinuationImpl::class.java) {
+                (continuations as List<DecoroutinatorContinuationImpl>).forEach { continuation ->
+                    val element = StacktraceElement(
+                        fileName = continuation.fileName,
+                        className = continuation.className,
+                        methodName = continuation.methodName,
+                        lineNumber = continuation.lineNumber
+                    )
                     elementsByContinuation[continuation] = element
+                    possibleElements.add(element)
                 }
-                possibleElements.addAll(spec.elementsByLabel)
+            } else {
+                val spec = specs.computeIfAbsent(baseContinuationClass) { _ ->
+                    BaseContinuationClassSpec(
+                        clazz = baseContinuationClass,
+                        labelExtractor = DefaultLabelExtractor(baseContinuationClass)
+                    )
+                }
+                if (spec.elementsByLabel != null) {
+                    continuations.forEach { continuation ->
+                        val label = @Suppress("UNCHECKED_CAST")
+                        (spec.labelExtractor as LabelExtractor<BaseContinuation>).getLabel(continuation)
+                        val element = spec.elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
+                        elementsByContinuation[continuation] = element
+                    }
+                    possibleElements.addAll(spec.elementsByLabel)
+                }
             }
         }
         return StacktraceElements(

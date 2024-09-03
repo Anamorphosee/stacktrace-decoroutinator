@@ -95,10 +95,10 @@ dependencies {
 
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
-    implementation("com.jakewharton.android.repackaged:dalvik-dx:${decoroutinatorVersions["dalvikDx"]}")
+    implementation("com.jakewharton.android.repackaged:dalvik-dx:${versions["dalvikDx"]}")
 
     androidTestRuntimeOnly(project(":test-utils"))
-    androidTestRuntimeOnly("androidx.test:runner:${decoroutinatorVersions["androidTestRunner"]}")
+    androidTestRuntimeOnly("androidx.test:runner:${versions["androidTestRunner"]}")
 }
 
 bytecodeProcessor {

@@ -21,6 +21,7 @@ import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.stacktraceDecoroutinator
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
@@ -52,8 +53,6 @@ open class DecoroutinatorPluginExtension(project: Project) {
         ".+RuntimeClasspath"
     )
     var _configurationsExclude = setOf<String>()
-    var _tasksInclude = setOf("compile.*Kotlin")
-    var _tasksExclude = setOf<String>()
     var _isAndroid = project.pluginManager.hasPlugin("com.android.base")
 }
 
@@ -113,22 +112,10 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         }
                     }
 
-                    run {
-                        val includes = pluginExtension._tasksInclude.map { Regex(it) }
-                        val excludes = pluginExtension._tasksExclude.map { Regex(it) }
-                        tasks.all { task ->
-                            if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
-                                log.debug { "setting transform classes action for task [${task.name}]" }
-                                task.doLast { _ ->
-                                    task.outputs.files.files.forEach { classes ->
-                                        if (classes.isDirectory) {
-                                            transformClassesDirInPlace(classes)
-                                        } else {
-                                            log.debug { "skipping in-place transformation for artifact [${classes.absolutePath}] as it is not a directory" }
-                                        }
-                                    }
-                                }
-                            }
+                    tasks.withType(KotlinJvmCompile::class.java) { task ->
+                        log.debug { "setting transform classes action for task [${task.name}]" }
+                        task.doLast { _ ->
+                            transformClassesDirInPlace(task.destinationDirectory.get().asFile)
                         }
                     }
 

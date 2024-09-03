@@ -6,7 +6,7 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.util.*
 
-val decoroutinatorVersions: Map<String, String> = run {
+val versions: Map<String, String> = run {
     fun tryLoad(path: String): Map<String, String>? =
         try {
             FileInputStream("$path/versions.properties")

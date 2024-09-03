@@ -18,7 +18,7 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
-    implementation("org.ow2.asm:asm-util:${decoroutinatorVersions["asm"]}")
+    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
 
     testImplementation(kotlin("test"))
 }

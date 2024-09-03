@@ -18,11 +18,11 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
-    implementation("net.bytebuddy:byte-buddy-agent:${decoroutinatorVersions["byteBuddy"]}")
+    implementation("net.bytebuddy:byte-buddy-agent:${versions["byteBuddy"]}")
 
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
 }
 
 tasks.test {

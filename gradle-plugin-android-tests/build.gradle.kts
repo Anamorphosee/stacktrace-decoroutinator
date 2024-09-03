@@ -20,12 +20,12 @@ stacktraceDecoroutinator {
 
 dependencies {
     androidTestImplementation(project(":test-utils"))
-    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${decoroutinatorVersions["kotlinxCoroutines"]}")
-    androidTestImplementation("junit:junit:${decoroutinatorVersions["junit4"]}")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
+    androidTestImplementation("junit:junit:${versions["junit4"]}")
 
     androidTestCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
-    androidTestRuntimeOnly("androidx.test:runner:${decoroutinatorVersions["androidTestRunner"]}")
+    androidTestRuntimeOnly("androidx.test:runner:${versions["androidTestRunner"]}")
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-common"))
 }
 

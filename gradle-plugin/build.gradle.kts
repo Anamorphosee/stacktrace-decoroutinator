@@ -40,7 +40,8 @@ dependencies {
 
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
-    implementation("io.github.oshai:kotlin-logging-jvm:${decoroutinatorVersions["kotlinLoggingJvm"]}")
+    implementation("io.github.oshai:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:${versions["kotlinGradlePluginApi"]}")
 
     testImplementation(kotlin("test"))
 }

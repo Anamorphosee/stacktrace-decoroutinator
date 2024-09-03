@@ -5,4 +5,6 @@ module dev.reformator.stacktracedecoroutinator.jvm.tests {
     requires dev.reformator.stacktracedecoroutinator.provider;
     requires dev.reformator.stacktracedecoroutinator.testutils;
     requires kotlinx.coroutines.core;
+
+    exports dev.reformator.stacktracedecoroutinator.jvmtests;
 }

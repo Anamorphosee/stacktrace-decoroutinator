@@ -83,31 +83,35 @@ Thus, if the coroutine throws an exception, they mimic the real call stack of th
 
 ### JVM
 There are three ways to enable Stacktrace-decoroutinator for JVM.
-1. If you build your project with Gradle, just apply Gradle plugin with id `dev.reformator.stacktracedecoroutinator`.
-2. Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.4.1` and call method `DecoroutinatorRuntime.load()`.
-3. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.4.1.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.4.1`.
+1. (recommended) If you build your project with Gradle, just apply Gradle plugin with id `dev.reformator.stacktracedecoroutinator`.
+2. Add dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.4.2` and call method `DecoroutinatorJvmApi.install()`.
+3. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.4.2.jar` to your JVM start arguments. Corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.4.2`.
 
-The first option generates auxiliary methods at build time and the other two use the Java instrumentation API at runtime. 
+The first option generates auxiliary methods at build time and the other two use the Java instrumentation API at runtime.
 
 Usage example:
 ```kotlin
-import dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorRuntime
+package dev.reformator.stacktracedecoroutinator.jvmtests
+
+import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 
-suspend fun rec(depth: Int) {
-    if (depth == 0) {
-        yield()
-        throw Exception("exception at ${System.currentTimeMillis()}")
+object Test {
+    suspend fun rec(depth: Int) {
+        if (depth == 0) {
+            yield()
+            throw Exception("exception at ${System.currentTimeMillis()}")
+        }
+        rec(depth - 1)
     }
-    rec(depth - 1)
 }
 
 fun main() {
-    DecoroutinatorRuntime.load() // enable stacktrace-decoroutinator runtime
+    DecoroutinatorJvmApi.install() // enable stacktrace-decoroutinator runtime
     try {
         runBlocking {
-            rec(10)
+            Test.rec(10)
         }
     } catch (e: Exception) {
         e.printStackTrace() // print full stack trace with 10 recursive calls
@@ -116,39 +120,42 @@ fun main() {
 ```
 prints out:
 ```
-java.lang.Exception: exception at 1722597709832
-	at ExampleKt.rec(example.kt:8)
-	at ExampleKt$rec$1.invokeSuspend(example.kt)
-	at dev.reformator.stacktracedecoroutinator.runtime.JavaUtilsImpl$1.apply(JavaUtilsImpl.java:52)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt.rec(example.kt:10)
-	at ExampleKt$main$1.invokeSuspend(example.kt:17)
-	at dev.reformator.stacktracedecoroutinator.runtime.AwakenerKt.awake(awakener.kt:93)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(basecontinuation.kt:20)
-	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
-	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
-	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
-	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
-	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
-	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
-	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
-	at ExampleKt.main(example.kt:16)
-	at ExampleKt.main(example.kt)
+java.lang.Exception: exception at 1725331728978
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:11)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test$rec$1.invokeSuspend(example.kt)
+	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.DecoroutinatorSpecImpl.resumeNext(utils-common.kt:126)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt$main$1.invokeSuspend(example.kt:21)
+	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.callSpecMethods(awakener.kt:80)
+	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.awake(awakener.kt:32)
+	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.Provider.awakeBaseContinuation(provider-impl.kt:38)
+	at dev.reformator.stacktracedecoroutinator.provider/dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt.awakeBaseContinuation(provider-api.kt:48)
+	at kotlin.stdlib/kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt)
+	at kotlinx.coroutines.core/kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.core/kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.core/kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.core/kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.core/kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.core/kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.core/kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt.main(example.kt:20)
+	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt.main(example.kt)
 ```
 
 ### Android
 For Android there is only one option to enable Stacktrace-decoroutinator - apply the Gradle plugin `dev.reformator.stacketracedecoroutinator` to your application's project.
 ```kotlin
 plugins {
-    id("dev.reformator.stacktracedecoroutinator") version "2.4.1"
+    id("dev.reformator.stacktracedecoroutinator") version "2.4.2"
 }
 ```
 
@@ -156,11 +163,14 @@ plugins {
 If you use ProGuard (usually for Android) please add the following exclusion rules:
 ```
 -keep @kotlin.coroutines.jvm.internal.DebugMetadata class * { *; }
--keep @dev.reformator.stacktracedecoroutinator.runtime.DecoroutinatorTransformed class * { *; }
+-keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed class * { *; }
 ```
 
 ### Problem with Jacoco and Decoroutinator
 Using Jacoco and Decoroutinator as a Java agent may lead to the loss of code coverage. It's [common Jacoco Problem](https://www.eclemma.org/jacoco/trunk/doc/classids.html). In order not to lose coverage, make sure that the Jacoco agent comes before the Decoroutinator agent. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/24.
+
+### Troubleshooting
+You can call function `DecoroutinatorCommonApi.getStatus { it() }` at runtime to check if Decoroutinator has been successfully installed.
 
 ### Communication
 Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions).

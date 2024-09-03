@@ -59,6 +59,9 @@ sourceSets {
     main {
         kotlin.destinationDirectory = java.destinationDirectory
     }
+    test {
+        kotlin.destinationDirectory = java.destinationDirectory
+    }
 }
 
 val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {

@@ -1,3 +1,5 @@
+package dev.reformator.stacktracedecoroutinator.jvmtests
+
 import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmApi
 
 fun setupTest() {

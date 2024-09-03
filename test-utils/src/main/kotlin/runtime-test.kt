@@ -4,6 +4,7 @@ import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
@@ -102,11 +103,11 @@ open class RuntimeTest {
         }
     }
 
-//    @Junit4Test @Junit5Test
-//    fun testRuntimeApiStatus() {
-//        val status = DecoroutinatorRuntimeApi.getStatus { it() }
-//        assertTrue(status.successful, status.description)
-//    }
+    @Junit4Test @Junit5Test
+    fun testCommonApiStatus() {
+        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = false)
+        assertTrue(status.successful, status.description)
+    }
 
     private var resumeWithExceptionRecBaseLineNumber: Int = 0
 
@@ -214,6 +215,11 @@ open class RuntimeTest {
 open class TailCallDeoptimizeTest {
     fun basic() = runBlocking {
         tailCallDeoptimizeBasicRec(recDepth)
+    }
+
+    fun testCommonApiStatus() {
+        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
+        assertTrue(status.successful, status.description)
     }
 }
 

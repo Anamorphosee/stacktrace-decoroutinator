@@ -1,9 +1,10 @@
 module dev.reformator.stacktracedecoroutinator.testutils {
     requires kotlinx.coroutines.core;
     requires org.junit.jupiter.api;
-    requires dev.reformator.bytecodeprocessor.intrinsics;
     requires junit;
     requires io.github.oshai.kotlinlogging;
+    requires dev.reformator.stacktracedecoroutinator.common;
+    requires dev.reformator.bytecodeprocessor.intrinsics;
 
     exports dev.reformator.stacktracedecoroutinator.test;
 

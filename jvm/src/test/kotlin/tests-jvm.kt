@@ -65,8 +65,13 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     }
 
     @Test
-    fun run() {
+    fun localBasic() {
         basic()
+    }
+
+    @Test
+    fun localTestCommonApiStatus() {
+        testCommonApiStatus()
     }
 }
 

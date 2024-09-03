@@ -7,6 +7,7 @@ import dev.reformator.stacktracedecoroutinator.common.internal.*
 import dev.reformator.stacktracedecoroutinator.common.internal.ENABLED_PROPERTY
 import dev.reformator.stacktracedecoroutinator.common.internal.awakenerFileClass
 import dev.reformator.stacktracedecoroutinator.common.internal.enabled
+import dev.reformator.stacktracedecoroutinator.commonother.SelfCalledSuspendLambda
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -17,8 +18,6 @@ import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 data class DecoroutinatorStatus(val successful: Boolean, val description: String)
 
 object DecoroutinatorCommonApi {
-
-
     /**
      * Get status of Decoroutinator correctness.
      * Must be called like this:
@@ -27,7 +26,7 @@ object DecoroutinatorCommonApi {
      */
     fun getStatus(
         allowTailCallOptimization: Boolean = false,
-        sourceCall: suspend (callThisAndReturnItsResult: suspend () -> Any?) -> Any? = { it() }
+        sourceCall: suspend (callThisAndReturnItsResult: suspend () -> Any?) -> Any? = SelfCalledSuspendLambda
     ): DecoroutinatorStatus {
         if (!enabled) {
             return DecoroutinatorStatus(
@@ -76,13 +75,11 @@ object DecoroutinatorCommonApi {
                     trace should be from top to bottom:
                     - suspendResumeAndGetStacktrace()
                     - <awaking auxiliary frames>
-                    - invoke()
-                    - <invokeExact frames>
-                    - <sourceCall>
-                    - <invokeExact frames>
+                    - <invoke>
+                    - <sourceCalls>
                     - getStatus()
-                    - <invokeExact frames>
-                    - awakener.awake()
+                    - awakener.callSpecMethods()
+                    - <...>
                     - resumeWith()
                 */
                 val baseContinuationResumeIndex = trace.indexOfFirst {
@@ -106,8 +103,8 @@ object DecoroutinatorCommonApi {
                         description = "Something wrong. The top call is [${trace[0].methodName}]"
                     )
                 }
-                val awakenerIndex = baseContinuationResumeIndex - 1
-                if (trace[awakenerIndex].className != awakenerFileClass.name) {
+                val awakenerIndex = trace.indexOfFirst { it.className == awakenerFileClass.name }
+                if (awakenerIndex == -1 || awakenerIndex >= baseContinuationResumeIndex) {
                     return DecoroutinatorStatus(
                         successful = false,
                         description = "class [$BASE_CONTINUATION_CLASS_NAME] from Kotlin stdlib is not transformed"
@@ -119,7 +116,7 @@ object DecoroutinatorCommonApi {
                 if (getStatusIndex == -1 || getStatusIndex >= awakenerIndex) {
                     return DecoroutinatorStatus(
                         successful = false,
-                        description = "'getStatus' call is not found. Probably runtime lib is not transformed"
+                        description = "'getStatus' call is not found. Probably common lib is not transformed"
                     )
                 }
                 if (
@@ -133,16 +130,11 @@ object DecoroutinatorCommonApi {
                     )
                 }
 
-                val invokeExactFramesCount = awakenerIndex - getStatusIndex - 1
-                val awakingAuxiliaryFramesCount = 2
-                val sourceCallFramesCount = getStatusIndex - invokeExactFramesCount - awakingAuxiliaryFramesCount - 1
-                if (sourceCallFramesCount < 0) {
-                    return DecoroutinatorStatus(
-                        successful = false,
-                        description = "Something wrong. The source call is $sourceCallFramesCount frames long"
-                    )
+                val hasOtherPackage = trace.subList(1, getStatusIndex).any {
+                    !it.className.startsWith("dev.reformator.stacktracedecoroutinator.common.")
                 }
-                if (!allowTailCallOptimization && sourceCallFramesCount == 0) {
+
+                if (!allowTailCallOptimization && !hasOtherPackage) {
                     return DecoroutinatorStatus(
                         successful = false,
                         description = "the stack trace doesn't contain source call frames. Probably the source call was tail call optimized"

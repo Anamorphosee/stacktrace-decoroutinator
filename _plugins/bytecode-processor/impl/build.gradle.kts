@@ -20,8 +20,8 @@ tasks.test {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    targetCompatibility = JavaVersion.VERSION_1_9
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks.withType<JavaCompile> {
@@ -31,11 +31,5 @@ tasks.withType<JavaCompile> {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
-    }
-}
-
-sourceSets {
-    main {
-        kotlin.destinationDirectory = java.destinationDirectory
     }
 }

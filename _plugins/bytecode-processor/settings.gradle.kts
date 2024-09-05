@@ -11,3 +11,9 @@ project(":plugins").name = "bytecode-processor-plugins"
 project(":intrinsics").name = "bytecode-processor-intrinsics"
 project(":impl").name = "bytecode-processor-impl"
 project(":gradle-plugin").name = "bytecode-processor-gradle-plugin"
+
+includeBuild("../force-variant-java-version")
+
+pluginManagement {
+    includeBuild("../force-variant-java-version")
+}

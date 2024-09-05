@@ -27,8 +27,10 @@ project(":generator-android").name = "stacktrace-decoroutinator-generator-androi
 
 includeBuild("_plugins/bytecode-processor")
 includeBuild("_plugins/decoroutinatortest")
+includeBuild("_plugins/force-variant-java-version")
 
 pluginManagement {
     includeBuild("_plugins/bytecode-processor")
     includeBuild("_plugins/decoroutinatortest")
+    includeBuild("_plugins/force-variant-java-version")
 }

@@ -89,7 +89,7 @@ fun addReadProviderModuleToModuleInfo(moduleInfoBody: InputStream): ByteArray? {
     if (requires.any { it.module == PROVIDER_MODULE_NAME }) return null
     requires.add(ModuleRequireNode(
         PROVIDER_MODULE_NAME,
-        0,
+        Opcodes.ACC_SYNTHETIC,
         null
     ))
     return node.classBody

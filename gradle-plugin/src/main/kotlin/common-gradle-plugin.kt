@@ -20,6 +20,8 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.compile.AbstractCompile
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.kotlin.dsl.stacktraceDecoroutinator
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.ByteArrayInputStream
@@ -50,10 +52,13 @@ open class DecoroutinatorPluginExtension(project: Project) {
     var _implementationConfigName = "implementation"
     var _configurationsInclude = setOf(
         "runtimeClasspath",
-        ".+RuntimeClasspath"
+        ".+RuntimeClasspath",
+        "compileClasspath",
+        ".+CompileClasspath"
     )
     var _configurationsExclude = setOf<String>()
     var _isAndroid = project.pluginManager.hasPlugin("com.android.base")
+    var _doUpdateJavaModuleInfo = true
 }
 
 class DecoroutinatorPlugin: Plugin<Project> {
@@ -120,6 +125,19 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         log.debug { "setting transform classes action for task [${task.name}]" }
                         task.doLast { _ ->
                             transformClassesDirInPlace(task.destinationDirectory.get().asFile)
+                        }
+                    }
+                    if (pluginExtension._doUpdateJavaModuleInfo) {
+                        tasks.withType(AbstractCompile::class.java) { task ->
+                            task.doLast { _ ->
+                                visitModuleInfoFiles(task.destinationDirectory.get().asFile) { path, _ ->
+                                    val newModuleInfo =
+                                        path.inputStream().use { addReadProviderModuleToModuleInfo(it) }
+                                    if (newModuleInfo != null) {
+                                        path.outputStream().use { it.write(newModuleInfo) }
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -333,24 +351,32 @@ private inline fun transformClassesDir(
                 return@forEach
             }
         }
-        if (file.isFile) {
+        if (file.isDirectory) {
+            onDirectory(relativePath)
+            return@forEach
+        }
+        if (!file.isModuleInfo) {
             file.inputStream().use { input ->
                 onFile(relativePath, input, false)
             }
-        } else {
-            onDirectory(relativePath)
         }
     }
 
+    visitModuleInfoFiles(root) { path, relativePath ->
+        var newBody: ByteArray? = null
+        if (readProviderModule) {
+            newBody = path.inputStream().use { addReadProviderModuleToModuleInfo(it) }
+        }
+        val modified = newBody != null
+        onFile(relativePath, if (modified) newBody!!.inputStream() else path.inputStream(), modified)
+    }
+}
+
+private inline fun visitModuleInfoFiles(root: File, onModuleInfoFile: (path: File, relativePath: File) -> Unit) {
     root.walk().forEach { file ->
         if (file.isFile && file.isModuleInfo) {
             val relativePath = file.relativeTo(root)
-            var newBody: ByteArray? = null
-            if (readProviderModule) {
-                newBody = file.inputStream().use { addReadProviderModuleToModuleInfo(it) }
-            }
-            val modified = newBody != null
-            onFile(relativePath, if (modified) newBody!!.inputStream() else file.inputStream(), modified)
+            onModuleInfoFile(file, relativePath)
         }
     }
 }

@@ -10,6 +10,7 @@ plugins {
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
+    id("dev.reformator.forcevariantjavaversion")
 }
 
 repositories {

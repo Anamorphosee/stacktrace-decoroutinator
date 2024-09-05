@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     kotlin("jvm")
     id("dev.reformator.bytecodeprocessor")
+    id("dev.reformator.forcevariantjavaversion")
 }
 
 repositories {

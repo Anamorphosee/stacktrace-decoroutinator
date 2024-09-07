@@ -105,7 +105,7 @@ open class RuntimeTest {
 
     @Junit4Test @Junit5Test
     fun testCommonApiStatus() {
-        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = false)
+        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
         assertTrue(status.successful, status.description)
     }
 

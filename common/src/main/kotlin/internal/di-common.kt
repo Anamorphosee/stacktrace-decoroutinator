@@ -15,8 +15,8 @@ internal val settingsProvider = ServiceLoader.load(CommonSettingsProvider::class
     object: CommonSettingsProvider {}
 
 internal val enabled = settingsProvider.decoroutinatorEnabled
-internal val recoveryExplicitStacktrace = settingsProvider.recoveryExplicitStacktrace
-internal val tailCallDeoptimize = settingsProvider.tailCallDeoptimize
+internal val recoveryExplicitStacktrace = enabled && settingsProvider.recoveryExplicitStacktrace
+internal val tailCallDeoptimize = enabled && settingsProvider.tailCallDeoptimize
 
 internal var cookie: Cookie? = null
 

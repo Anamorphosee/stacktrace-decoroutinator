@@ -12,23 +12,12 @@ import com.android.dx.rop.cst.CstType
 import com.android.dx.rop.type.StdTypeList
 import com.android.dx.rop.type.Type
 import dalvik.system.InMemoryDexClassLoader
-import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
-import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.common.internal.BaseSpecMethodsRegistry
-import dev.reformator.stacktracedecoroutinator.common.internal.SpecAndItsMethodHandle
-import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsFactory
-import dev.reformator.stacktracedecoroutinator.common.internal.publicCallInvokeSuspend
-import java.lang.invoke.MethodHandle
+import dev.reformator.stacktracedecoroutinator.common.internal.*
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
-import java.lang.reflect.Constructor
 import java.lang.reflect.Modifier
 import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.function.Function
-import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
     override fun generateSpecMethodFactories(
@@ -61,23 +50,22 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
         dexFile.add(classDef)
         val loader = InMemoryDexClassLoader(
             ByteBuffer.wrap(dexFile.toDex(null, false)),
-            specClassLoader
+            DecoroutinatorSpec::class.java.classLoader
         )
         loaders.add(loader)
-        val clazz = loader.loadClass(className)
+        val clazz = loader.findClass(className)
         return lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
             val handle = MethodHandles.publicLookup().findStatic(clazz, methodName, specMethodType)
             SpecMethodsFactory { cookie, element, nextContinuation, nextSpec ->
-                dev.reformator.stacktracedecoroutinator.common.internal.assert { element.className == className }
-                dev.reformator.stacktracedecoroutinator.common.internal.assert { element.fileName == fileName }
-                dev.reformator.stacktracedecoroutinator.common.internal.assert { element.methodName == methodName }
-                dev.reformator.stacktracedecoroutinator.common.internal.assert { element.lineNumber in lineNumbers }
-                val spec = specConstructor.newInstance(
-                    element.lineNumber,
-                    nextSpec?.specMethodHandle,
-                    nextSpec?.spec,
-                    COROUTINE_SUSPENDED,
-                    Function { result: Any? -> nextContinuation.publicCallInvokeSuspend(cookie, result) }
+                assert { element.className == className }
+                assert { element.fileName == fileName }
+                assert { element.methodName == methodName }
+                assert { element.lineNumber in lineNumbers }
+                val spec = DecoroutinatorSpecImpl(
+                    cookie = cookie,
+                    lineNumber = element.lineNumber,
+                    nextSpecAndItsMethod = nextSpec,
+                    nextContinuation = nextContinuation
                 )
                 SpecAndItsMethodHandle(
                     specMethodHandle = handle,
@@ -90,21 +78,8 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
     private val loaders: MutableCollection<ClassLoader> = CopyOnWriteArrayList()
 }
 
-private val isolatedSpecClassDexBodyBase64: String
-    @LoadConstant get() { fail() }
-
-@OptIn(ExperimentalEncodingApi::class)
-private val specClassLoader = InMemoryDexClassLoader(
-    ByteBuffer.wrap(Base64.Default.decode(isolatedSpecClassDexBodyBase64)),
-    null
-)
-
-private val specClass = specClassLoader.loadClass(isolatedSpecClassName)
-private val specMethodType: MethodType = MethodType.methodType(Any::class.java, specClass, Any::class.java)
-private val specConstructor: Constructor<*> = specClass.getDeclaredConstructor(
-    Int::class.javaPrimitiveType, // lineNumber
-    MethodHandle::class.java, // nextSpecHandle
-    Any::class.java, // nextSpec
-    Any::class.java, // COROUTINE_SUSPENDED
-    Function::class.java // resumeNext implementation
-)
+private fun ClassLoader.findClass(className: String): Class<*>? {
+    val findClassMethod = ClassLoader::class.java.getDeclaredMethod("findClass", String::class.java)
+    findClassMethod.isAccessible = true
+    return findClassMethod.invoke(this, className) as Class<*>?
+}

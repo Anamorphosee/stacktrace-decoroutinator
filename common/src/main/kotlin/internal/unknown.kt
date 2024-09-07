@@ -54,7 +54,7 @@ internal object UnknownSpecMethodsFactory: SpecMethodsFactory {
     private class Spec(
         private val cookie: Cookie,
         private val _nextHandle: MethodHandle?,
-        private val _nextSpec: Any?,
+        private val _nextSpec: DecoroutinatorSpec?,
         private val nextContinuation: BaseContinuation
     ): DecoroutinatorSpec {
         override val lineNumber: Int
@@ -66,7 +66,7 @@ internal object UnknownSpecMethodsFactory: SpecMethodsFactory {
         override val nextSpecHandle: MethodHandle
             get() = _nextHandle!!
 
-        override val nextSpec: Any
+        override val nextSpec: DecoroutinatorSpec
             get() = _nextSpec!!
 
         override val coroutineSuspendedMarker: Any

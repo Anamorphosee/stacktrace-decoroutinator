@@ -3,6 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandle
 
 data class StacktraceElement(
@@ -20,7 +21,7 @@ fun interface SpecMethodsRegistry {
 
 data class SpecAndItsMethodHandle(
     val specMethodHandle: MethodHandle,
-    val spec: Any
+    val spec: DecoroutinatorSpec
 )
 
 fun interface SpecMethodsFactory {

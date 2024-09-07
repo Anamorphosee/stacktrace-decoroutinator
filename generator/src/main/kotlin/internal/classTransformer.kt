@@ -212,9 +212,7 @@ private fun ClassNode.transform(classTransformationInfo: ClassTransformationInfo
         methods.add(buildSpecMethodNode(
             methodName = methodName,
             lineNumbers = lineNumbers,
-            makePrivate = true,
-            specClassName = DecoroutinatorSpec::class.java.name,
-            isSpecInterface = true
+            makePrivate = true
         ))
     }
 

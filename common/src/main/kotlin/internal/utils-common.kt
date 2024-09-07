@@ -24,14 +24,39 @@ const val TRANSFORMED_VERSION = 0
 
 const val UNKNOWN_LINE_NUMBER = 0
 
+val specMethodType = MethodType.methodType(
+    Object::class.java,
+    DecoroutinatorSpec::class.java,
+    Object::class.java
+)
+
+class DecoroutinatorSpecImpl(
+    private val cookie: Cookie,
+    override val lineNumber: Int,
+    private val nextSpecAndItsMethod: SpecAndItsMethodHandle?,
+    private val nextContinuation: BaseContinuation
+): DecoroutinatorSpec {
+    override val isLastSpec: Boolean
+        get() = nextSpecAndItsMethod == null
+
+    override val nextSpecHandle: MethodHandle
+        get() = nextSpecAndItsMethod!!.specMethodHandle
+
+    override val nextSpec: DecoroutinatorSpec
+        get() = nextSpecAndItsMethod!!.spec
+
+    override val coroutineSuspendedMarker: Any
+        get() = COROUTINE_SUSPENDED
+
+    override fun resumeNext(result: Any?): Any? =
+        nextContinuation.callInvokeSuspend(cookie, result)
+}
+
 inline fun assert(check: () -> Boolean) {
     if (_Assertions.ENABLED && !check()) {
         throw AssertionError()
     }
 }
-
-fun BaseContinuation.publicCallInvokeSuspend(cookie: Cookie, result: Any?): Any? =
-    callInvokeSuspend(cookie, result)
 
 val Class<*>.isTransformed: Boolean
     get() {
@@ -58,34 +83,6 @@ internal inline fun BaseContinuation.callInvokeSuspend(cookie: Cookie, result: A
     cookie.releaseInterceptedHandle.invokeExact(this)
     return newResult
 }
-
-internal class DecoroutinatorSpecImpl(
-    private val cookie: Cookie,
-    override val lineNumber: Int,
-    private val nextSpecAndItsMethod: SpecAndItsMethodHandle?,
-    private val nextContinuation: BaseContinuation
-): DecoroutinatorSpec {
-    override val isLastSpec: Boolean
-        get() = nextSpecAndItsMethod == null
-
-    override val nextSpecHandle: MethodHandle
-        get() = nextSpecAndItsMethod!!.specMethodHandle
-
-    override val nextSpec: Any
-        get() = nextSpecAndItsMethod!!.spec
-
-    override val coroutineSuspendedMarker: Any
-        get() = COROUTINE_SUSPENDED
-
-    override fun resumeNext(result: Any?): Any? =
-        nextContinuation.callInvokeSuspend(cookie, result)
-}
-
-internal val specMethodType = MethodType.methodType(
-    Object::class.java,
-    DecoroutinatorSpec::class.java,
-    Object::class.java
-)
 
 @ChangeClassName(toName = "kotlin.coroutines.jvm.internal.ContinuationImpl", deleteAfterChanging = true)
 internal abstract class ContinuationImpl(

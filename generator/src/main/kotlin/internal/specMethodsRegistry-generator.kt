@@ -2,10 +2,7 @@
 
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
-import dev.reformator.stacktracedecoroutinator.common.internal.BaseSpecMethodsRegistry
-import dev.reformator.stacktracedecoroutinator.common.internal.SpecAndItsMethodHandle
-import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsFactory
-import dev.reformator.stacktracedecoroutinator.common.internal.assert
+import dev.reformator.stacktracedecoroutinator.common.internal.*
 import java.util.concurrent.CopyOnWriteArrayList
 
 internal class GeneratorSpecMethodsRegistry: BaseSpecMethodsRegistry() {
@@ -28,11 +25,11 @@ internal class GeneratorSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                 assert { element.fileName == fileName }
                 assert { element.methodName == methodName }
                 assert { element.lineNumber in lineNumbersByMethod[element.methodName]!! }
-                val spec = loader.getSpec(
+                val spec = DecoroutinatorSpecImpl(
                     cookie = cookie,
                     lineNumber = element.lineNumber,
-                    nextContinuation = nextContinuation,
-                    nextSpec = nextSpec
+                    nextSpecAndItsMethod = nextSpec,
+                    nextContinuation = nextContinuation
                 )
                 SpecAndItsMethodHandle(
                     specMethodHandle = handle,

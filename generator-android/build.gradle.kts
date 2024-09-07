@@ -2,8 +2,6 @@ import dev.reformator.bytecodeprocessor.plugins.*
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
-import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
-import java.util.*
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
@@ -109,51 +107,7 @@ bytecodeProcessor {
     )
 }
 
-val setupIsolatedSpecProcessorTask = tasks.create("setupIsolatedSpecProcessor") {
-    dependsOn(":isolated-spec-class:classes")
-    doLast {
-        val classesDir = project(":isolated-spec-class").layout.buildDirectory.get()
-            .dir("classes")
-            .dir("java")
-            .dir("main")
-            .asFile
-        val classFile =
-            classesDir.walk().find { it.isFile && it.extension == "class" && it.name != "module-info.class" }!!
-        val tmpDir = temporaryDir
-        exec {
-            setCommandLine(
-                "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
-                "--min-api", "26",
-                "--output", tmpDir.absolutePath,
-                classFile.absolutePath
-            )
-        }
-
-        val className = classFile.relativeTo(classesDir).path.removeSuffix(".class").replace(File.separator, ".")
-        val dexClassBodyBase64 = Base64.getEncoder().encodeToString(tmpDir.resolve("classes.dex").readBytes())
-        bytecodeProcessor {
-            processors += setOf(
-                LoadConstantProcessor(
-                    mapOf(
-                        LoadConstantProcessor.Key(
-                            "dev.reformator.stacktracedecoroutinator.generatorandroid.SpecMethodBuilderGeneratorAndroidKt",
-                            "getIsolatedSpecClassName"
-                        ) to LoadConstantProcessor.Value(className),
-                        LoadConstantProcessor.Key(
-                            "dev.reformator.stacktracedecoroutinator.generatorandroid.SpecMethodsRegistryGeneratorAndroidKt",
-                            "getIsolatedSpecClassDexBodyBase64"
-                        ) to LoadConstantProcessor.Value(dexClassBodyBase64)
-                    )
-                )
-            )
-        }
-    }
-}
-
 afterEvaluate {
-    tasks.withType(KotlinJvmCompile::class.java) {
-        dependsOn(setupIsolatedSpecProcessorTask)
-    }
     configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
 }
 

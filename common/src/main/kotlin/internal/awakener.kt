@@ -77,7 +77,7 @@ private fun callSpecMethods(
         )
     }
     return if (specAndItsMethodHandle != null) {
-        specAndItsMethodHandle!!.specMethodHandle.invoke(specAndItsMethodHandle!!.spec, result)
+        specAndItsMethodHandle!!.specMethodHandle.invokeExact(specAndItsMethodHandle!!.spec, result)
     } else {
         result
     }

@@ -3,27 +3,17 @@
 
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
-import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.MakeStatic
-import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.common.internal.Cookie
-import dev.reformator.stacktracedecoroutinator.common.internal.SpecAndItsMethodHandle
-import dev.reformator.stacktracedecoroutinator.common.internal.publicCallInvokeSuspend
-import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.common.internal.DecoroutinatorSpecImpl
+import dev.reformator.stacktracedecoroutinator.common.internal.specMethodType
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
-import java.lang.reflect.Constructor
-import java.util.function.Function
-import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
-internal class DecoroutinatorClassLoader: ClassLoader(null) {
+internal class DecoroutinatorClassLoader: ClassLoader(DecoroutinatorSpecImpl::class.java.classLoader) {
     fun buildClassAndGetSpecHandlesByMethod(
         className: String,
         fileName: String?,
@@ -40,30 +30,6 @@ internal class DecoroutinatorClassLoader: ClassLoader(null) {
         }
     }
 
-    fun getSpec(
-        cookie: Cookie,
-        lineNumber: Int,
-        nextContinuation: BaseContinuation,
-        nextSpec: SpecAndItsMethodHandle?
-    ): Any =
-        specConstructor.newInstance(
-            lineNumber,
-            nextSpec?.specMethodHandle,
-            nextSpec?.spec,
-            COROUTINE_SUSPENDED,
-            Function { result: Any? -> nextContinuation.publicCallInvokeSuspend(cookie, result) }
-        )
-
-    private val specClass = defineClass(isolatedSpecClassName, isolatedSpecClassBody)
-    private val specMethodType: MethodType = MethodType.methodType(Any::class.java, specClass, Any::class.java)
-    private val specConstructor: Constructor<*> = specClass.getDeclaredConstructor(
-        Int::class.javaPrimitiveType, // lineNumber
-        MethodHandle::class.java, // nextSpecHandle
-        Any::class.java, // nextSpec
-        Any::class.java, // COROUTINE_SUSPENDED
-        Function::class.java // resumeNext implementation
-    )
-
     @Suppress("unused")
     @MakeStatic(addToStaticInitializer = true)
     private fun clinit() {
@@ -76,10 +42,6 @@ internal class DecoroutinatorClassLoader: ClassLoader(null) {
         }
     }
 }
-
-@OptIn(ExperimentalEncodingApi::class)
-private val isolatedSpecClassBody = Base64.Default.decode(isolatedSpecClassBodyBase64)
-
 private fun getClassBody(
     className: String,
     fileName: String?,
@@ -96,9 +58,7 @@ private fun getClassBody(
                 buildSpecMethodNode(
                     methodName = methodName,
                     lineNumbers = lineNumbers,
-                    makePrivate = false,
-                    specClassName = isolatedSpecClassName,
-                    isSpecInterface = false
+                    makePrivate = false
                 )
             }
             .toList()
@@ -107,9 +67,3 @@ private fun getClassBody(
     classNode.accept(writer)
     return writer.toByteArray()
 }
-
-private val isolatedSpecClassName: String
-    @LoadConstant get() { fail() }
-
-private val isolatedSpecClassBodyBase64: String
-    @LoadConstant get() { fail() }

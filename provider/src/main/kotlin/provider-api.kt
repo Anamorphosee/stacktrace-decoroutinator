@@ -17,7 +17,7 @@ interface DecoroutinatorSpec {
     val lineNumber: Int
     val isLastSpec: Boolean
     val nextSpecHandle: MethodHandle
-    val nextSpec: Any
+    val nextSpec: DecoroutinatorSpec
     val coroutineSuspendedMarker: Any
     fun resumeNext(result: Any?): Any?
 }

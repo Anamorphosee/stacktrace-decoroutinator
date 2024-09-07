@@ -14,44 +14,31 @@ internal fun buildSpecMethodNode(
     methodName: String,
     lineNumbers: Set<Int>,
     makePrivate: Boolean,
-    specClassName: String,
-    isSpecInterface: Boolean
 ): MethodNode {
-    val specInternalClassName = specClassName.internalName
     val result = MethodNode(Opcodes.ASM9).apply {
         access = if (makePrivate) Opcodes.ACC_PRIVATE else Opcodes.ACC_PUBLIC
         access = access or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
         name = methodName
-        desc = "(L$specInternalClassName;${Type.getType(Object::class.java).descriptor})${Type.getType(Object::class.java).descriptor}"
+        desc = "(${Type.getType(DecoroutinatorSpec::class.java).descriptor}${Type.getType(Object::class.java).descriptor})${Type.getType(Object::class.java).descriptor}"
     }
     val sortedLineNumbers = lineNumbers.sorted()
     result.instructions.apply {
-        add(getStoreLineNumberInstructions(specInternalClassName, isSpecInterface))
+        add(getStoreLineNumberInstructions())
 
         val invokeFunctionLabel = LabelNode()
-        add(getGotoIfLastSpecInstructions(
-            specInternalClassName = specInternalClassName,
-            isSpecInterface = isSpecInterface,
-            label = invokeFunctionLabel
-        ))
+        add(getGotoIfLastSpecInstructions(invokeFunctionLabel))
 
         val invalidLineNumberLabel = LabelNode()
         add(getInvokeNextSpecMethodInstructions(
-            specInternalClassName = specInternalClassName,
-            isSpecInterface = isSpecInterface,
             invalidLineNumberLabel = invalidLineNumberLabel,
             lineNumbers = sortedLineNumbers
         ))
 
-        add(getReturnSuspendedMarkerIfResultIsSuspendedMarkerInstructions(specInternalClassName, isSpecInterface))
+        add(getReturnSuspendedMarkerIfResultIsSuspendedMarkerInstructions())
 
         add(invokeFunctionLabel)
         add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
-        add(getResumeNextAndReturnInstructions(
-            specInternalClassName = specInternalClassName,
-            isSpecInterface = isSpecInterface,
-            lineNumbers = sortedLineNumbers
-        ))
+        add(getResumeNextAndReturnInstructions(sortedLineNumbers))
 
         add(invalidLineNumberLabel)
         add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
@@ -64,11 +51,11 @@ private const val SPEC_VAR_INDEX = 0
 private const val RESULT_VAR_INDEX = 1
 private const val LINE_NUMBER_VAR_INDEX = 2
 
-private fun getStoreLineNumberInstructions(specInternalClassName: String, isSpecInterface: Boolean) = InsnList().apply {
+private fun getStoreLineNumberInstructions() = InsnList().apply {
     add(VarInsnNode(Opcodes.ALOAD, SPEC_VAR_INDEX))
     add(MethodInsnNode(
-        getInvokeOpcode(isSpecInterface),
-        specInternalClassName,
+        Opcodes.INVOKEINTERFACE,
+        Type.getType(DecoroutinatorSpec::class.java).internalName,
         getGetterMethodName(DecoroutinatorSpec::lineNumber.name),
         "()${Type.INT_TYPE.descriptor}"
     ))
@@ -76,14 +63,12 @@ private fun getStoreLineNumberInstructions(specInternalClassName: String, isSpec
 }
 
 private fun getGotoIfLastSpecInstructions(
-    specInternalClassName: String,
-    isSpecInterface: Boolean,
     label: LabelNode
 ) = InsnList().apply {
     add(VarInsnNode(Opcodes.ALOAD, SPEC_VAR_INDEX))
     add(MethodInsnNode(
-        getInvokeOpcode(isSpecInterface),
-        specInternalClassName,
+        Opcodes.INVOKEINTERFACE,
+        Type.getType(DecoroutinatorSpec::class.java).internalName,
         getGetterMethodName(DecoroutinatorSpec::isLastSpec.name),
         "()${Type.BOOLEAN_TYPE.descriptor}",
     ))
@@ -91,24 +76,22 @@ private fun getGotoIfLastSpecInstructions(
 }
 
 private fun getInvokeNextSpecMethodInstructions(
-    specInternalClassName: String,
-    isSpecInterface: Boolean,
     invalidLineNumberLabel: LabelNode,
     lineNumbers: List<Int>
 ) = InsnList().apply {
     add(VarInsnNode(Opcodes.ALOAD, SPEC_VAR_INDEX))
     add(MethodInsnNode(
-        getInvokeOpcode(isSpecInterface),
-        specInternalClassName,
+        Opcodes.INVOKEINTERFACE,
+        Type.getType(DecoroutinatorSpec::class.java).internalName,
         getGetterMethodName(DecoroutinatorSpec::nextSpecHandle.name),
         "()${Type.getType(MethodHandle::class.java).descriptor}",
     ))
     add(VarInsnNode(Opcodes.ALOAD, SPEC_VAR_INDEX))
     add(MethodInsnNode(
-        getInvokeOpcode(isSpecInterface),
-        specInternalClassName,
+        Opcodes.INVOKEINTERFACE,
+        Type.getType(DecoroutinatorSpec::class.java).internalName,
         getGetterMethodName(DecoroutinatorSpec::nextSpec.name),
-        "()${Type.getType(Object::class.java).descriptor}"
+        "()${Type.getType(DecoroutinatorSpec::class.java).descriptor}"
     ))
     add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
     val invalidLabel = LabelNode()
@@ -118,22 +101,22 @@ private fun getInvokeNextSpecMethodInstructions(
             Opcodes.F_FULL,
             3,
             arrayOf(
-                specInternalClassName,
+                Type.getType(DecoroutinatorSpec::class.java).internalName,
                 Type.getType(Object::class.java).internalName,
                 Opcodes.INTEGER,
             ),
             3,
             arrayOf(
                 Type.getType(MethodHandle::class.java).internalName,
-                Type.getType(Object::class.java).internalName,
+                Type.getType(DecoroutinatorSpec::class.java).internalName,
                 Type.getType(Object::class.java).internalName
             )
         ))
         add(MethodInsnNode(
             Opcodes.INVOKEVIRTUAL,
             Type.getType(MethodHandle::class.java).internalName,
-            MethodHandle::invoke.name,
-            "(${Type.getType(Object::class.java).descriptor}${Type.getType(Object::class.java).descriptor})${Type.getType(Object::class.java).descriptor}"
+            MethodHandle::invokeExact.name,
+            "(${Type.getType(DecoroutinatorSpec::class.java).descriptor}${Type.getType(Object::class.java).descriptor})${Type.getType(Object::class.java).descriptor}"
         ))
         add(JumpInsnNode(Opcodes.GOTO, endLabel))
     }
@@ -142,14 +125,14 @@ private fun getInvokeNextSpecMethodInstructions(
         Opcodes.F_FULL,
         3,
         arrayOf(
-            specInternalClassName,
+            Type.getType(DecoroutinatorSpec::class.java).internalName,
             Type.getType(Object::class.java).internalName,
             Opcodes.INTEGER,
         ),
         3,
         arrayOf(
             Type.getType(MethodHandle::class.java).internalName,
-            Type.getType(Object::class.java).internalName,
+            Type.getType(DecoroutinatorSpec::class.java).internalName,
             Type.getType(Object::class.java).internalName
         )
     ))
@@ -220,15 +203,12 @@ private fun getThrowInvalidLineNumberInstructions() = InsnList().apply {
     add(InsnNode(Opcodes.ATHROW))
 }
 
-private fun getReturnSuspendedMarkerIfResultIsSuspendedMarkerInstructions(
-    specInternalClassName: String,
-    isSpecInterface: Boolean
-) = InsnList().apply {
+private fun getReturnSuspendedMarkerIfResultIsSuspendedMarkerInstructions() = InsnList().apply {
     add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
     add(VarInsnNode(Opcodes.ALOAD, SPEC_VAR_INDEX))
     add(MethodInsnNode(
-        getInvokeOpcode(isSpecInterface),
-        specInternalClassName,
+        Opcodes.INVOKEINTERFACE,
+        Type.getType(DecoroutinatorSpec::class.java).internalName,
         getGetterMethodName(DecoroutinatorSpec::coroutineSuspendedMarker.name),
         "()${Type.getType(Object::class.java).descriptor}",
     ))
@@ -239,11 +219,7 @@ private fun getReturnSuspendedMarkerIfResultIsSuspendedMarkerInstructions(
     add(endLabel)
 }
 
-private fun getResumeNextAndReturnInstructions(
-    specInternalClassName: String,
-    isSpecInterface: Boolean,
-    lineNumbers: List<Int>
-) = InsnList().apply {
+private fun getResumeNextAndReturnInstructions(lineNumbers: List<Int>) = InsnList().apply {
     add(VarInsnNode(Opcodes.ALOAD, SPEC_VAR_INDEX))
     add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
     val invalidLabel = LabelNode()
@@ -252,19 +228,19 @@ private fun getResumeNextAndReturnInstructions(
             Opcodes.F_FULL,
             3,
             arrayOf(
-                specInternalClassName,
+                Type.getType(DecoroutinatorSpec::class.java).internalName,
                 Type.getType(Object::class.java).internalName,
                 Opcodes.INTEGER,
             ),
             2,
             arrayOf(
-                specInternalClassName,
+                Type.getType(DecoroutinatorSpec::class.java).internalName,
                 Type.getType(Object::class.java).internalName
             )
         ))
         add(MethodInsnNode(
-            getInvokeOpcode(isSpecInterface),
-            specInternalClassName,
+            Opcodes.INVOKEINTERFACE,
+            Type.getType(DecoroutinatorSpec::class.java).internalName,
             DecoroutinatorSpec::resumeNext.name,
             "(${Type.getType(Object::class.java).descriptor})${Type.getType(Object::class.java).descriptor}"
         ))
@@ -276,21 +252,18 @@ private fun getResumeNextAndReturnInstructions(
         Opcodes.F_FULL,
         3,
         arrayOf(
-            specInternalClassName,
+            Type.getType(DecoroutinatorSpec::class.java).internalName,
             Type.getType(Object::class.java).internalName,
             Opcodes.INTEGER,
         ),
         2,
         arrayOf(
-            specInternalClassName,
+            Type.getType(DecoroutinatorSpec::class.java).internalName,
             Type.getType(Object::class.java).internalName
         )
     ))
     add(InsnNode(Opcodes.POP2))
 }
-
-private fun getInvokeOpcode(isInterface: Boolean): Int =
-    if (isInterface) Opcodes.INVOKEINTERFACE else Opcodes.INVOKEVIRTUAL
 
 private fun getGetterMethodName(propertyName: String): String =
     if (propertyName.startsWith("is")) propertyName else "get${propertyName[0].uppercase()}${propertyName.substring(1)}"

@@ -13,8 +13,6 @@ import com.android.dx.rop.cst.*
 import com.android.dx.rop.type.StdTypeList
 import com.android.dx.rop.type.Type
 import com.android.dx.util.IntList
-import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
-import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandle
 import java.lang.reflect.Modifier
@@ -77,13 +75,10 @@ internal fun buildSpecMethod(
     )
 }
 
-internal val isolatedSpecClassName: String
-    @LoadConstant get() { fail() }
-
 internal val String.internalName: String
     get() = replace('.', '/')
 
-private val specClass = Type.internClassName(isolatedSpecClassName.internalName)
+private val specClass = Type.internClassName(DecoroutinatorSpec::class.java.name.internalName)
 private val methodHandleClass = Type.internClassName(MethodHandle::class.java.name.internalName)
 private val illegalArgumentExceptionClass = Type.internClassName(
     java.lang.IllegalArgumentException::class.java.name.internalName
@@ -100,7 +95,7 @@ private val lineNumber = RegisterSpec.make(0, Type.INT)
 private val aux1Boolean = RegisterSpec.make(1, Type.BOOLEAN)
 private val aux1MethodHandle = RegisterSpec.make(1, methodHandleClass)
 private val aux1Object = RegisterSpec.make(1, Type.OBJECT)
-private val aux2Object = RegisterSpec.make(2, Type.OBJECT)
+private val aux2Spec = RegisterSpec.make(2, specClass)
 private val aux1String = RegisterSpec.make(1, Type.STRING)
 private val aux2StringBuilder = RegisterSpec.make(2, stringBuilderClass)
 private val aux2IllegalArgumentException = RegisterSpec.make(2, illegalArgumentExceptionClass)
@@ -108,7 +103,7 @@ private val aux2IllegalArgumentException = RegisterSpec.make(2, illegalArgumentE
 
 private fun OutputFinisher.saveLineNumber() {
     add(CstInsn(
-        Dops.INVOKE_VIRTUAL,
+        Dops.INVOKE_INTERFACE,
         SourcePosition.NO_INFO,
         RegisterSpecList.make(spec),
         CstMethodRef(
@@ -128,7 +123,7 @@ private fun OutputFinisher.saveLineNumber() {
 
 private fun OutputFinisher.gotoIfLastSpec(label: CodeAddress) {
     add(CstInsn(
-        Dops.INVOKE_VIRTUAL,
+        Dops.INVOKE_INTERFACE,
         SourcePosition.NO_INFO,
         RegisterSpecList.make(spec),
         CstMethodRef(
@@ -158,7 +153,7 @@ private fun OutputFinisher.callNextSpec(
     invalidLineLabel: CodeAddress
 ) {
     add(CstInsn(
-        Dops.INVOKE_VIRTUAL,
+        Dops.INVOKE_INTERFACE,
         SourcePosition.NO_INFO,
         RegisterSpecList.make(spec),
         CstMethodRef(
@@ -175,21 +170,21 @@ private fun OutputFinisher.callNextSpec(
         RegisterSpecList.make(aux1MethodHandle)
     ))
     add(CstInsn(
-        Dops.INVOKE_VIRTUAL,
+        Dops.INVOKE_INTERFACE,
         SourcePosition.NO_INFO,
         RegisterSpecList.make(spec),
         CstMethodRef(
             CstType(specClass),
             CstNat(
                 CstString(getGetterMethodName(DecoroutinatorSpec::nextSpec.name)),
-                CstString("()${Type.OBJECT.descriptor}")
+                CstString("()${specClass.descriptor}")
             )
         )
     ))
     add(SimpleInsn(
         Dops.MOVE_RESULT_OBJECT,
         SourcePosition.NO_INFO,
-        RegisterSpecList.make(aux2Object)
+        RegisterSpecList.make(aux2Spec)
     ))
     instructionsByLineNumbers(
         fileName = fileName,
@@ -199,17 +194,17 @@ private fun OutputFinisher.callNextSpec(
         add(MultiCstInsn(
             Dops.INVOKE_POLYMORPHIC,
             it,
-            RegisterSpecList.make(aux1MethodHandle, aux2Object, result),
+            RegisterSpecList.make(aux1MethodHandle, aux2Spec, result),
             arrayOf(
                 CstMethodRef(
                     CstType(Type.METHOD_HANDLE),
                     CstNat(
-                        CstString("invoke"),
+                        CstString("invokeExact"),
                         CstString("(${Type.OBJECT_ARRAY.descriptor})${Type.OBJECT.descriptor}")
                     )
                 ),
                 CstProtoRef.make(CstString(
-                    "(${Type.OBJECT.descriptor}${Type.OBJECT.descriptor})${Type.OBJECT.descriptor}"
+                    "(${specClass.descriptor}${Type.OBJECT.descriptor})${Type.OBJECT.descriptor}"
                 ))
             )
         ))
@@ -223,7 +218,7 @@ private fun OutputFinisher.callNextSpec(
 
 private fun OutputFinisher.returnSuspendedCoroutineMarkerIfResultIsIt() {
     add(CstInsn(
-        Dops.INVOKE_VIRTUAL,
+        Dops.INVOKE_INTERFACE,
         SourcePosition.NO_INFO,
         RegisterSpecList.make(spec),
         CstMethodRef(
@@ -265,7 +260,7 @@ private fun OutputFinisher.resumeNext(
         invalidLineLabel = invalidLineLabel
     ) {
         add(CstInsn(
-            Dops.INVOKE_VIRTUAL,
+            Dops.INVOKE_INTERFACE,
             it,
             RegisterSpecList.make(spec, result),
             CstMethodRef(

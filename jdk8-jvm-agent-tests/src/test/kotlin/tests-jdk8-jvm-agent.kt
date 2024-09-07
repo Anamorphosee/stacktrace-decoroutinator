@@ -1,0 +1,29 @@
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
+import kotlin.test.Test
+
+class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
+
+// Jacoco only instruments this class
+class JacocoInstrumentedMethodTest {
+    @Test
+    fun jacocoInstrumentedMethodTest(): Unit = runBlocking {
+        suspend fun jacocoInstrumentedMethod() {
+            yield()
+            yield()
+        }
+        jacocoInstrumentedMethod()
+    }
+}
+
+class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
+    @Test
+    fun localBasic() {
+        basic()
+    }
+
+    @Test
+    fun localTestCommonApiStatus() {
+        testCommonApiStatus()
+    }
+}

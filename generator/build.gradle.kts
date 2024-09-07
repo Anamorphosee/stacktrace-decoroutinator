@@ -85,7 +85,6 @@ dependencies {
     implementation("org.ow2.asm:asm-util:${versions["asm"]}")
 
     testImplementation(kotlin("test"))
-    testImplementation(kotlin("script-runtime"))
     testImplementation(project(":test-utils"))
 }
 
@@ -109,7 +108,7 @@ afterEvaluate {
 
 tasks.test {
     useJUnitPlatform()
-
+    dependsOn(project(":jdk8-generator-tests").tasks.test)
 }
 
 java {

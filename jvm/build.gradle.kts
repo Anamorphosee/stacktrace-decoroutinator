@@ -32,6 +32,7 @@ tasks.test {
         includes = listOf("JacocoInstrumentedMethodTest*")
     }
     systemProperty("testReloadBaseConfiguration", false)
+    dependsOn(project(":jdk8-jvm-tests").tasks.test)
 }
 
 val testReloadBaseConfigurationTestName = "testReloadBaseConfiguration"

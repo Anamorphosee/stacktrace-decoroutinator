@@ -69,6 +69,7 @@ kotlin {
 tasks.test {
     useJUnitPlatform()
     dependsOn(project(":gradle-plugin-tests").tasks.test)
+    dependsOn(project(":jdk8-gradle-plugin-tests").tasks.test)
 }
 
 publishing {

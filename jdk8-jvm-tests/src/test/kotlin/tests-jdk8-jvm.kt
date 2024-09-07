@@ -1,5 +1,3 @@
-package dev.reformator.stacktracedecoroutinator.jvmtests
-
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.common.internal.TRANSFORMED_VERSION
 import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmApi
@@ -12,14 +10,6 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
-@DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
-class PerformanceTest: dev.reformator.stacktracedecoroutinator.test.PerformanceTest() {
-    @BeforeTest
-    fun setup() {
-        setupTest()
-    }
-}
 
 @DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
 class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest() {
@@ -43,7 +33,6 @@ class JacocoInstrumentedMethodTest {
             yield()
             yield()
         }
-
         jacocoInstrumentedMethod()
     }
 }

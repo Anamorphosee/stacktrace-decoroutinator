@@ -38,7 +38,21 @@ val decoroutinatorTransformedVersionAttribute: Attribute<Int> = Attribute.of(
 
 open class DecoroutinatorPluginExtension(project: Project) {
     var enabled = true
+
     var addGeneratorDependency = false
+
+    var implementationConfigName = "implementation"
+
+    var configurationsInclude = setOf(
+        "runtimeClasspath",
+        ".+RuntimeClasspath",
+        "compileClasspath",
+        ".+CompileClasspath"
+    )
+    var configurationsExclude = setOf<String>()
+
+    var tasksInclude = setOf(".*")
+    var tasksExclude = setOf<String>()
 
     var _artifactTypes = setOf(
         ArtifactTypeDefinition.JAR_TYPE,
@@ -47,15 +61,6 @@ open class DecoroutinatorPluginExtension(project: Project) {
         "aar",
     )
     var _addCommonDependency = true
-    var _runtimeOnlyConfigName = "runtimeOnly"
-    var _implementationConfigName = "implementation"
-    var _configurationsInclude = setOf(
-        "runtimeClasspath",
-        ".+RuntimeClasspath",
-        "compileClasspath",
-        ".+CompileClasspath"
-    )
-    var _configurationsExclude = setOf<String>()
     var _isAndroid = project.pluginManager.hasPlugin("com.android.base")
     var _doUpdateJavaModuleInfo = true
 }
@@ -88,11 +93,11 @@ class DecoroutinatorPlugin: Plugin<Project> {
 
                     if (pluginExtension._addCommonDependency) {
                         dependencies.add(
-                            pluginExtension._implementationConfigName,
+                            pluginExtension.implementationConfigName,
                             "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-provider:$projectVersionIntrinsic"
                         )
                         dependencies.add(
-                            pluginExtension._implementationConfigName,
+                            pluginExtension.implementationConfigName,
                             "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-common:$projectVersionIntrinsic"
                         )
                     } else {
@@ -106,12 +111,12 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             log.debug { "add generator dependency for JVM" }
                             "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:$projectVersionIntrinsic"
                         }
-                        dependencies.add(pluginExtension._runtimeOnlyConfigName, dependency)
+                        dependencies.add(pluginExtension.implementationConfigName, dependency)
                     }
 
                     run {
-                        val includes = pluginExtension._configurationsInclude.map { Regex(it) }
-                        val excludes = pluginExtension._configurationsExclude.map { Regex(it) }
+                        val includes = pluginExtension.configurationsInclude.map { Regex(it) }
+                        val excludes = pluginExtension.configurationsExclude.map { Regex(it) }
                         configurations.all { config ->
                             if (includes.any { it.matches(config.name) } && excludes.all { !it.matches(config.name) }) {
                                 log.debug { "setting decoroutinatorTransformedAttribute for configuration [${config.name}]" }
@@ -120,21 +125,34 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         }
                     }
 
-                    tasks.withType(KotlinJvmCompile::class.java) { task ->
-                        log.debug { "setting transform classes action for task [${task.name}]" }
-                        task.doLast { _ ->
-                            transformClassesDirInPlace(task.destinationDirectory.get().asFile)
+                    run {
+                        val includes = pluginExtension.tasksInclude.map { Regex(it) }
+                        val excludes = pluginExtension.tasksExclude.map { Regex(it) }
+                        tasks.withType(KotlinJvmCompile::class.java) { task ->
+                            if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
+                                log.debug { "setting transform classes action for task [${task.name}]" }
+                                task.doLast { _ ->
+                                    transformClassesDirInPlace(task.destinationDirectory.get().asFile)
+                                }
+                            } else {
+                                log.debug { "skipped transform classes action for task [${task.name}]" }
+                            }
                         }
-                    }
-                    if (pluginExtension._doUpdateJavaModuleInfo) {
-                        tasks.withType(AbstractCompile::class.java) { task ->
-                            task.doLast { _ ->
-                                visitModuleInfoFiles(task.destinationDirectory.get().asFile) { path, _ ->
-                                    val newModuleInfo =
-                                        path.inputStream().use { addReadProviderModuleToModuleInfo(it) }
-                                    if (newModuleInfo != null) {
-                                        path.outputStream().use { it.write(newModuleInfo) }
+                        if (pluginExtension._doUpdateJavaModuleInfo) {
+                            tasks.withType(AbstractCompile::class.java) { task ->
+                                if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
+                                    log.debug { "setting 'addReadProviderModule' action for task [${task.name}]" }
+                                    task.doLast { _ ->
+                                        visitModuleInfoFiles(task.destinationDirectory.get().asFile) { path, _ ->
+                                            val newModuleInfo =
+                                                path.inputStream().use { addReadProviderModuleToModuleInfo(it) }
+                                            if (newModuleInfo != null) {
+                                                path.outputStream().use { it.write(newModuleInfo) }
+                                            }
+                                        }
                                     }
+                                } else {
+                                    log.debug { "skipped 'addReadProviderModule' action for task [${task.name}]" }
                                 }
                             }
                         }

@@ -1,3 +1,5 @@
+@file:Suppress("PackageDirectoryMismatch")
+
 package dev.reformator.stacktracedecoroutinator.test
 
 import kotlinx.coroutines.runBlocking

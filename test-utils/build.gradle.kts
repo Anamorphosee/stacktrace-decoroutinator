@@ -1,5 +1,7 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dev.reformator.bytecodeprocessor.plugins.*
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
     kotlin("jvm")
@@ -31,6 +33,31 @@ bytecodeProcessor {
         GetCurrentLineNumberProcessor,
         GetOwnerClassProcessor()
     )
+}
+
+val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
+    val customLoaderProject = project(":test-utils:custom-loader")
+    customLoaderProject.afterEvaluate {
+        val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
+        dependsOn(customLoaderJarTask)
+    }
+    doLast {
+        val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
+        bytecodeProcessor {
+            processors += LoadConstantProcessor(mapOf(
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.test.Runtime_testKt",
+                    "getCustomLoaderJarUri"
+                ) to LoadConstantProcessor.Value(
+                    customLoaderJarTask.get().archiveFile.get().asFile.toURI().toString()
+                )
+            ))
+        }
+    }
+}
+
+tasks.withType(KotlinJvmCompile::class.java) {
+    dependsOn(fillConstantProcessorTask)
 }
 
 java {

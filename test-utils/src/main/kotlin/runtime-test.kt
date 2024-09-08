@@ -1,9 +1,8 @@
+@file:Suppress("PackageDirectoryMismatch")
+
 package dev.reformator.stacktracedecoroutinator.test
 
-import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
-import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
-import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
-import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.bytecodeprocessor.intrinsics.*
 import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
@@ -11,6 +10,8 @@ import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import java.net.URI
+import java.net.URLClassLoader
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.atomic.AtomicReference
@@ -105,6 +106,12 @@ open class RuntimeTest {
 
     @Junit4Test @Junit5Test
     fun testCommonApiStatus() {
+        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
+        assertTrue(status.successful, status.description)
+    }
+
+    @Junit4Test @Junit5Test
+    fun testLoadCustomLoaderClass() {
         val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
         assertTrue(status.successful, status.description)
     }
@@ -223,6 +230,25 @@ open class TailCallDeoptimizeTest {
     }
 }
 
+open class CustomClassLoaderTest {
+    @Junit5Test
+    fun loadWithDecoroutinatorDependency() {
+        loadCustomLoaderStubClass(true)
+    }
+
+    @Junit5Test
+    fun loadWithoutDecoroutinatorDependency() {
+        loadCustomLoaderStubClass(false)
+    }
+
+    fun performCheck(allowTailCallOptimization: Boolean) {
+        val clazz = loadCustomLoaderStubClass(true)
+        val instance = clazz.getDeclaredConstructor().newInstance()
+        val performCheckMethod = clazz.getDeclaredMethod("performCheck", Boolean::class.javaPrimitiveType)
+        performCheckMethod.invoke(instance, allowTailCallOptimization)
+    }
+}
+
 private const val recDepth = 10
 private val recLineNumber = currentLineNumber + 3
 suspend fun tailCallDeoptimizeBasicRec(depth: Int) {
@@ -257,6 +283,14 @@ suspend fun tailCallDeoptimizeBasicRecRec(depth: Int) {
     tailCallDeoptimizeBasicRec(depth)
 }
 
-
 private val currentFileClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() { fail() }
+
+private val customLoaderJarUri: String
+    @LoadConstant get() { fail() }
+
+private fun loadCustomLoaderStubClass(withDecoroutinatorDependency: Boolean): Class<*> =
+    URLClassLoader(
+        arrayOf(URI(customLoaderJarUri).toURL()),
+        if (withDecoroutinatorDependency) DecoroutinatorCommonApi::class.java.classLoader else null
+    ).loadClass("dev.reformator.stacktracedecoroutinator.test.ClassWithSuspendFunctionsStub")

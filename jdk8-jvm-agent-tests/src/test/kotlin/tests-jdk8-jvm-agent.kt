@@ -27,3 +27,10 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
         testCommonApiStatus()
     }
 }
+
+class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
+    @Test
+    fun check() {
+        performCheck(true)
+    }
+}

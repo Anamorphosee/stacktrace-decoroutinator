@@ -4,6 +4,7 @@ module dev.reformator.stacktracedecoroutinator.generator.tests {
     requires dev.reformator.stacktracedecoroutinator.generator;
     requires dev.reformator.stacktracedecoroutinator.common;
     requires jdk.unsupported;
-    requires static dev.reformator.stacktracedecoroutinator.testutils;
+    requires dev.reformator.stacktracedecoroutinator.testutils;
     requires dev.reformator.stacktracedecoroutinator.provider;
+    requires org.junit.jupiter.api;
 }

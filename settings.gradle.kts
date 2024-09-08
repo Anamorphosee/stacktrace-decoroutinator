@@ -11,6 +11,7 @@ include(
 
     "intrinsics",
     "test-utils",
+    "test-utils:custom-loader",
     "gradle-plugin-tests",
     "gradle-plugin-android-tests",
     "jvm-agent-tests",

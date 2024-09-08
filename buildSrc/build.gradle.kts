@@ -18,7 +18,7 @@ plugins {
             properties as Map<String, String>
         }
 
-    val versions = tryLoadVersions(".") ?: tryLoadVersions("..")!!
+    val versions = tryLoadVersions(".") ?: tryLoadVersions("..") ?: tryLoadVersions("../..")!!
 
     kotlin("jvm") version versions["kotlin"]
 }

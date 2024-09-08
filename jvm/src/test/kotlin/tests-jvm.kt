@@ -77,6 +77,19 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     }
 }
 
+@DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
+class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
+    @BeforeTest
+    fun setup() {
+        setupTest()
+    }
+
+    @Test
+    fun check() {
+        performCheck(true)
+    }
+}
+
 val Class<*>.isTransformed: Boolean
     get() {
         val transformed = getDeclaredAnnotation(DecoroutinatorTransformed::class.java) ?: return false

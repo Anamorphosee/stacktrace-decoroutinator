@@ -19,6 +19,7 @@ import kotlin.coroutines.suspendCoroutine
 fun addDecoroutinatorTransformer(inst: Instrumentation) {
     val transformer = DecoroutinatorClassFileTransformer(inst)
     Class.forName(Continuation::class.java.name)
+    Class.forName(providerApiClass.name)
     inst.addTransformer(transformer, inst.isRetransformClassesSupported)
     Class.forName(BASE_CONTINUATION_CLASS_NAME)
     val stubClassPath = _preloadStub::class.java.name.replace('.', '/') + ".class"
@@ -42,6 +43,7 @@ private class DecoroutinatorClassFileTransformer(
         classfileBuffer: ByteArray
     ): ByteArray? =
         transform(
+            loader = loader,
             classBeingRedefined = classBeingRedefined,
             classfileBuffer = classfileBuffer
         ).updatedBody
@@ -56,6 +58,7 @@ private class DecoroutinatorClassFileTransformer(
         classfileBuffer: ByteArray
     ): ByteArray? {
         val transformationStatus = transform(
+            loader = loader,
             classBeingRedefined = classBeingRedefined,
             classfileBuffer = classfileBuffer
         )
@@ -73,9 +76,16 @@ private class DecoroutinatorClassFileTransformer(
     }
 
     private fun transform(
+        loader: ClassLoader?,
         classBeingRedefined: Class<*>?,
         classfileBuffer: ByteArray
     ): ClassBodyTransformationStatus {
+        if (loader == null || !loader.hasProviderApiDependency) {
+            return ClassBodyTransformationStatus(
+                updatedBody = null,
+                needReadProviderModule = false
+            )
+        }
         if (classBeingRedefined != null) {
             val needTransformation = classBeingRedefined.needTransformation
             if (needTransformation.needTransformation && inst.isRedefineClassesSupported) {
@@ -107,6 +117,14 @@ private class DecoroutinatorClassFileTransformer(
         )
     }
 }
+
+private val ClassLoader.hasProviderApiDependency: Boolean
+    get() = try {
+        loadClass(providerApiClass.name)
+        true
+    } catch (_: ClassNotFoundException) {
+        false
+    }
 
 @Suppress("ClassName")
 private class _preloadStub {

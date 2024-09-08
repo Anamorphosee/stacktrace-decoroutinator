@@ -12,13 +12,13 @@ include(
     "intrinsics",
     "test-utils",
     "test-utils:custom-loader",
-    "gradle-plugin-tests",
-    "gradle-plugin-android-tests",
-    "jvm-agent-tests",
-    "jdk8-jvm-tests",
-    "jdk8-jvm-agent-tests",
-    "jdk8-generator-tests",
-    "jdk8-gradle-plugin-tests"
+    "generator:jdk8-tests-g",
+    "gradle-plugin:tests-gp",
+    "gradle-plugin:android-tests",
+    "gradle-plugin:jdk8-tests-gp",
+    "jvm-agent:tests-ja",
+    "jvm-agent:jdk8-tests-ja",
+    "jvm:jdk8-tests-j"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"

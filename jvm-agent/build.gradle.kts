@@ -46,8 +46,8 @@ val shadowJarTask = tasks.named<ShadowJar>("shadowJar") {
 
 tasks.test {
     useJUnitPlatform()
-    dependsOn(project(":jvm-agent-tests").tasks.test)
-    dependsOn(project(":jdk8-jvm-agent-tests").tasks.test)
+    dependsOn(project(":jvm-agent:tests-ja").tasks.test)
+    dependsOn(project(":jvm-agent:jdk8-tests-ja").tasks.test)
 }
 
 java {

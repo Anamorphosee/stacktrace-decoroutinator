@@ -1,5 +1,3 @@
-import com.android.build.gradle.internal.tasks.factory.dependsOn
-
 plugins {
     kotlin("jvm")
     jacoco
@@ -26,8 +24,7 @@ tasks.test {
     systemProperty("testReloadBaseConfiguration", false)
 }
 
-val testReloadBaseConfigurationTestName = "testReloadBaseConfiguration"
-tasks.create<Test>(testReloadBaseConfigurationTestName) {
+val testReloadBaseConfigurationTask = tasks.create<Test>("testReloadBaseConfiguration") {
     useJUnitPlatform()
     classpath = tasks.test.get().classpath
     extensions.configure(JacocoTaskExtension::class) {
@@ -35,7 +32,7 @@ tasks.create<Test>(testReloadBaseConfigurationTestName) {
     }
     systemProperty("testReloadBaseConfiguration", true)
 }
-tasks.test.dependsOn(tasks.named<Test>(testReloadBaseConfigurationTestName))
+tasks.test.get().dependsOn(testReloadBaseConfigurationTask)
 
 kotlin {
     jvmToolchain(8)

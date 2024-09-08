@@ -108,7 +108,7 @@ afterEvaluate {
 
 tasks.test {
     useJUnitPlatform()
-    dependsOn(project(":jdk8-generator-tests").tasks.test)
+    dependsOn(project(":generator:jdk8-tests-g").tasks.test)
 }
 
 java {

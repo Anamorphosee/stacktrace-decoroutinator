@@ -32,11 +32,17 @@ tasks.test {
         includes = listOf("JacocoInstrumentedMethodTest*")
     }
     systemProperty("testReloadBaseConfiguration", false)
-    dependsOn(project(":jdk8-jvm-tests").tasks.test)
+}
+run {
+    val jdk8TestsProject = project(":jvm:jdk8-tests-j")
+    val currentProject = project
+    jdk8TestsProject.afterEvaluate {
+        currentProject.tasks.test.dependsOn(jdk8TestsProject.tasks.test)
+    }
 }
 
-val testReloadBaseConfigurationTestName = "testReloadBaseConfiguration"
-tasks.create<Test>(testReloadBaseConfigurationTestName) {
+
+val testReloadBaseConfigurationTask = tasks.create<Test>("testReloadBaseConfiguration") {
     useJUnitPlatform()
     classpath = tasks.test.get().classpath
     extensions.configure(JacocoTaskExtension::class) {
@@ -44,7 +50,7 @@ tasks.create<Test>(testReloadBaseConfigurationTestName) {
     }
     systemProperty("testReloadBaseConfiguration", true)
 }
-tasks.test.dependsOn(tasks.named<Test>(testReloadBaseConfigurationTestName))
+tasks.test.get().dependsOn(testReloadBaseConfigurationTask)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_9

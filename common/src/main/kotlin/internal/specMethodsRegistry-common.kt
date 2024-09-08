@@ -155,10 +155,9 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
         val methodsByName: Map<String, MethodSpec>
     )
 
-    private fun register(className: String, spec: TransformedClassesRegistry.TransformedClassSpec) {
-        val clazz = Class.forName(className)
+    private fun register(spec: TransformedClassesRegistry.TransformedClassSpec) {
         val methodsByName = spec.lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
-            val specMethod = spec.lookup.findStatic(clazz, methodName, specMethodType)
+            val specMethod = spec.lookup.findStatic(spec.transformedClass, methodName, specMethodType)
             MethodSpec(
                 lineNumbers = lineNumbers,
                 specMethod = specMethod
@@ -168,6 +167,6 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             fileName = spec.fileName,
             methodsByName = methodsByName
         )
-        classesByName[className] = classSpec
+        classesByName[spec.transformedClass.name] = classSpec
     }
 }

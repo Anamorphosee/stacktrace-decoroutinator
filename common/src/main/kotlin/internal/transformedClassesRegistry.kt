@@ -10,6 +10,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 internal object TransformedClassesRegistry {
     class TransformedClassSpec(
+        val transformedClass: Class<*>,
         val fileName: String?,
         val lookup: MethodHandles.Lookup,
         val lineNumbersByMethod: Map<String, IntArray>,
@@ -17,15 +18,15 @@ internal object TransformedClassesRegistry {
     )
 
     fun interface Listener {
-        fun onNewTransformedClass(className: String, spec: TransformedClassSpec)
+        fun onNewTransformedClass(spec: TransformedClassSpec)
         fun onException(exception: Throwable) { }
     }
 
-    val transformedClasses: Map<String, TransformedClassSpec>
+    val transformedClasses: Collection<TransformedClassSpec>
         get() {
             while (true) {
                 try {
-                    return HashMap(_transformedClasses)
+                    return ArrayList(_transformedClasses.values)
                 } catch (_: ConcurrentModificationException) { }
             }
         }
@@ -57,6 +58,7 @@ internal object TransformedClassesRegistry {
                     }
                     .toSet()
                 TransformedClassSpec(
+                    transformedClass = clazz,
                     fileName = fileName,
                     lookup = lookup,
                     lineNumbersByMethod = lineNumbersByMethod,
@@ -64,7 +66,7 @@ internal object TransformedClassesRegistry {
                 )
             }
             _transformedClasses[clazz.name] = transformedClassSpec
-            callListeners(clazz.name, transformedClassSpec)
+            callListeners(transformedClassSpec)
         } else if (meta != null) {
             error("Class [$clazz] has transformed meta of version [${meta.version}]. Please update Decoroutinator")
         }
@@ -73,10 +75,10 @@ internal object TransformedClassesRegistry {
     private val _transformedClasses: MutableMap<String, TransformedClassSpec> = ConcurrentHashMap()
     private val listeners: MutableList<Listener> = CopyOnWriteArrayList()
 
-    private fun callListeners(className: String, spec: TransformedClassSpec) {
+    private fun callListeners(spec: TransformedClassSpec) {
         listeners.forEach {
             try {
-                it.onNewTransformedClass(className, spec)
+                it.onNewTransformedClass(spec)
             } catch (exception: Throwable) {
                 try {
                     it.onException(exception)

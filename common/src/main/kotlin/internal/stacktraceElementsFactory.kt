@@ -52,12 +52,8 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
 
     init {
         if (supportsVarHandles) {
-            TransformedClassesRegistry.addListener { _, spec ->
-                updateLabelExtractor(spec)
-            }
-            TransformedClassesRegistry.transformedClasses.forEach { (_, spec) ->
-                updateLabelExtractor(spec)
-            }
+            TransformedClassesRegistry.addListener(::updateLabelExtractor)
+            TransformedClassesRegistry.transformedClasses.forEach(::updateLabelExtractor)
         }
     }
 

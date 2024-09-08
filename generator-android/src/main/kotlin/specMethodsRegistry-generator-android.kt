@@ -15,6 +15,7 @@ import dalvik.system.InMemoryDexClassLoader
 import dev.reformator.stacktracedecoroutinator.common.internal.*
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandles
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList
@@ -78,8 +79,13 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
     private val loaders: MutableCollection<ClassLoader> = CopyOnWriteArrayList()
 }
 
-private fun ClassLoader.findClass(className: String): Class<*>? {
-    val findClassMethod = ClassLoader::class.java.getDeclaredMethod("findClass", String::class.java)
-    findClassMethod.isAccessible = true
-    return findClassMethod.invoke(this, className) as Class<*>?
-}
+private val classLoaderFindClassMethod: Method =
+    ClassLoader::class.java.getDeclaredMethod(
+        ClassLoader::findClass.name,
+        String::class.java
+    ).also {
+        it.isAccessible = true
+    }
+
+private fun ClassLoader.findClass(className: String): Class<*>? =
+    classLoaderFindClassMethod.invoke(this, className) as Class<*>?

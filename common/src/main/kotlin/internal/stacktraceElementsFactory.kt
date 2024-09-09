@@ -1,10 +1,11 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
-import dev.reformator.stacktracedecoroutinator.common.intrinsics.DebugMetadata
+import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.VarHandle
 import java.lang.reflect.Field
+import java.lang.reflect.GenericSignatureFormatError
 import java.util.concurrent.ConcurrentHashMap
 
 internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
@@ -66,13 +67,32 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         var labelExtractor: LabelExtractor<T>,
     ) {
         val elementsByLabel: List<StacktraceElement>? = run {
-            val meta: DebugMetadata? = clazz.getAnnotation(DebugMetadata::class.java)
+            val meta = try {
+                clazz.getAnnotation(DebugMetadata::class.java)?.let { debugMetadataAnnotation ->
+                    KotlinDebugMetadata(
+                        sourceFile = debugMetadataAnnotation.f,
+                        className = debugMetadataAnnotation.c,
+                        methodName = debugMetadataAnnotation.m,
+                        lineNumbers = debugMetadataAnnotation.l
+                    )
+                }
+            } catch (_: GenericSignatureFormatError) {
+                if (annotationMetadataResolver != null) {
+                    try {
+                        clazz.getBodyStream()?.use { annotationMetadataResolver.getKotlinDebugMetadata(it) }
+                    } catch (_: Exception) {
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
             if (meta != null) {
                 List(meta.lineNumbers.size + 1) { index ->
                     val lineNumber = if (index == 0) UNKNOWN_LINE_NUMBER else meta.lineNumbers[index - 1]
                     StacktraceElement(
                         className = meta.className,
-                        fileName = meta.fileName,
+                        fileName = meta.sourceFile.ifEmpty { null },
                         methodName = meta.methodName,
                         lineNumber = lineNumber
                     )
@@ -146,6 +166,3 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
 
 private const val UNKNOWN_LABEL = -1
 private const val LABEL_FIELD_NAME = "label"
-
-private val DebugMetadata.fileName: String?
-    get() = sourceFile.ifEmpty { null }

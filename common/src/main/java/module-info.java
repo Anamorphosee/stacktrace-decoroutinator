@@ -1,4 +1,5 @@
 import dev.reformator.stacktracedecoroutinator.common.internal.CommonSettingsProvider;
+import dev.reformator.stacktracedecoroutinator.common.internal.AnnotationMetadataResolver;
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider;
 import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsRegistry;
 import dev.reformator.stacktracedecoroutinator.common.internal.Provider;
@@ -22,4 +23,5 @@ module dev.reformator.stacktracedecoroutinator.common {
 
     uses SpecMethodsRegistry;
     uses CommonSettingsProvider;
+    uses AnnotationMetadataResolver;
 }

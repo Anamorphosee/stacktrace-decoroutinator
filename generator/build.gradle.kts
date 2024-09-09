@@ -86,13 +86,15 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
+    testImplementation(project(":test-utils-jvm"))
 }
 
 bytecodeProcessor {
     processors = setOf(
         RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
         ChangeClassNameProcessor(mapOf(
-            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
+            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl",
+            "dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata" to "kotlin.coroutines.jvm.internal.DebugMetadata"
         )),
         MakeStaticProcessor,
         GetOwnerClassProcessor(setOf(GetOwnerClassProcessor.MethodKey(

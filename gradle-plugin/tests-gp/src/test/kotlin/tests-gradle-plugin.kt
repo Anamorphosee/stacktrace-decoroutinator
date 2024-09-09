@@ -46,9 +46,11 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     fun localBasic() {
         basic()
     }
+}
 
-    @Test
-    fun localTestCommonApiStatus() {
-        testCommonApiStatus()
+class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
+    @org.junit.jupiter.api.Test
+    fun check() {
+        `start class with spaces`(true)
     }
 }

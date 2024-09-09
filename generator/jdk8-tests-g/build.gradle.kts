@@ -69,6 +69,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
+    testImplementation(project(":test-utils-jvm"))
 }
 
 afterEvaluate {

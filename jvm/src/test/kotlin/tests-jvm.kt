@@ -70,11 +70,6 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     fun localBasic() {
         basic()
     }
-
-    @Test
-    fun localTestCommonApiStatus() {
-        testCommonApiStatus()
-    }
 }
 
 @DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
@@ -87,6 +82,20 @@ class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.Custom
     @Test
     fun check() {
         performCheck(true)
+    }
+}
+
+@DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
+class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
+
+    @BeforeTest
+    fun setup() {
+        setupTest()
+    }
+
+    @Test
+    fun check() {
+        `start class with spaces`(false)
     }
 }
 

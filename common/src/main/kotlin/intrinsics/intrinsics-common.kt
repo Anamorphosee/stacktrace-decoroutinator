@@ -6,24 +6,7 @@ import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeInvocationsOwner
 import dev.reformator.bytecodeprocessor.intrinsics.SkipInvocations
 import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.common.internal.DEBUG_METADATA_CLASS_NAME
 import kotlin.coroutines.Continuation
-
-@ChangeClassName(
-    toName = DEBUG_METADATA_CLASS_NAME,
-    deleteAfterChanging = true
-)
-@Target(AnnotationTarget.CLASS)
-internal annotation class DebugMetadata(
-    @get:JvmName("f")
-    val sourceFile: String = "",
-    @get:JvmName("l")
-    val lineNumbers: IntArray = [],
-    @get:JvmName("m")
-    val methodName: String = "",
-    @get:JvmName("c")
-    val className: String = ""
-)
 
 @ChangeClassName(
     toName = "kotlin.Result\$Failure",

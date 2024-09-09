@@ -17,11 +17,9 @@ dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     implementation("org.junit.jupiter:junit-jupiter-api:${versions["junit5"]}")
-    implementation("junit:junit:${versions["junit4"]}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
     implementation("io.github.oshai:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
 
-    runtimeOnly("io.ktor:ktor-io-jvm:${versions["ktor"]}")
     runtimeOnly("ch.qos.logback:logback-classic:${versions["logbackClassic"]}")
 }
 

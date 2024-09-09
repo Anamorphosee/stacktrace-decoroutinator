@@ -23,6 +23,7 @@ dependencies {
     testRuntimeOnly(project(":stacktrace-decoroutinator-common"))
 
     testImplementation(project(":test-utils"))
+    testImplementation(project(":test-utils-jvm"))
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
 }

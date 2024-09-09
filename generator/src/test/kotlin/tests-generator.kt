@@ -9,3 +9,10 @@ class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.Custom
         performCheck(false)
     }
 }
+
+class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
+    @Test
+    fun check() {
+        `start class with spaces`(false)
+    }
+}

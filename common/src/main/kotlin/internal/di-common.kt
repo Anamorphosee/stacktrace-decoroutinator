@@ -25,6 +25,9 @@ internal val stacktraceElementsFactory: StacktraceElementsFactory = StacktraceEl
 internal val specMethodsRegistry: SpecMethodsRegistry =
     ServiceLoader.load(SpecMethodsRegistry::class.java).firstOrNull() ?: SpecMethodsRegistryImpl
 
+internal val annotationMetadataResolver: AnnotationMetadataResolver? =
+    ServiceLoader.load(AnnotationMetadataResolver::class.java).firstOrNull()
+
 @Suppress("ClassName")
 private class _supportsVarHandleStub {
     private var field: Int = 0

@@ -17,3 +17,15 @@ abstract class BaseContinuation: Continuation<Any?> {
 
     init { fail() }
 }
+
+@ChangeClassName(
+    toName = "kotlin.coroutines.jvm.internal.DebugMetadata",
+    deleteAfterChanging = true
+)
+@Target(AnnotationTarget.CLASS)
+annotation class DebugMetadata(
+    val f: String = "",
+    val l: IntArray = [],
+    val m: String = "",
+    val c: String = ""
+)

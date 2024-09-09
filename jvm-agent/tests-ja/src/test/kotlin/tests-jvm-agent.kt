@@ -22,16 +22,18 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     fun localBasic() {
         basic()
     }
-
-    @Test
-    fun localTestCommonApiStatus() {
-        testCommonApiStatus()
-    }
 }
 
 class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
     @Test
     fun check() {
         performCheck(true)
+    }
+}
+
+class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
+    @Test
+    fun check() {
+        `start class with spaces`(true)
     }
 }

@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     testImplementation(project(":test-utils"))
+    testImplementation(project(":test-utils-jvm"))
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
 }
@@ -31,8 +32,8 @@ tasks.test {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
 }
 
 kotlin {

@@ -4,6 +4,7 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import java.io.InputStream
 import java.lang.invoke.MethodHandle
 
 data class StacktraceElement(
@@ -31,6 +32,32 @@ fun interface SpecMethodsFactory {
         nextContinuation: BaseContinuation,
         nextSpec: SpecAndItsMethodHandle?
     ): SpecAndItsMethodHandle
+}
+
+data class TransformationMetadata(
+    val fileName: String?,
+    val methods: List<Method>,
+    val baseContinuationClasses: List<Class<*>>,
+    val version: Int
+) {
+    @Suppress("ArrayInDataClass")
+    data class Method(
+        val name: String,
+        val lineNumbers: IntArray
+    )
+}
+
+@Suppress("ArrayInDataClass")
+data class KotlinDebugMetadata(
+    val sourceFile: String,
+    val className: String,
+    val methodName: String,
+    val lineNumbers: IntArray
+)
+
+interface AnnotationMetadataResolver {
+    fun getTransformationMetadata(classBody: InputStream, loader: ClassLoader): TransformationMetadata?
+    fun getKotlinDebugMetadata(classBody: InputStream): KotlinDebugMetadata?
 }
 
 interface CommonSettingsProvider {

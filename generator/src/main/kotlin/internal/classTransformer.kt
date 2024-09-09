@@ -3,7 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
 import dev.reformator.stacktracedecoroutinator.common.internal.*
-import dev.reformator.stacktracedecoroutinator.generator.intrinsics.DebugMetadata
+import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.*
 import org.objectweb.asm.ClassReader
@@ -167,10 +167,10 @@ fun getDebugMetadataInfoFromClassBody(body: InputStream): DebugMetadataInfo? =
 fun getDebugMetadataInfoFromClass(clazz: Class<*>): DebugMetadataInfo? =
     clazz.getDeclaredAnnotation(DebugMetadata::class.java)?.let {
         DebugMetadataInfo(
-            specClassInternalClassName = it.className.internalName,
+            specClassInternalClassName = it.c.internalName,
             baseContinuationInternalClassName = clazz.name.internalName,
-            methodName = it.methodName,
-            lineNumbers = it.lineNumbers.toSet()
+            methodName = it.m,
+            lineNumbers = it.l.toSet()
         )
     }
 
@@ -232,7 +232,7 @@ private fun ClassNode.transform(classTransformationInfo: ClassTransformationInfo
     visibleAnnotations.add(classTransformationInfo.getTransformedAnnotation(this))
 }
 
-private fun getClassNode(classBody: InputStream, skipCode: Boolean = false): ClassNode? {
+internal fun getClassNode(classBody: InputStream, skipCode: Boolean = false): ClassNode? {
     return try {
         val classReader = ClassReader(classBody)
         val classNode = ClassNode(Opcodes.ASM9)
@@ -243,12 +243,17 @@ private fun getClassNode(classBody: InputStream, skipCode: Boolean = false): Cla
     }
 }
 
-private val ClassNode.decoroutinatorTransformedAnnotation: AnnotationNode?
+internal val ClassNode.decoroutinatorTransformedAnnotation: AnnotationNode?
     get() = visibleAnnotations
         .orEmpty()
         .firstOrNull { it.desc == Type.getDescriptor(DecoroutinatorTransformed::class.java) }
 
-private fun AnnotationNode.getField(name: String): Any? {
+internal val ClassNode.kotlinDebugMetadataAnnotation: AnnotationNode?
+    get() = visibleAnnotations
+        .orEmpty()
+        .firstOrNull { it.desc == Type.getDescriptor(DebugMetadata::class.java) }
+
+internal fun AnnotationNode.getField(name: String): Any? {
     var index = 0
     while (index < values.orEmpty().size) {
         if (values[index] == name) {
@@ -344,27 +349,19 @@ private fun tailCallDeopt(
 
 @Suppress("UNCHECKED_CAST")
 private val ClassNode.debugMetadataInfo: DebugMetadataInfo?
-    get() {
-        visibleAnnotations?.forEach { annotation ->
-            if (annotation.desc == Type.getDescriptor(DebugMetadata::class.java)) {
-                val parameters = annotation.values
-                    .chunked(2) { it[0] as String to it[1] as Any }
-                    .toMap()
-                val internalClassName = (parameters["c"] as String).replace('.', '/')
-                val methodName = parameters["m"] as String
-                val lineNumbers = (parameters["l"] as List<Int>).toSet()
-                if (lineNumbers.isEmpty()) {
-                    return null
-                }
-                return DebugMetadataInfo(
-                    specClassInternalClassName = internalClassName,
-                    baseContinuationInternalClassName = name,
-                    methodName = methodName,
-                    lineNumbers = lineNumbers
-                )
-            }
+    get() = kotlinDebugMetadataAnnotation?.let { annotation ->
+        val internalClassName = (annotation.getField(DebugMetadata::c.name) as String).internalName
+        val methodName = annotation.getField(DebugMetadata::m.name) as String
+        val lineNumbers = (annotation.getField(DebugMetadata::l.name) as List<Int>).toSet()
+        if (lineNumbers.isEmpty()) {
+            return null
         }
-        return null
+        DebugMetadataInfo(
+            specClassInternalClassName = internalClassName,
+            baseContinuationInternalClassName = name,
+            methodName = methodName,
+            lineNumbers = lineNumbers
+        )
     }
 
 private val MethodNode.lastArgumentIndex: Int

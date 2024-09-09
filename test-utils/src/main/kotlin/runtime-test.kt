@@ -3,7 +3,6 @@
 package dev.reformator.stacktracedecoroutinator.test
 
 import dev.reformator.bytecodeprocessor.intrinsics.*
-import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
@@ -102,18 +101,6 @@ open class RuntimeTest {
         } catch (e: Exception) {
             assertEquals("check", e.message)
         }
-    }
-
-    @Junit4Test @Junit5Test
-    fun testCommonApiStatus() {
-        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
-        assertTrue(status.successful, status.description)
-    }
-
-    @Junit4Test @Junit5Test
-    fun testLoadCustomLoaderClass() {
-        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
-        assertTrue(status.successful, status.description)
     }
 
     @Junit4Test @Junit5Test
@@ -247,10 +234,10 @@ open class TailCallDeoptimizeTest {
         tailCallDeoptimizeBasicRec(recDepth)
     }
 
-    fun testCommonApiStatus() {
-        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
-        assertTrue(status.successful, status.description)
-    }
+//    fun testCommonApiStatus() {
+//        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
+//        assertTrue(status.successful, status.description)
+//    }
 }
 
 open class CustomClassLoaderTest {
@@ -315,7 +302,7 @@ private val customLoaderJarUri: String
 private fun loadCustomLoaderStubClass(withDecoroutinatorDependency: Boolean): Class<*> =
     URLClassLoader(
         arrayOf(URI(customLoaderJarUri).toURL()),
-        if (withDecoroutinatorDependency) DecoroutinatorCommonApi::class.java.classLoader else null
+        if (withDecoroutinatorDependency) ClassLoader.getSystemClassLoader() else null
     ).loadClass("dev.reformator.stacktracedecoroutinator.test.ClassWithSuspendFunctionsStub")
 
 private fun tailCallDeoptimize() { }

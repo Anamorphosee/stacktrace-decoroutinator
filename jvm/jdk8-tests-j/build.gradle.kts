@@ -14,6 +14,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
+    testImplementation(project(":test-utils-jvm"))
 }
 
 tasks.test {

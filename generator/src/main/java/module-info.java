@@ -1,5 +1,7 @@
+import dev.reformator.stacktracedecoroutinator.common.internal.AnnotationMetadataResolver;
 import dev.reformator.stacktracedecoroutinator.generator.internal.GeneratorSpecMethodsRegistry;
 import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsRegistry;
+import dev.reformator.stacktracedecoroutinator.generator.internal.AnnotationMetadataResolverImpl;
 
 module dev.reformator.stacktracedecoroutinator.generator {
     requires static dev.reformator.bytecodeprocessor.intrinsics;
@@ -15,4 +17,5 @@ module dev.reformator.stacktracedecoroutinator.generator {
             dev.reformator.stacktracedecoroutinator.generator.tests;
 
     provides SpecMethodsRegistry with GeneratorSpecMethodsRegistry;
+    provides AnnotationMetadataResolver with AnnotationMetadataResolverImpl;
 }

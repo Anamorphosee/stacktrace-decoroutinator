@@ -11,6 +11,7 @@ include(
 
     "intrinsics",
     "test-utils",
+    "test-utils-jvm",
     "test-utils:custom-loader",
     "generator:jdk8-tests-g",
     "gradle-plugin:tests-gp",

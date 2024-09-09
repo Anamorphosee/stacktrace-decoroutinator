@@ -207,12 +207,17 @@ private data class ClassTransformationInfo(
 )
 
 private fun ClassNode.transform(classTransformationInfo: ClassTransformationInfo) {
+    val isInterface = access and Opcodes.ACC_INTERFACE != 0
+    val isPrivateMethodsInInterfacesSupported = version >= Opcodes.V9
+    val makePrivate = !isInterface || isPrivateMethodsInInterfacesSupported
+    val makeFinal = !isInterface
     version = maxOf(version, Opcodes.V1_7)
     classTransformationInfo.lineNumbersByMethod.forEach { (methodName, lineNumbers) ->
         methods.add(buildSpecMethodNode(
             methodName = methodName,
             lineNumbers = lineNumbers,
-            makePrivate = true
+            makePrivate = makePrivate,
+            makeFinal = makeFinal
         ))
     }
 

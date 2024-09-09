@@ -14,10 +14,14 @@ internal fun buildSpecMethodNode(
     methodName: String,
     lineNumbers: Set<Int>,
     makePrivate: Boolean,
+    makeFinal: Boolean
 ): MethodNode {
     val result = MethodNode(Opcodes.ASM9).apply {
         access = if (makePrivate) Opcodes.ACC_PRIVATE else Opcodes.ACC_PUBLIC
-        access = access or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
+        if (makeFinal) {
+            access = access or Opcodes.ACC_FINAL
+        }
+        access = access or Opcodes.ACC_STATIC or Opcodes.ACC_SYNTHETIC
         name = methodName
         desc = "(${Type.getType(DecoroutinatorSpec::class.java).descriptor}${Type.getType(Object::class.java).descriptor})${Type.getType(Object::class.java).descriptor}"
     }

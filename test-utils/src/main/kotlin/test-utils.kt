@@ -9,7 +9,7 @@ fun checkStacktrace(vararg elements: StackTraceElement) {
         return
     }
     Exception().stackTrace.also { stacktrace ->
-        val startIndex = stacktrace.indexOfFirst { it eq elements[0] }
+        val startIndex = stacktrace.indexOfFirst { elements[0] eq it }
         elements.forEachIndexed { index, element ->
             assertTrue(element eq stacktrace[startIndex + index])
         }
@@ -17,8 +17,10 @@ fun checkStacktrace(vararg elements: StackTraceElement) {
 }
 
 private infix fun StackTraceElement.eq(element: StackTraceElement) =
-    this.className == element.className && this.methodName == element.methodName &&
+    this.className == element.className && (this.methodName == element.methodName || this.methodName == ANY) &&
             this.lineNumber == element.lineNumber
+
+const val ANY = "<any>"
 
 typealias Junit4Test = org.junit.Test
 typealias Junit5Test = org.junit.jupiter.api.Test

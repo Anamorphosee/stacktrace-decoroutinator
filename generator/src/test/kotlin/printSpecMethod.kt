@@ -23,6 +23,7 @@ fun main() {
         methodName = "stacktraceMethod",
         lineNumbers = setOf(10, 20, 25, 30),
         makePrivate = true,
+        makeFinal = true
     ))
 
     val classWriter = ClassWriter(ClassWriter.COMPUTE_FRAMES)

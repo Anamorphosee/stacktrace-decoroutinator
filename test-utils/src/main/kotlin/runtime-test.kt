@@ -116,6 +116,11 @@ open class RuntimeTest {
         assertTrue(status.successful, status.description)
     }
 
+    @Junit4Test @Junit5Test
+    fun loadInterfaceWithSuspendFunWithDefaultImpl() = runBlocking {
+        object: InterfaceWithDefaultMethod { }.startCheck()
+    }
+
     private var resumeWithExceptionRecBaseLineNumber: Int = 0
 
     private suspend fun resumeWithExceptionRec(depth: Int) {
@@ -216,7 +221,25 @@ open class RuntimeTest {
         checkStacktrace(*elements)
     }
 
-    private fun tailCallDeoptimize() { }
+
+}
+
+interface InterfaceWithDefaultMethod {
+    suspend fun startCheck() {
+        val lineNumber = currentLineNumber + 1
+        check(StackTraceElement(
+            InterfaceWithDefaultMethod::class.java.name,
+            ANY,
+            currentFileName,
+            lineNumber
+        ))
+        tailCallDeoptimize()
+    }
+
+    suspend fun check(parent: StackTraceElement) {
+        yield()
+        checkStacktrace(parent)
+    }
 }
 
 open class TailCallDeoptimizeTest {
@@ -294,3 +317,5 @@ private fun loadCustomLoaderStubClass(withDecoroutinatorDependency: Boolean): Cl
         arrayOf(URI(customLoaderJarUri).toURL()),
         if (withDecoroutinatorDependency) DecoroutinatorCommonApi::class.java.classLoader else null
     ).loadClass("dev.reformator.stacktracedecoroutinator.test.ClassWithSuspendFunctionsStub")
+
+private fun tailCallDeoptimize() { }

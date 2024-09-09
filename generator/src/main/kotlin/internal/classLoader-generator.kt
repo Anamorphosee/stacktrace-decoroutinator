@@ -58,7 +58,8 @@ private fun getClassBody(
                 buildSpecMethodNode(
                     methodName = methodName,
                     lineNumbers = lineNumbers,
-                    makePrivate = false
+                    makePrivate = false,
+                    makeFinal = true
                 )
             }
             .toList()

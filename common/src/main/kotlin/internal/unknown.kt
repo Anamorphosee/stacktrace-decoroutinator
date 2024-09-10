@@ -17,7 +17,7 @@ internal val unknownSpecClass: Class<*>
 @Suppress("unused")
 internal fun unknown(spec: DecoroutinatorSpec, result: Any?): Any? {
     val updatedResult = if (!spec.isLastSpec) {
-        val updatedResult: Any? = spec.nextSpecHandle.invoke(spec.nextSpec, result)
+        val updatedResult: Any? = spec.nextSpecHandle.invokeExact(spec.nextSpec, result)
         if (updatedResult === spec.coroutineSuspendedMarker) {
             return updatedResult
         }

@@ -165,12 +165,10 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: P
                 ".*AndroidTestRuntimeClasspath"
             )
             isAndroid -> setOf(
-                ".*AndroidTestCompileClasspath",
-                ".*AndroidTestRuntimeClasspath",
-                "releaseCompileClasspath",
-                "releaseRuntimeClasspath",
-                "debugCompileClasspath",
-                "debugRuntimeClasspath"
+                ".*RuntimeClasspath",
+                "runtimeClasspath",
+                ".*CompileClasspath",
+                "compileClasspath"
             )
             else -> emptySet()
         }
@@ -193,7 +191,9 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: P
             )
             else -> setOf(
                 ".*RuntimeClasspath",
-                ".*CompileClasspath"
+                "runtimeClasspath",
+                ".*CompileClasspath",
+                "compileClasspath"
             )
         }
         androidConfigurations + jvmConfigurations

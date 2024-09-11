@@ -3,7 +3,6 @@
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
-import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.stacktracedecoroutinator.common.internal.TRANSFORMED_VERSION
 import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
 import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
@@ -21,7 +20,7 @@ import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.compile.AbstractCompile
-import org.gradle.kotlin.dsl.stacktraceDecoroutinator
+import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -30,39 +29,203 @@ import java.io.InputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 val decoroutinatorTransformedVersionAttribute: Attribute<Int> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.transformedVersion",
+    "dev.reformator.stacktracedecoroutinator.transformedVersion2",
     Int::class.javaObjectType
 )
 
-open class DecoroutinatorPluginExtension(project: Project) {
+internal class ObservableProperty<T>(private var _value: T): ReadWriteProperty<Any?, T> {
+    private var _set = false
+
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T =
+        _value
+
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+        _value = value
+        _set = true
+    }
+
+    val set: Boolean
+        get() = _set
+
+    val value: T
+        get() = _value
+
+    fun updateIfNotSet(setter: () -> T) {
+        if (!set) {
+            _value = setter()
+        }
+    }
+}
+
+class StringMatcherProperty {
+    internal val _include = ObservableProperty(setOf<String>())
+    internal val _exclude = ObservableProperty(setOf<String>())
+    var include: Set<String> by _include
+    var exclude: Set<String> by _exclude
+
+    internal val matcher: StringMatcher
+        get() = StringMatcher(this)
+}
+
+internal class StringMatcher(property: StringMatcherProperty) {
+    private val includes = property.include.map { Regex(it) }
+    private val excludes = property.exclude.map { Regex(it) }
+
+    fun matches(value: String): Boolean =
+        includes.any { it.matches(value) } && excludes.all { !it.matches(value) }
+}
+
+open class DecoroutinatorPluginExtension {
+    // high level configurations
+    internal val _addAndroidRuntimeDependency = ObservableProperty(false)
+    internal val _addJvmRuntimeDependency = ObservableProperty(false)
     var enabled = true
+    @Suppress("unused")
+    var addAndroidRuntimeDependency: Boolean by _addAndroidRuntimeDependency
+    var addJvmRuntimeDependency: Boolean by _addJvmRuntimeDependency
+    var androidTestsOnly = false
+    var jvmTestsOnly = false
 
-    var addGeneratorDependency = false
+    // low level configurations
+    internal val _artifactTypes = ObservableProperty(setOf<String>())
+    val dependencyConfigurations = StringMatcherProperty()
+    val jvmRuntimeDependencyConfigurations = StringMatcherProperty()
+    val androidRuntimeDependencyConfigurations = StringMatcherProperty()
+    val transformedClassesConfigurations = StringMatcherProperty()
+    val tasks = StringMatcherProperty()
+    var artifactTypes: Set<String> by _artifactTypes
+}
 
-    var implementationConfigName = "implementation"
+private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: Project) {
+    val isAndroid = project.pluginManager.hasPlugin("com.android.base")
+    val isKmp = project.pluginManager.hasPlugin("org.jetbrains.kotlin.multiplatform")
+    val addAndroidRuntimeDependency = when {
+        _addAndroidRuntimeDependency.set -> _addAndroidRuntimeDependency.value
+        androidTestsOnly -> true
+        else -> false
+    }
+    val addJvmRuntimeDependency = when {
+        _addJvmRuntimeDependency.set -> _addJvmRuntimeDependency.value
+        else -> true
+    }
 
-    var configurationsInclude = setOf(
-        "runtimeClasspath",
-        ".+RuntimeClasspath",
-        "compileClasspath",
-        ".+CompileClasspath"
-    )
-    var configurationsExclude = setOf<String>()
+    val androidDepConfigurations = when {
+        isKmp && androidTestsOnly -> setOf("androidTestImplementation")
+        isKmp -> setOf("androidMainImplementation")
+        isAndroid && androidTestsOnly -> setOf("androidTestImplementation")
+        isAndroid -> setOf("implementation")
+        else -> setOf()
+    }
+    val jvmDepConfigurations = when {
+        isKmp && jvmTestsOnly -> setOf("desktopTestImplementation", "androidUnitTestImplementation")
+        isKmp -> setOf("desktopMainImplementation", "androidUnitTestImplementation")
+        isAndroid -> setOf("testImplementation")
+        else -> setOf("implementation")
+    }
+    dependencyConfigurations._include.updateIfNotSet {
+        androidDepConfigurations + jvmDepConfigurations
+    }
+    androidRuntimeDependencyConfigurations._include.updateIfNotSet {
+        if (addAndroidRuntimeDependency) {
+            androidDepConfigurations
+        } else {
+            emptySet()
+        }
+    }
+    jvmRuntimeDependencyConfigurations._include.updateIfNotSet {
+        if (addJvmRuntimeDependency) {
+            jvmDepConfigurations
+        } else {
+            emptySet()
+        }
+    }
 
-    var tasksInclude = setOf(".*")
-    var tasksExclude = setOf<String>()
+    transformedClassesConfigurations._include.updateIfNotSet {
+        val androidConfigurations = when {
+            isKmp && androidTestsOnly -> setOf(
+                ".*AndroidTestCompileClasspath",
+                ".*AndroidTestRuntimeClasspath"
+            )
+            isKmp -> setOf(
+                "androidDebugCompileClasspath",
+                "androidDebugRuntimeClasspath",
+                "androidReleaseCompileClasspath",
+                "androidReleaseRuntimeClasspath",
+                ".*AndroidTestCompileClasspath",
+                ".*AndroidTestRuntimeClasspath"
+            )
+            isAndroid && androidTestsOnly -> setOf(
+                ".*AndroidTestCompileClasspath",
+                ".*AndroidTestRuntimeClasspath"
+            )
+            isAndroid -> setOf(
+                ".*AndroidTestCompileClasspath",
+                ".*AndroidTestRuntimeClasspath",
+                "releaseCompileClasspath",
+                "releaseRuntimeClasspath",
+                "debugCompileClasspath",
+                "debugRuntimeClasspath"
+            )
+            else -> emptySet()
+        }
+        val jvmConfigurations = when {
+            isKmp && jvmTestsOnly -> setOf(
+                "android.*UnitTestCompileClasspath",
+                "android.*UnitTestRuntimeClasspath",
+                "desktopTestCompileClasspath",
+                "desktopTestRuntimeClasspath"
+            )
+            isKmp -> setOf(
+                "android.*UnitTestCompileClasspath",
+                "android.*UnitTestRuntimeClasspath",
+                "desktopCompileClasspath",
+                "desktopRuntimeClasspath"
+            )
+            isAndroid -> setOf(
+                ".*UnitTestRuntimeClasspath",
+                ".*UnitTestCompileClasspath"
+            )
+            else -> setOf(
+                ".*RuntimeClasspath",
+                ".*CompileClasspath"
+            )
+        }
+        androidConfigurations + jvmConfigurations
+    }
 
-    var _artifactTypes = setOf(
-        ArtifactTypeDefinition.JAR_TYPE,
-        ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
-        ArtifactTypeDefinition.ZIP_TYPE,
-        "aar",
-    )
-    var _addCommonDependency = true
-    var _isAndroid = project.pluginManager.hasPlugin("com.android.base")
-    var _doUpdateJavaModuleInfo = true
+    tasks._include.updateIfNotSet {
+        if (!androidTestsOnly && !jvmTestsOnly) {
+            return@updateIfNotSet setOf(".*")
+        }
+        val androidConfigurations = when {
+            isKmp && androidTestsOnly -> setOf(".*AndroidTest.*")
+            isKmp -> setOf(".*Android.*", ".*android.*")
+            isAndroid && androidTestsOnly -> setOf(".*Test.*")
+            isAndroid -> setOf(".*")
+            else -> emptySet()
+        }
+        val jvmConfigurations = when {
+            isKmp && jvmTestsOnly -> setOf(".*DesktopTest.*")
+            isKmp -> setOf(".*Desktop.*")
+            !isAndroid && jvmTestsOnly -> setOf(".*Test.*")
+            !isAndroid -> setOf(".*")
+            else -> emptySet()
+        }
+        androidConfigurations + jvmConfigurations
+    }
+
+    _artifactTypes.updateIfNotSet {
+        setOf(
+            ArtifactTypeDefinition.JAR_TYPE,
+            ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
+            ArtifactTypeDefinition.ZIP_TYPE,
+            "aar"
+        )
+    }
 }
 
 class DecoroutinatorPlugin: Plugin<Project> {
@@ -71,14 +234,15 @@ class DecoroutinatorPlugin: Plugin<Project> {
         with (target) {
             val pluginExtension = extensions.create(
                 ::stacktraceDecoroutinator.name,
-                DecoroutinatorPluginExtension::class.java, target
+                DecoroutinatorPluginExtension::class.java
             )
             dependencies.attributesSchema.attribute(decoroutinatorTransformedVersionAttribute)
 
             afterEvaluate { _ ->
                 if (pluginExtension.enabled) {
-                    log.debug { "registering DecoroutinatorArtifactTransfomer for types [${pluginExtension._artifactTypes}]" }
-                    pluginExtension._artifactTypes.forEach { artifactType ->
+                    pluginExtension.setupLowLevelConfigurations(target)
+                    log.debug { "registering DecoroutinatorArtifactTransformer for types [${pluginExtension.artifactTypes}]" }
+                    pluginExtension.artifactTypes.forEach { artifactType ->
                         (NO_TRANSFORMATION_VERSION until TRANSFORMED_VERSION).forEach { fromVersion ->
                             dependencies.registerTransform(DecoroutinatorTransformAction::class.java) {
                                 it.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
@@ -91,34 +255,47 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             .attribute(decoroutinatorTransformedVersionAttribute, NO_TRANSFORMATION_VERSION)
                     }
 
-                    if (pluginExtension._addCommonDependency) {
-                        dependencies.add(
-                            pluginExtension.implementationConfigName,
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-provider:$projectVersionIntrinsic"
-                        )
-                        dependencies.add(
-                            pluginExtension.implementationConfigName,
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-common:$projectVersionIntrinsic"
-                        )
-                    } else {
-                        log.debug { "Skipped runtime dependency" }
-                    }
-                    if (pluginExtension.addGeneratorDependency) {
-                        val dependency = if (pluginExtension._isAndroid) {
-                            log.debug { "add generator dependency for Android" }
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-android:$projectVersionIntrinsic"
-                        } else {
-                            log.debug { "add generator dependency for JVM" }
-                            "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:$projectVersionIntrinsic"
+                    //runtime dependency
+                    run {
+                        val matcher = pluginExtension.dependencyConfigurations.matcher
+                        configurations.all { config ->
+                            if (matcher.matches(config.name)) {
+                                with (dependencies) {
+                                    add(config.name, decoroutinatorCommon())
+                                    add(config.name, decoroutinatorProvider())
+                                }
+                            }
                         }
-                        dependencies.add(pluginExtension.implementationConfigName, dependency)
+                    }
+
+                    //android runtime generator dependency
+                    run {
+                        val matcher = pluginExtension.androidRuntimeDependencyConfigurations.matcher
+                        configurations.all { config ->
+                            if (matcher.matches(config.name)) {
+                                with (dependencies) {
+                                    add(config.name, decoroutinatorAndroidRuntime())
+                                }
+                            }
+                        }
+                    }
+
+                    //jvm runtime generator dependency
+                    run {
+                        val matcher = pluginExtension.jvmRuntimeDependencyConfigurations.matcher
+                        configurations.all { config ->
+                            if (matcher.matches(config.name)) {
+                                with (dependencies) {
+                                    add(config.name, decoroutinatorJvmRuntime())
+                                }
+                            }
+                        }
                     }
 
                     run {
-                        val includes = pluginExtension.configurationsInclude.map { Regex(it) }
-                        val excludes = pluginExtension.configurationsExclude.map { Regex(it) }
+                        val matcher = pluginExtension.transformedClassesConfigurations.matcher
                         configurations.all { config ->
-                            if (includes.any { it.matches(config.name) } && excludes.all { !it.matches(config.name) }) {
+                            if (matcher.matches(config.name)) {
                                 log.debug { "setting decoroutinatorTransformedAttribute for configuration [${config.name}]" }
                                 config.attributes.attribute(decoroutinatorTransformedVersionAttribute, TRANSFORMED_VERSION)
                             }
@@ -126,10 +303,9 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     }
 
                     run {
-                        val includes = pluginExtension.tasksInclude.map { Regex(it) }
-                        val excludes = pluginExtension.tasksExclude.map { Regex(it) }
+                        val matcher = pluginExtension.tasks.matcher
                         tasks.withType(KotlinJvmCompile::class.java) { task ->
-                            if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
+                            if (matcher.matches(task.name)) {
                                 log.debug { "setting transform classes action for task [${task.name}]" }
                                 task.doLast { _ ->
                                     transformClassesDirInPlace(task.destinationDirectory.get().asFile)
@@ -138,22 +314,20 @@ class DecoroutinatorPlugin: Plugin<Project> {
                                 log.debug { "skipped transform classes action for task [${task.name}]" }
                             }
                         }
-                        if (pluginExtension._doUpdateJavaModuleInfo) {
-                            tasks.withType(AbstractCompile::class.java) { task ->
-                                if (includes.any { it.matches(task.name) } && excludes.all { !it.matches(task.name) }) {
-                                    log.debug { "setting 'addReadProviderModule' action for task [${task.name}]" }
-                                    task.doLast { _ ->
-                                        visitModuleInfoFiles(task.destinationDirectory.get().asFile) { path, _ ->
-                                            val newModuleInfo =
-                                                path.inputStream().use { addReadProviderModuleToModuleInfo(it) }
-                                            if (newModuleInfo != null) {
-                                                path.outputStream().use { it.write(newModuleInfo) }
-                                            }
+                        tasks.withType(AbstractCompile::class.java) { task ->
+                            if (matcher.matches(task.name)) {
+                                log.debug { "setting 'addReadProviderModule' action for task [${task.name}]" }
+                                task.doLast { _ ->
+                                    visitModuleInfoFiles(task.destinationDirectory.get().asFile) { path, _ ->
+                                        val newModuleInfo =
+                                            path.inputStream().use { addReadProviderModuleToModuleInfo(it) }
+                                        if (newModuleInfo != null) {
+                                            path.outputStream().use { it.write(newModuleInfo) }
                                         }
                                     }
-                                } else {
-                                    log.debug { "skipped 'addReadProviderModule' action for task [${task.name}]" }
                                 }
+                            } else {
+                                log.debug { "skipped 'addReadProviderModule' action for task [${task.name}]" }
                             }
                         }
                     }
@@ -161,7 +335,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     val setTransformedAttributeAction = Action<Project> { project ->
                         project.configurations.forEach { conf ->
                             conf.outgoing.variants.forEach { variant ->
-                                if (variant.artifacts.any { it.type in pluginExtension._artifactTypes }) {
+                                if (variant.artifacts.any { it.type in pluginExtension.artifactTypes }) {
                                     log.debug { "unsetting decoroutinatorTransformedAttribute for outgoing variant [${variant.name}] of cofiguarion [${conf.name}]" }
                                     variant.attributes.attribute(decoroutinatorTransformedVersionAttribute, NO_TRANSFORMATION_VERSION)
                                 }
@@ -426,6 +600,3 @@ private val File.isModuleInfo: Boolean
 
 private val File.isClass: Boolean
     get() = name.endsWith(CLASS_EXTENSION) && !isModuleInfo
-
-private val projectVersionIntrinsic: String
-    @LoadConstant get() { error("intrinsics failed") }

@@ -14,8 +14,8 @@ repositories {
 }
 
 stacktraceDecoroutinator {
-    _addCommonDependency = false
-    require(_isAndroid)
+    dependencyConfigurations.include = emptySet()
+    addJvmRuntimeDependency = false
 }
 
 dependencies {

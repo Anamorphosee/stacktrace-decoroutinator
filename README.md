@@ -160,6 +160,15 @@ plugins {
 }
 ```
 
+### Using Decoroutinator Gradle plugin only for tests
+If you want to use Decoroutinator for test only, it's recommended to separate your tests in a different Gradle subproject and apply Decoroutinator Gradle plugin only to it.
+But if you don't want to separate your tests, it's still possible by adding a configuration below to your `build.gradle.kts`:
+```kotlin
+stacktraceDecoroutinator {
+    androidTestsOnly = true
+}
+```
+
 ### Using ProGuard
 If you use ProGuard (usually for Android) please add the following exclusion rules:
 ```

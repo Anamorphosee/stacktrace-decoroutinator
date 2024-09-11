@@ -44,17 +44,9 @@ bytecodeProcessor {
         )),
         LoadConstantProcessor(mapOf(
             LoadConstantProcessor.Key(
-                "dev.reformator.stacktracedecoroutinator.gradleplugin.CommonGradlePluginKt",
+                "org.gradle.kotlin.dsl.ApiGradlePluginDecoroutinatorKt",
                 "getProjectVersionIntrinsic"
-            ) to LoadConstantProcessor.Value("unspecified"),
-            LoadConstantProcessor.Key(
-                "dev.reformator.stacktracedecoroutinator.generator.internal.ClassLoaderGeneratorKt",
-                "getIsolatedSpecClassName"
-            ) to LoadConstantProcessor.Value(""),
-            LoadConstantProcessor.Key(
-                "dev.reformator.stacktracedecoroutinator.generator.internal.ClassLoaderGeneratorKt",
-                "getIsolatedSpecClassBodyBase64"
-            ) to LoadConstantProcessor.Value("")
+            ) to LoadConstantProcessor.Value("unspecified")
         ))
     )
 }

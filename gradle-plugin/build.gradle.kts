@@ -49,7 +49,7 @@ dependencies {
 bytecodeProcessor {
     processors = setOf(LoadConstantProcessor(mapOf(
         LoadConstantProcessor.Key(
-            "dev.reformator.stacktracedecoroutinator.gradleplugin.CommonGradlePluginKt",
+            "org.gradle.kotlin.dsl.ApiGradlePluginDecoroutinatorKt",
             "getProjectVersionIntrinsic"
         ) to LoadConstantProcessor.Value(project.version)
     )))

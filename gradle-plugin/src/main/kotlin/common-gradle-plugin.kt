@@ -156,7 +156,9 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: P
                 "androidReleaseCompileClasspath",
                 "androidReleaseRuntimeClasspath",
                 ".*AndroidTestCompileClasspath",
-                ".*AndroidTestRuntimeClasspath"
+                ".*AndroidTestRuntimeClasspath",
+                "releaseRuntimeClasspath",
+                "debugRuntimeClasspath"
             )
             isAndroid && androidTestsOnly -> setOf(
                 ".*AndroidTestCompileClasspath",

@@ -1,5 +1,5 @@
-![Maven Central](https://img.shields.io/maven-central/v/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator-common)
-![Gradle Plugin Portal Version](https://img.shields.io/gradle-plugin-portal/v/dev.reformator.stacktracedecoroutinator)
+[![Maven Central](https://img.shields.io/maven-central/v/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator-common 'JVM artifact')](https://central.sonatype.com/artifact/dev.reformator.stacktracedecoroutinator/stacktrace-decoroutinator-jvm)
+[![Gradle Plugin Portal Version](https://img.shields.io/gradle-plugin-portal/v/dev.reformator.stacktracedecoroutinator 'Gradle plugin')](https://plugins.gradle.org/plugin/dev.reformator.stacktracedecoroutinator)
 # Stacktrace-decoroutinator
 Library for recovering stack trace in exceptions thrown in Kotlin coroutines.
 

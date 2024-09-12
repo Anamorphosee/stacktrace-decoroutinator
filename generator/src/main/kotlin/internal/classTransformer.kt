@@ -270,32 +270,42 @@ private val ClassNode.decoroutinatorTransformedVersion: Int?
         return meta.getField(DecoroutinatorTransformed::version.name) as Int
     }
 
+private val String.isWierdClassName: Boolean
+    get() = any { it in listOf(' ', '<', '>', ';') }
+
 private fun ClassNode.getClassTransformationInfo(metadataResolver: (className: String) -> DebugMetadataInfo?): ClassTransformationInfo? {
     val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
     val baseContinuationInternalClassNames = mutableSetOf<String>()
+    var needTransformation = false
     val check = { info: DebugMetadataInfo? ->
         if (info != null && info.specClassInternalClassName == name) {
+            needTransformation = true
             val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(info.methodName) {
                 mutableSetOf(UNKNOWN_LINE_NUMBER)
             }
             currentLineNumbers.addAll(info.lineNumbers)
-            baseContinuationInternalClassNames.add(info.baseContinuationInternalClassName)
+            if (!info.baseContinuationInternalClassName.isWierdClassName) {
+                baseContinuationInternalClassNames.add(info.baseContinuationInternalClassName)
+            }
         }
     }
     check(debugMetadataInfo)
     methods.orEmpty().forEach { method ->
         when (val status = getCheckTransformationStatus(this, method)) {
             is DefaultTransformationStatus -> check(metadataResolver(status.baseContinuationClassName))
-            is TailCallTransformationStatus -> tailCallDeopt(
-                completionVarIndex = status.completionVarIndex,
-                clazz = this,
-                method = method,
-                lineNumbersByMethod = lineNumbersByMethod,
-            )
+            is TailCallTransformationStatus -> {
+                needTransformation = true
+                tailCallDeopt(
+                    completionVarIndex = status.completionVarIndex,
+                    clazz = this,
+                    method = method,
+                    lineNumbersByMethod = lineNumbersByMethod,
+                )
+            }
             null -> { }
         }
     }
-    return if (lineNumbersByMethod.isNotEmpty()) {
+    return if (needTransformation) {
         ClassTransformationInfo(
             lineNumbersByMethod = lineNumbersByMethod,
             baseContinuationInternalClassNames = baseContinuationInternalClassNames

@@ -8,7 +8,6 @@ import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.provider.internal.provider
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
-import kotlin.reflect.KClass
 
 const val IS_DECOROUTINATOR_ENABLED_METHOD_NAME = "isDecoroutinatorEnabled"
 const val GET_COOKIE_METHOD_NAME = "getCookie"
@@ -30,7 +29,7 @@ annotation class DecoroutinatorTransformed(
     val methodNames: Array<String>,
     val lineNumbersCounts: IntArray,
     val lineNumbers: IntArray,
-    val baseContinuationClasses: Array<KClass<*>>,
+    val baseContinuationClasses: Array<String>,
     val version: Int
 )
 

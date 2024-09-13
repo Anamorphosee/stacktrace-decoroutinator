@@ -26,20 +26,17 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                     possibleElements.add(element)
                 }
             } else {
-                val spec = specs.computeIfAbsent(baseContinuationClass) { _ ->
-                    BaseContinuationClassSpec(
-                        clazz = baseContinuationClass,
-                        labelExtractor = DefaultLabelExtractor(baseContinuationClass)
-                    )
+                val spec = specsByClassName.computeIfAbsent(baseContinuationClass.name) { _ ->
+                    BaseContinuationClassSpec(ReflectionLabelExtractor())
                 }
-                if (spec.elementsByLabel != null) {
+                val elementsByLabel = spec.getElementsByLabel(baseContinuationClass)
+                if (elementsByLabel != null) {
                     continuations.forEach { continuation ->
-                        val label = @Suppress("UNCHECKED_CAST")
-                        (spec.labelExtractor as LabelExtractor<BaseContinuation>).getLabel(continuation)
-                        val element = spec.elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
+                        val label = spec.labelExtractor.getLabel(continuation)
+                        val element = elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
                         elementsByContinuation[continuation] = element
                     }
-                    possibleElements.addAll(spec.elementsByLabel)
+                    possibleElements.addAll(elementsByLabel)
                 }
             }
         }
@@ -49,7 +46,7 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         )
     }
 
-    private val specs: MutableMap<Class<out BaseContinuation>, BaseContinuationClassSpec<*>> = ConcurrentHashMap()
+    private val specsByClassName: MutableMap<String, BaseContinuationClassSpec> = ConcurrentHashMap()
 
     init {
         if (supportsVarHandles) {
@@ -58,103 +55,141 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 
-    private fun interface LabelExtractor<in T: BaseContinuation> {
-        fun getLabel(baseContinuation: T): Int
+    private fun interface LabelExtractor {
+        fun getLabel(baseContinuation: BaseContinuation): Int
     }
 
-    private class BaseContinuationClassSpec<T: BaseContinuation>(
-        clazz: Class<T>,
-        var labelExtractor: LabelExtractor<T>,
+    private class BaseContinuationClassSpec(
+        @Volatile var labelExtractor: LabelExtractor
     ) {
-        val elementsByLabel: List<StacktraceElement>? = run {
-            val meta = try {
-                clazz.getAnnotation(DebugMetadata::class.java)?.let { debugMetadataAnnotation ->
-                    KotlinDebugMetadata(
-                        sourceFile = debugMetadataAnnotation.f,
-                        className = debugMetadataAnnotation.c,
-                        methodName = debugMetadataAnnotation.m,
-                        lineNumbers = debugMetadataAnnotation.l
-                    )
-                }
-            } catch (_: GenericSignatureFormatError) {
-                if (annotationMetadataResolver != null) {
-                    try {
-                        clazz.getBodyStream()?.use { annotationMetadataResolver.getKotlinDebugMetadata(it) }
-                    } catch (_: Exception) {
+        fun getElementsByLabel(clazz: Class<out BaseContinuation>): List<StacktraceElement>? {
+            val localElementsByLabel = elementsByLabel ?: run {
+                val meta = try {
+                    clazz.getAnnotation(DebugMetadata::class.java)?.let { debugMetadataAnnotation ->
+                        KotlinDebugMetadata(
+                            sourceFile = debugMetadataAnnotation.f,
+                            className = debugMetadataAnnotation.c,
+                            methodName = debugMetadataAnnotation.m,
+                            lineNumbers = debugMetadataAnnotation.l
+                        )
+                    }
+                } catch (_: GenericSignatureFormatError) {
+                    if (annotationMetadataResolver != null) {
+                        try {
+                            clazz.getBodyStream()?.use { annotationMetadataResolver.getKotlinDebugMetadata(it) }
+                        } catch (_: Exception) {
+                            null
+                        }
+                    } else {
                         null
                     }
+                }
+                val newElementsByLabel = if (meta != null) {
+                    List(meta.lineNumbers.size + 1) { index ->
+                        val lineNumber = if (index == 0) UNKNOWN_LINE_NUMBER else meta.lineNumbers[index - 1]
+                        StacktraceElement(
+                            className = meta.className,
+                            fileName = meta.sourceFile.ifEmpty { null },
+                            methodName = meta.methodName,
+                            lineNumber = lineNumber
+                        )
+                    }
                 } else {
-                    null
+                    failedElementsByLabel
                 }
+                elementsByLabel = newElementsByLabel
+                newElementsByLabel
             }
-            if (meta != null) {
-                List(meta.lineNumbers.size + 1) { index ->
-                    val lineNumber = if (index == 0) UNKNOWN_LINE_NUMBER else meta.lineNumbers[index - 1]
-                    StacktraceElement(
-                        className = meta.className,
-                        fileName = meta.sourceFile.ifEmpty { null },
-                        methodName = meta.methodName,
-                        lineNumber = lineNumber
-                    )
-                }
-            } else {
-                null
-            }
+            return if (localElementsByLabel != failedElementsByLabel) localElementsByLabel else null
+        }
+
+        var elementsByLabel: List<StacktraceElement>? = null
+
+        private companion object {
+            val failedElementsByLabel = emptyList<StacktraceElement>()
         }
     }
 
-    private open class DefaultLabelExtractor<in T: BaseContinuation>(clazz: Class<T>): LabelExtractor<T> {
-        private val labelField: Field? = run {
-            val field = try {
-                clazz.getDeclaredField(LABEL_FIELD_NAME)
-            } catch (_: Throwable) { null }
-            try {
-                field?.isAccessible = true
-            } catch (_: Throwable) {}
-            field
-        }
-
-        override fun getLabel(baseContinuation: T): Int =
-            if (labelField != null) {
+    private open class ReflectionLabelExtractor: LabelExtractor {
+        override fun getLabel(baseContinuation: BaseContinuation): Int {
+            val field = getField(baseContinuation.javaClass)
+            return if (field != null) {
                 try {
-                    labelField[baseContinuation] as Int
-                } catch (_: Throwable) { UNKNOWN_LABEL }
-            } else { UNKNOWN_LABEL }
-    }
-
-    private class VarHandleLabelExtractor<in T: BaseContinuation>(
-        lookup: MethodHandles.Lookup,
-        clazz: Class<T>
-    ): DefaultLabelExtractor<T>(clazz) {
-        private val labelHandle: VarHandle? = try {
-            lookup.findVarHandle(clazz, LABEL_FIELD_NAME, Int::class.javaPrimitiveType)
-        } catch (_: Throwable) { null }
-
-        override fun getLabel(baseContinuation: T): Int =
-            if (labelHandle != null) {
-                try {
-                    labelHandle[baseContinuation] as Int
+                    field[baseContinuation] as Int
                 } catch (_: Throwable) {
-                    super.getLabel(baseContinuation)
+                    UNKNOWN_LABEL
                 }
             } else {
-                super.getLabel(baseContinuation)
+                UNKNOWN_LABEL
             }
+        }
+
+        private var field: Field? = null
+
+        private fun getField(baseContinuationClass: Class<out BaseContinuation>): Field? {
+            val localField: Field = this.field ?: run {
+                var localField = try {
+                    baseContinuationClass.getDeclaredField(LABEL_FIELD_NAME)
+                } catch (_: Throwable) { failedField }
+                try {
+                    localField.isAccessible = true
+                } catch (_: Throwable) { localField = failedField }
+                this.field = localField
+                localField
+            }
+            return if (localField != failedField) localField else null
+        }
+
+        private companion object {
+            @JvmField protected val _failedField = 0
+            val failedField: Field = ReflectionLabelExtractor::class.java.getDeclaredField(::_failedField.name)
+        }
     }
 
-    private fun <T: BaseContinuation> updateLabelExtractor(clazz: Class<T>, lookup: MethodHandles.Lookup) {
-        val newLabelExtractor = VarHandleLabelExtractor(
-            lookup = lookup,
-            clazz = clazz
-        )
-        specs.compute(clazz) { _, oldSpec: BaseContinuationClassSpec<*>? ->
-            @Suppress("UNCHECKED_CAST")
-            oldSpec as BaseContinuationClassSpec<T>?
+    private class VarHandleLabelExtractor(
+        private val lookup: MethodHandles.Lookup,
+    ): ReflectionLabelExtractor() {
+        override fun getLabel(baseContinuation: BaseContinuation): Int =
+            getField(baseContinuation.javaClass)?.let { field ->
+                try {
+                    field[baseContinuation] as Int
+                } catch (_: Throwable) { null }
+            } ?: super.getLabel(baseContinuation)
+
+        private var field: VarHandle? = null
+
+        private fun getField(baseContinuationClass: Class<out BaseContinuation>): VarHandle? {
+            val localField: VarHandle = this.field ?: run {
+                val newField = try {
+                    lookup.findVarHandle(baseContinuationClass, LABEL_FIELD_NAME, Int::class.javaPrimitiveType)
+                } catch (_: Throwable) {
+                    failedField
+                }
+                field = newField
+                newField
+            }
+            return if (localField != failedField) localField else null
+        }
+
+        private companion object {
+            @JvmField protected val _failedField = 0
+            val failedField: VarHandle =
+                MethodHandles.lookup().findStaticVarHandle(
+                    VarHandleLabelExtractor::class.java,
+                    ::_failedField.name,
+                    Int::class.javaPrimitiveType
+                )
+        }
+    }
+
+    private fun updateLabelExtractor(baseContinuationClassName: String, lookup: MethodHandles.Lookup) {
+        val newLabelExtractor = VarHandleLabelExtractor(lookup)
+        specsByClassName.compute(baseContinuationClassName) { _, oldSpec: BaseContinuationClassSpec? ->
             if (oldSpec != null) {
                 oldSpec.labelExtractor = newLabelExtractor
                 oldSpec
             } else {
-                BaseContinuationClassSpec(clazz, newLabelExtractor)
+                BaseContinuationClassSpec(newLabelExtractor)
             }
         }
     }

@@ -8,7 +8,6 @@ import dev.reformator.stacktracedecoroutinator.common.internal.KotlinDebugMetada
 import dev.reformator.stacktracedecoroutinator.common.internal.parseTransformationMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
-import org.objectweb.asm.Type
 import java.io.InputStream
 
 class AnnotationMetadataResolverImpl: AnnotationMetadataResolver {
@@ -21,7 +20,7 @@ class AnnotationMetadataResolverImpl: AnnotationMetadataResolver {
         val methodNames = transformedAnnotation.getField(DecoroutinatorTransformed::methodNames.name) as List<String>
         val lineNumbersCounts = transformedAnnotation.getField(DecoroutinatorTransformed::lineNumbersCounts.name) as List<Int>
         val lineNumbers = transformedAnnotation.getField(DecoroutinatorTransformed::lineNumbers.name) as List<Int>
-        val baseContinuationClasses = transformedAnnotation.getField(DecoroutinatorTransformed::baseContinuationClasses.name) as List<Type>
+        val baseContinuationClasses = transformedAnnotation.getField(DecoroutinatorTransformed::baseContinuationClasses.name) as List<String>
         val version = transformedAnnotation.getField(DecoroutinatorTransformed::version.name) as Int
         return parseTransformationMetadata(
             fileNamePresent = fileNamePresent,
@@ -29,7 +28,7 @@ class AnnotationMetadataResolverImpl: AnnotationMetadataResolver {
             methodNames = methodNames,
             lineNumbersCounts = lineNumbersCounts,
             lineNumbers = lineNumbers,
-            baseContinuationClasses = baseContinuationClasses.map { loader.loadClass(it.className) },
+            baseContinuationClasses = baseContinuationClasses.toSet(),
             version = version
         )
     }

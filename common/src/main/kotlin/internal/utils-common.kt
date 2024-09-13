@@ -73,7 +73,7 @@ fun parseTransformationMetadata(
     methodNames: List<String>,
     lineNumbersCounts: List<Int>,
     lineNumbers: List<Int>,
-    baseContinuationClasses: List<Class<*>>,
+    baseContinuationClasses: Set<String>,
     version: Int
 ): TransformationMetadata {
     val lineNumberIterator = lineNumbers.iterator()

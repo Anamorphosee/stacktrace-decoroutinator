@@ -270,9 +270,6 @@ private val ClassNode.decoroutinatorTransformedVersion: Int?
         return meta.getField(DecoroutinatorTransformed::version.name) as Int
     }
 
-private val String.isWierdClassName: Boolean
-    get() = any { it in listOf(' ', '<', '>', ';') }
-
 private fun ClassNode.getClassTransformationInfo(metadataResolver: (className: String) -> DebugMetadataInfo?): ClassTransformationInfo? {
     val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
     val baseContinuationInternalClassNames = mutableSetOf<String>()
@@ -284,9 +281,7 @@ private fun ClassNode.getClassTransformationInfo(metadataResolver: (className: S
                 mutableSetOf(UNKNOWN_LINE_NUMBER)
             }
             currentLineNumbers.addAll(info.lineNumbers)
-            if (!info.baseContinuationInternalClassName.isWierdClassName) {
-                baseContinuationInternalClassNames.add(info.baseContinuationInternalClassName)
-            }
+            baseContinuationInternalClassNames.add(info.baseContinuationInternalClassName)
         }
     }
     check(debugMetadataInfo)
@@ -522,7 +517,7 @@ private fun ClassTransformationInfo.getTransformedAnnotation(clazz: ClassNode): 
         add(lineNumbers.flatMap { it.value })
 
         add(DecoroutinatorTransformed::baseContinuationClasses.name)
-        add(baseContinuationInternalClassNames.map { Type.getObjectType(it) })
+        add(baseContinuationInternalClassNames.toList())
 
         add(DecoroutinatorTransformed::version.name)
         add(TRANSFORMED_VERSION)

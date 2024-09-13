@@ -37,7 +37,7 @@ fun interface SpecMethodsFactory {
 data class TransformationMetadata(
     val fileName: String?,
     val methods: List<Method>,
-    val baseContinuationClasses: List<Class<*>>,
+    val baseContinuationClasses: Set<String>,
     val version: Int
 ) {
     @Suppress("ArrayInDataClass")

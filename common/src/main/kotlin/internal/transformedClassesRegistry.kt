@@ -2,7 +2,6 @@
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
-import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import java.lang.invoke.MethodHandles
 import java.lang.reflect.GenericSignatureFormatError
@@ -15,7 +14,7 @@ internal object TransformedClassesRegistry {
         val fileName: String?,
         val lookup: MethodHandles.Lookup,
         val lineNumbersByMethod: Map<String, IntArray>,
-        val baseContinuationClasses: Set<Class<out BaseContinuation>>
+        val baseContinuationClasses: Set<String>
     )
 
     fun interface Listener {
@@ -38,6 +37,7 @@ internal object TransformedClassesRegistry {
 
     fun registerTransformedClass(lookup: MethodHandles.Lookup) {
         val clazz: Class<*> = lookup.lookupClass()
+        val loader = clazz.classLoader ?: ClassLoader.getSystemClassLoader()
         val meta = try {
             clazz.getDeclaredAnnotation(DecoroutinatorTransformed::class.java)?.let { transformedAnnotation ->
                 parseTransformationMetadata(
@@ -46,17 +46,15 @@ internal object TransformedClassesRegistry {
                     methodNames = transformedAnnotation.methodNames.toList(),
                     lineNumbersCounts = transformedAnnotation.lineNumbersCounts.toList(),
                     lineNumbers = transformedAnnotation.lineNumbers.toList(),
-                    baseContinuationClasses = transformedAnnotation.baseContinuationClasses.map { it.java },
+                    baseContinuationClasses = transformedAnnotation.baseContinuationClasses.toSet(),
                     version = transformedAnnotation.version
                 )
             }
         } catch (_: GenericSignatureFormatError) {
             if (annotationMetadataResolver != null) {
                 try {
-                    clazz.classLoader?.let { loader ->
-                        clazz.getBodyStream(loader)?.use {
-                            annotationMetadataResolver.getTransformationMetadata(it, loader)
-                        }
+                    clazz.getBodyStream(loader)?.use {
+                        annotationMetadataResolver.getTransformationMetadata(it, loader)
                     }
                 } catch (_: Exception) {
                     null
@@ -70,19 +68,12 @@ internal object TransformedClassesRegistry {
                 val lineNumbersByMethod = meta.methods.asSequence()
                     .map { it.name to it.lineNumbers }
                     .toMap()
-                val baseContinuationClasses = meta.baseContinuationClasses.asSequence()
-                    .filter { BaseContinuation::class.java.isAssignableFrom(it) }
-                    .map {
-                        @Suppress("UNCHECKED_CAST")
-                        it as Class<out BaseContinuation>
-                    }
-                    .toSet()
                 TransformedClassSpec(
                     transformedClass = clazz,
                     fileName = meta.fileName,
                     lookup = lookup,
                     lineNumbersByMethod = lineNumbersByMethod,
-                    baseContinuationClasses = baseContinuationClasses
+                    baseContinuationClasses = meta.baseContinuationClasses
                 )
             }
             _transformedClasses[clazz.name] = transformedClassSpec

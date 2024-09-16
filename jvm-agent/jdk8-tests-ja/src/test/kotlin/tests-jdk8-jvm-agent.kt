@@ -21,6 +21,11 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     fun localBasic() {
         basic()
     }
+
+    @Test
+    fun localInterfaceWithDefaultMethodImpl() {
+        interfaceWithDefaultMethodImpl()
+    }
 }
 
 class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {

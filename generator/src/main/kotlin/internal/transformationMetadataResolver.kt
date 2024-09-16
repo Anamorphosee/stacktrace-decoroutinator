@@ -12,7 +12,7 @@ import java.io.InputStream
 
 class AnnotationMetadataResolverImpl: AnnotationMetadataResolver {
     @Suppress("UNCHECKED_CAST")
-    override fun getTransformationMetadata(classBody: InputStream, loader: ClassLoader): TransformationMetadata? {
+    override fun getTransformationMetadata(classBody: InputStream): TransformationMetadata? {
         val clazz = getClassNode(classBody, skipCode = true) ?: return null
         val transformedAnnotation = clazz.decoroutinatorTransformedAnnotation ?: return null
         val fileNamePresent = transformedAnnotation.getField(DecoroutinatorTransformed::fileNamePresent.name) as Boolean?

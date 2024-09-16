@@ -234,10 +234,9 @@ open class TailCallDeoptimizeTest {
         tailCallDeoptimizeBasicRec(recDepth)
     }
 
-//    fun testCommonApiStatus() {
-//        val status = DecoroutinatorCommonApi.getStatus(allowTailCallOptimization = true)
-//        assertTrue(status.successful, status.description)
-//    }
+    fun interfaceWithDefaultMethodImpl() = runBlocking {
+        object: InterfaceWithDefaultImplMethod {}.defaultImpl()
+    }
 }
 
 open class CustomClassLoaderTest {
@@ -306,3 +305,20 @@ private fun loadCustomLoaderStubClass(withDecoroutinatorDependency: Boolean): Cl
     ).loadClass("dev.reformator.stacktracedecoroutinator.test.ClassWithSuspendFunctionsStub")
 
 private fun tailCallDeoptimize() { }
+
+interface InterfaceWithDefaultImplMethod {
+    suspend fun defaultImpl() {
+        val lineNumber = currentLineNumber + 1
+        suspendFun(StackTraceElement(
+            InterfaceWithDefaultImplMethod::class.java.typeName,
+            ANY,
+            currentFileName,
+            lineNumber
+        ))
+    }
+
+    suspend fun suspendFun(parent: StackTraceElement) {
+        yield()
+        checkStacktrace(parent)
+    }
+}

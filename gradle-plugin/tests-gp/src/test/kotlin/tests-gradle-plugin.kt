@@ -46,6 +46,11 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     fun localBasic() {
         basic()
     }
+
+    @Test
+    fun localInterfaceWithDefaultMethodImpl() {
+        interfaceWithDefaultMethodImpl()
+    }
 }
 
 class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {

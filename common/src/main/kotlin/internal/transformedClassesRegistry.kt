@@ -50,11 +50,12 @@ internal object TransformedClassesRegistry {
                     version = transformedAnnotation.version
                 )
             }
+        // https://youtrack.jetbrains.com/issue/KT-25337
         } catch (_: GenericSignatureFormatError) {
             if (annotationMetadataResolver != null) {
                 try {
                     clazz.getBodyStream(loader)?.use {
-                        annotationMetadataResolver.getTransformationMetadata(it, loader)
+                        annotationMetadataResolver.getTransformationMetadata(it)
                     }
                 } catch (_: Exception) {
                     null

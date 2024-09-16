@@ -56,7 +56,7 @@ data class KotlinDebugMetadata(
 )
 
 interface AnnotationMetadataResolver {
-    fun getTransformationMetadata(classBody: InputStream, loader: ClassLoader): TransformationMetadata?
+    fun getTransformationMetadata(classBody: InputStream): TransformationMetadata?
     fun getKotlinDebugMetadata(classBody: InputStream): KotlinDebugMetadata?
 }
 

@@ -70,6 +70,11 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     fun localBasic() {
         basic()
     }
+
+    @Test
+    fun localInterfaceWithDefaultMethodImpl() {
+        interfaceWithDefaultMethodImpl()
+    }
 }
 
 @DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")

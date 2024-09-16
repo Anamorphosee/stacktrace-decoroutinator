@@ -73,6 +73,7 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                             lineNumbers = debugMetadataAnnotation.l
                         )
                     }
+                // https://youtrack.jetbrains.com/issue/KT-25337
                 } catch (_: GenericSignatureFormatError) {
                     if (annotationMetadataResolver != null) {
                         try {

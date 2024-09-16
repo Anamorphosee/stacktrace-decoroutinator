@@ -454,7 +454,14 @@ private fun getCheckTransformationStatus(clazz: ClassNode, method: MethodNode): 
             localVar.name == "\$continuation"
         }
         val isMethodSynthetic = method.access and Opcodes.ACC_SYNTHETIC != 0
-        if (hasCompletionLocalVar && !hasContinuationLocalVar && !isMethodSynthetic) {
+        val isInterface = clazz.access and Opcodes.ACC_INTERFACE != 0
+        val isMethodStatic = method.access and Opcodes.ACC_STATIC != 0
+        if (
+            hasCompletionLocalVar &&
+            !hasContinuationLocalVar && (
+                !isMethodSynthetic || (isInterface && isMethodStatic && method.name.startsWith("defaultImpl\$"))
+            )
+        ) {
             TailCallTransformationStatus(completionIndex)
         } else {
             null

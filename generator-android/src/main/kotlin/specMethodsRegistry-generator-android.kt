@@ -53,6 +53,7 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
             ByteBuffer.wrap(dexFile.toDex(null, false)),
             DecoroutinatorSpec::class.java.classLoader
         )
+        // https://issuetracker.google.com/issues/366474683
         loaders.add(loader)
         val clazz = loader.findClass(className)
         return lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->

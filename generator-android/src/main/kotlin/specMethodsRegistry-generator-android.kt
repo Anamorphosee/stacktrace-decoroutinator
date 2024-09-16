@@ -27,57 +27,81 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
         fileName: String?,
         lineNumbersByMethod: Map<String, Set<Int>>
     ): Map<String, SpecMethodsFactory> {
-        val fileNameCstString = fileName?.let { CstString(it) }
-        val dexOptions = DexOptions()
-        dexOptions.minSdkVersion = DexFormat.API_METHOD_HANDLES
-        val dexFile = DexFile(dexOptions)
-        val clazzType = CstType(Type.internClassName(className.internalName))
-        val classDef = ClassDefItem(
-            clazzType,
-            Modifier.PUBLIC or Modifier.FINAL,
-            CstType.OBJECT,
-            StdTypeList.EMPTY,
-            fileNameCstString
-        )
-        lineNumbersByMethod.forEach { (methodName, lineNumbers) ->
-            classDef.addDirectMethod(buildSpecMethod(
-                dexOptions = dexOptions,
-                clazz = clazzType,
-                fileName = fileNameCstString,
-                methodName = methodName,
-                lineNumbers = lineNumbers
-            ))
-        }
-        dexFile.add(classDef)
-        val loader = InMemoryDexClassLoader(
-            ByteBuffer.wrap(dexFile.toDex(null, false)),
-            DecoroutinatorSpec::class.java.classLoader
-        )
-        // https://issuetracker.google.com/issues/366474683
-        loaders.add(loader)
-        val clazz = loader.findClass(className)
-        return lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
-            val handle = MethodHandles.publicLookup().findStatic(clazz, methodName, specMethodType)
-            SpecMethodsFactory { cookie, element, nextContinuation, nextSpec ->
-                assert { element.className == className }
-                assert { element.fileName == fileName }
-                assert { element.methodName == methodName }
-                assert { element.lineNumber in lineNumbers }
-                val spec = DecoroutinatorSpecImpl(
-                    cookie = cookie,
-                    lineNumber = element.lineNumber,
-                    nextSpecAndItsMethod = nextSpec,
-                    nextContinuation = nextContinuation
-                )
-                SpecAndItsMethodHandle(
-                    specMethodHandle = handle,
-                    spec = spec
-                )
+        while (true) {
+            val loader = buildClassLoader(
+                className = className,
+                fileName = fileName,
+                lineNumbersByMethod = lineNumbersByMethod
+            )
+            val clazz = loader.findClass(className)
+            val result = run {
+                lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
+                    val handle = try {
+                        MethodHandles.publicLookup().findStatic(clazz, methodName, specMethodType)
+                    // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
+                    } catch (_: NoSuchMethodException) {
+                        return@run null
+                    }
+                    SpecMethodsFactory { cookie, element, nextContinuation, nextSpec ->
+                        assert { element.className == className }
+                        assert { element.fileName == fileName }
+                        assert { element.methodName == methodName }
+                        assert { element.lineNumber in lineNumbers }
+                        val spec = DecoroutinatorSpecImpl(
+                            cookie = cookie,
+                            lineNumber = element.lineNumber,
+                            nextSpecAndItsMethod = nextSpec,
+                            nextContinuation = nextContinuation
+                        )
+                        SpecAndItsMethodHandle(
+                            specMethodHandle = handle,
+                            spec = spec
+                        )
+                    }
+                }
+            }
+            if (result != null) {
+                // https://issuetracker.google.com/issues/366474683
+                loaders.add(loader)
+                return result
             }
         }
     }
 
     private val loaders: MutableCollection<ClassLoader> = CopyOnWriteArrayList()
+}
+
+private fun buildClassLoader(
+    className: String,
+    fileName: String?,
+    lineNumbersByMethod: Map<String, Set<Int>>
+): InMemoryDexClassLoader {
+    val fileNameCstString = fileName?.let { CstString(it) }
+    val dexOptions = DexOptions()
+    dexOptions.minSdkVersion = DexFormat.API_METHOD_HANDLES
+    val dexFile = DexFile(dexOptions)
+    val clazzType = CstType(Type.internClassName(className.internalName))
+    val classDef = ClassDefItem(
+        clazzType,
+        Modifier.PUBLIC or Modifier.FINAL,
+        CstType.OBJECT,
+        StdTypeList.EMPTY,
+        fileNameCstString
+    )
+    lineNumbersByMethod.forEach { (methodName, lineNumbers) ->
+        classDef.addDirectMethod(buildSpecMethod(
+            dexOptions = dexOptions,
+            clazz = clazzType,
+            fileName = fileNameCstString,
+            methodName = methodName,
+            lineNumbers = lineNumbers
+        ))
+    }
+    dexFile.add(classDef)
+    return InMemoryDexClassLoader(
+        ByteBuffer.wrap(dexFile.toDex(null, false)),
+        DecoroutinatorSpec::class.java.classLoader
+    )
 }
 
 private val classLoaderFindClassMethod: Method =

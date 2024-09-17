@@ -97,7 +97,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
     ): Map<StacktraceElement, SpecMethodsFactory> {
         val specMethodFactoriesByElement = mutableMapOf<StacktraceElement, SpecMethodsFactory>()
         elements.groupBy { it.className }.forEach { (className, elements) ->
-            val clazz = classesByName[className]
+            val clazz = classSpecsByName[className]
             if (clazz != null) {
                 elements.asSequence()
                     .filter { it.fileName == clazz.fileName }
@@ -115,7 +115,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
         return specMethodFactoriesByElement
     }
 
-    private val classesByName: MutableMap<String, ClassSpec> = ConcurrentHashMap()
+    private val classSpecsByName: MutableMap<String, ClassSpec> = ConcurrentHashMap()
 
     init {
         TransformedClassesRegistry.addListener(this::register)
@@ -133,7 +133,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             nextSpec: SpecAndItsMethodHandle?
         ): SpecAndItsMethodHandle {
             assert {
-                val clazz = classesByName[element.className]!!
+                val clazz = classSpecsByName[element.className]!!
                 assert { clazz.fileName == element.fileName }
                 assert { clazz.methodsByName[element.methodName] == this }
                 element.lineNumber in lineNumbers
@@ -167,6 +167,6 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             fileName = spec.fileName,
             methodsByName = methodsByName
         )
-        classesByName[spec.transformedClass.name] = classSpec
+        classSpecsByName[spec.transformedClass.name] = classSpec
     }
 }

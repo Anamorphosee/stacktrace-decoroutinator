@@ -7,6 +7,8 @@ import java.lang.invoke.VarHandle
 import java.lang.reflect.Field
 import java.lang.reflect.GenericSignatureFormatError
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     @Suppress("UNCHECKED_CAST")
@@ -26,9 +28,7 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                     possibleElements.add(element)
                 }
             } else {
-                val spec = specsByClassName.computeIfAbsent(baseContinuationClass.name) { _ ->
-                    BaseContinuationClassSpec(ReflectionLabelExtractor())
-                }
+                val spec = getBaseContinuationClassSpec(baseContinuationClass.name)
                 val elementsByLabel = spec.getElementsByLabel(baseContinuationClass)
                 if (elementsByLabel != null) {
                     continuations.forEach { continuation ->
@@ -47,6 +47,23 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     }
 
     private val specsByClassName: MutableMap<String, BaseContinuationClassSpec> = ConcurrentHashMap()
+    @Volatile private var specsByClassNameSnapshot: Map<String, BaseContinuationClassSpec> = emptyMap()
+    private val updateSpecsByClassNameSnapshotLock = ReentrantLock()
+
+    private fun updateSpecsByClassNameSnapshot() {
+        updateSpecsByClassNameSnapshotLock.withLock {
+            specsByClassNameSnapshot = HashMap(specsByClassName)
+        }
+    }
+
+    private fun getBaseContinuationClassSpec(baseContinuationClassName: String): BaseContinuationClassSpec =
+        specsByClassNameSnapshot[baseContinuationClassName] ?: run {
+            val result = specsByClassName.computeIfAbsent(baseContinuationClassName) { _ ->
+                BaseContinuationClassSpec(ReflectionLabelExtractor())
+            }
+            updateSpecsByClassNameSnapshot()
+            result
+        }
 
     init {
         if (supportsVarHandles) {
@@ -193,6 +210,7 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                 BaseContinuationClassSpec(newLabelExtractor)
             }
         }
+        updateSpecsByClassNameSnapshot()
     }
 
     private fun updateLabelExtractor(spec: TransformedClassesRegistry.TransformedClassSpec) {

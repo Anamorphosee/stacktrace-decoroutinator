@@ -44,7 +44,9 @@ internal class Provider: DecoroutinatorProvider {
     }
 
     override fun registerTransformedClass(lookup: MethodHandles.Lookup) {
-        TransformedClassesRegistry.registerTransformedClass(lookup)
+        if (enabled) {
+            TransformedClassesRegistry.registerTransformedClass(lookup)
+        }
     }
 
     @Suppress("UNCHECKED_CAST")

@@ -27,7 +27,8 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
         fileName: String?,
         lineNumbersByMethod: Map<String, Set<Int>>
     ): Map<String, SpecMethodsFactory> {
-        while (true) {
+        // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
+        repeat(3) {
             val loader = buildClassLoader(
                 className = className,
                 fileName = fileName,
@@ -66,6 +67,7 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                 return result
             }
         }
+        return emptyMap()
     }
 
     private val loaders: MutableCollection<ClassLoader> = CopyOnWriteArrayList()

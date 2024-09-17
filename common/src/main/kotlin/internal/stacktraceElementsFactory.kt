@@ -46,6 +46,12 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         )
     }
 
+    override fun getLabelExtractor(continuation: BaseContinuation): StacktraceElementsFactory.LabelExtractor {
+        assert { continuation.javaClass !== DecoroutinatorContinuationImpl::class.java }
+        val spec = getBaseContinuationClassSpec(continuation.javaClass.name)
+        return spec.labelExtractor
+    }
+
     private val specsByClassName: MutableMap<String, BaseContinuationClassSpec> = ConcurrentHashMap()
     @Volatile private var specsByClassNameSnapshot: Map<String, BaseContinuationClassSpec> = emptyMap()
     private val updateSpecsByClassNameSnapshotLock = ReentrantLock()
@@ -72,12 +78,9 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 
-    private fun interface LabelExtractor {
-        fun getLabel(baseContinuation: BaseContinuation): Int
-    }
 
     private class BaseContinuationClassSpec(
-        @Volatile var labelExtractor: LabelExtractor
+        @Volatile var labelExtractor: StacktraceElementsFactory.LabelExtractor
     ) {
         fun getElementsByLabel(clazz: Class<out BaseContinuation>): List<StacktraceElement>? {
             val localElementsByLabel = elementsByLabel ?: run {
@@ -128,12 +131,12 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 
-    private open class ReflectionLabelExtractor: LabelExtractor {
-        override fun getLabel(baseContinuation: BaseContinuation): Int {
-            val field = getField(baseContinuation.javaClass)
+    private open class ReflectionLabelExtractor: StacktraceElementsFactory.LabelExtractor {
+        override fun getLabel(continuation: BaseContinuation): Int {
+            val field = getField(continuation)
             return if (field != null) {
                 try {
-                    field[baseContinuation] as Int
+                    field[continuation] as Int
                 } catch (_: Throwable) {
                     UNKNOWN_LABEL
                 }
@@ -144,10 +147,10 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
 
         private var field: Field? = null
 
-        private fun getField(baseContinuationClass: Class<out BaseContinuation>): Field? {
+        private fun getField(baseContinuationClass: BaseContinuation): Field? {
             val localField: Field = this.field ?: run {
                 var localField = try {
-                    baseContinuationClass.getDeclaredField(LABEL_FIELD_NAME)
+                    baseContinuationClass.javaClass.getDeclaredField(LABEL_FIELD_NAME)
                 } catch (_: Throwable) { failedField }
                 try {
                     localField.isAccessible = true
@@ -168,7 +171,7 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         private val lookup: MethodHandles.Lookup,
     ): ReflectionLabelExtractor() {
         override fun getLabel(baseContinuation: BaseContinuation): Int =
-            getField(baseContinuation.javaClass)?.let { field ->
+            getField(baseContinuation)?.let { field ->
                 try {
                     field[baseContinuation] as Int
                 } catch (_: Throwable) { null }
@@ -176,10 +179,10 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
 
         private var field: VarHandle? = null
 
-        private fun getField(baseContinuationClass: Class<out BaseContinuation>): VarHandle? {
+        private fun getField(baseContinuation: BaseContinuation): VarHandle? {
             val localField: VarHandle = this.field ?: run {
                 val newField = try {
-                    lookup.findVarHandle(baseContinuationClass, LABEL_FIELD_NAME, Int::class.javaPrimitiveType)
+                    lookup.findVarHandle(baseContinuation.javaClass, LABEL_FIELD_NAME, Int::class.javaPrimitiveType)
                 } catch (_: Throwable) {
                     failedField
                 }
@@ -218,5 +221,4 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     }
 }
 
-private const val UNKNOWN_LABEL = -1
 private const val LABEL_FIELD_NAME = "label"

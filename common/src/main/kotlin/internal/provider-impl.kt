@@ -18,7 +18,7 @@ internal class Provider: DecoroutinatorProvider {
         get() = dev.reformator.stacktracedecoroutinator.common.internal.cookie
 
     override fun prepareCookie(lookup: MethodHandles.Lookup): Any {
-        lock.withLock {
+        prepareCookieLock.withLock {
             dev.reformator.stacktracedecoroutinator.common.internal.cookie?.let { return it }
             val invokeSuspendHandle = lookup.findVirtual(
                 BaseContinuation::class.java,
@@ -56,18 +56,26 @@ internal class Provider: DecoroutinatorProvider {
         className: String,
         methodName: String,
         lineNumber: Int
-    ): Any? =
-        if (tailCallDeoptimize && completion !== null) {
-            DecoroutinatorContinuationImpl(
-                completion = completion as Continuation<Any?>,
-                fileName = fileName,
-                className = className,
-                methodName = methodName,
-                lineNumber = lineNumber
-            )
-        } else {
-            completion
+    ): Any? {
+        if (!tailCallDeoptimize || completion == null) {
+            return completion
         }
+        val isCompletionBaseContinuation = completion is BaseContinuation
+        if (isCompletionBaseContinuation && completion !is DecoroutinatorContinuationImpl) {
+            completion as BaseContinuation
+            val label = stacktraceElementsFactory.getLabelExtractor(completion).getLabel(completion)
+            if (label == UNKNOWN_LABEL || label and Int.MIN_VALUE != 0) {
+                return completion
+            }
+        }
+        return DecoroutinatorContinuationImpl(
+            completion = completion as Continuation<Any?>,
+            fileName = fileName,
+            className = className,
+            methodName = methodName,
+            lineNumber = lineNumber
+        )
+    }
 
-    private val lock = ReentrantLock()
+    private val prepareCookieLock = ReentrantLock()
 }

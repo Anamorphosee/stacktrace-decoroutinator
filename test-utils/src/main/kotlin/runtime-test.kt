@@ -5,6 +5,7 @@ package dev.reformator.stacktracedecoroutinator.test
 import dev.reformator.bytecodeprocessor.intrinsics.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -106,6 +107,15 @@ open class RuntimeTest {
     @Junit4Test @Junit5Test
     fun loadInterfaceWithSuspendFunWithDefaultImpl() = runBlocking {
         object: InterfaceWithDefaultMethod { }.startCheck()
+    }
+
+    @Junit4Test @Junit5Test
+    fun flowSingle(): Unit = runBlocking {
+        val flow = flow {
+            emit(10)
+            yield()
+        }
+        flow.single()
     }
 
     private var resumeWithExceptionRecBaseLineNumber: Int = 0

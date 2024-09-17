@@ -83,6 +83,13 @@ internal data class StacktraceElements(
     val possibleElements: Set<StacktraceElement>
 )
 
-internal fun interface StacktraceElementsFactory {
+internal interface StacktraceElementsFactory {
     fun getStacktraceElements(continuations: Set<BaseContinuation>): StacktraceElements
+    fun getLabelExtractor(continuation: BaseContinuation): LabelExtractor
+
+    fun interface LabelExtractor {
+        fun getLabel(continuation: BaseContinuation): Int
+    }
 }
+
+internal const val UNKNOWN_LABEL = -1

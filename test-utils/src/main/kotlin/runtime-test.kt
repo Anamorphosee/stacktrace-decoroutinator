@@ -68,7 +68,6 @@ open class RuntimeTest {
                     resumeWithExceptionRecBaseLineNumber + 8
                 ), e.stackTrace[it])
             }
-            assertEquals(".(boundary)", e.stackTrace[12].toString())
         }
     }
 

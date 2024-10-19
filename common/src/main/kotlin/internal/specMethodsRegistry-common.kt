@@ -63,7 +63,11 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                             factoriesByMethod
                         }
 
-                        elements.forEach { generatedFactories[it] = factoriesByMethod[it.methodName]!! }
+                        elements.forEach { element ->
+                            factoriesByMethod[element.methodName]?.let {
+                                generatedFactories[element] = it
+                            }
+                        }
                     }
                 }
             }

@@ -42,6 +42,9 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                     // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
                     } catch (_: NoSuchMethodException) {
                         return@run null
+                    // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/39#issuecomment-2421913959
+                    } catch (_: IllegalAccessException) {
+                        return@run null
                     }
                     SpecMethodsFactory { cookie, element, nextContinuation, nextSpec ->
                         assert { element.className == className }

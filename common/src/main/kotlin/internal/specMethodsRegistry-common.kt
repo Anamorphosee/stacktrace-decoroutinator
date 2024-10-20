@@ -26,8 +26,12 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                     val needRebuild = methodsByName == null || elements.groupBy { it.methodName }.any { (methodName, elements) ->
                         val method = methodsByName[methodName]
                         method == null || elements.any {
-                            generatedFactories[it] = method.factory
-                            it.lineNumber !in method.lineNumbers
+                            if (it.lineNumber in method.lineNumbers) {
+                                generatedFactories[it] = method.factory
+                                false
+                            } else {
+                                true
+                            }
                         }
                     }
 

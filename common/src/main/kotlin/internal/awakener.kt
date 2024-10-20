@@ -88,7 +88,9 @@ private fun recoveryExplicitStacktrace(
     baseContinuations: List<BaseContinuation>,
     stacktraceElements: StacktraceElements
 ) {
-    val recoveredStacktrace = Array(exception.stackTrace.size + baseContinuations.size + 1) {
+    val trace = exception.stackTrace
+    val traceStartElementIndex = trace.lastIndexOf(decoroutinatorBoundaryStacktraceElement) + 1
+    val recoveredStacktrace = Array((trace.size - traceStartElementIndex) + baseContinuations.size + 1) {
         when {
             it < baseContinuations.size -> {
                 val continuation = baseContinuations[it]
@@ -99,8 +101,8 @@ private fun recoveryExplicitStacktrace(
                     StackTraceElement(element.className, element.methodName, element.fileName, element.lineNumber)
                 }
             }
-            it == baseContinuations.size -> artificialFrame("boundary")
-            else -> exception.stackTrace[it - baseContinuations.size - 1]
+            it == baseContinuations.size -> decoroutinatorBoundaryStacktraceElement
+            else -> trace[it - baseContinuations.size - 1 + traceStartElementIndex]
         }
     }
     exception.stackTrace = recoveredStacktrace
@@ -109,3 +111,4 @@ private fun recoveryExplicitStacktrace(
 private fun artificialFrame(message: String) =
     StackTraceElement("", "", message, -1)
 
+private val decoroutinatorBoundaryStacktraceElement = artificialFrame("decoroutinator-boundary")

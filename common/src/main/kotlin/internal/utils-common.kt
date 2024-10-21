@@ -4,7 +4,6 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
 import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.common.intrinsics.FailureResult
 import dev.reformator.stacktracedecoroutinator.common.intrinsics._Assertions
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.createFailure
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineResumed
@@ -141,11 +140,7 @@ internal class DecoroutinatorContinuationImpl(
     val lineNumber: Int
 ): ContinuationImpl(completion) {
     override fun invokeSuspend(result: Any?): Any? =
-        if (result is FailureResult) {
-            throw result.exception
-        } else {
-            result
-        }
+        result
 
     override fun getStackTraceElement(): StackTraceElement =
         StackTraceElement(

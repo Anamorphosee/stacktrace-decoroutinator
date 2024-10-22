@@ -225,7 +225,9 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: P
             ArtifactTypeDefinition.JAR_TYPE,
             ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
             ArtifactTypeDefinition.ZIP_TYPE,
-            "aar"
+            "aar",
+            "android-classes-jar",
+            "android-classes-directory"
         )
     }
 }

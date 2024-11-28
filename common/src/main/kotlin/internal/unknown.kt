@@ -1,4 +1,12 @@
 @file:Suppress("PackageDirectoryMismatch")
+@file:DecoroutinatorTransformed(
+    fileNamePresent = false,
+    methodNames = [],
+    lineNumbersCounts = [],
+    lineNumbers = [],
+    baseContinuationClasses = [],
+    version = TRANSFORMED_VERSION
+)
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
@@ -6,6 +14,7 @@ import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED

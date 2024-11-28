@@ -174,7 +174,6 @@ If you use ProGuard (usually for Android) please add the following exclusion rul
 ```
 -keep @kotlin.coroutines.jvm.internal.DebugMetadata class * { *; }
 -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed class * { *; }
--keep class dev.reformator.stacktracedecoroutinator.common.internal.UnknownKt { *; }
 ```
 
 ### Problem with Jacoco and Decoroutinator

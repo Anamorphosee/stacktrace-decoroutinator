@@ -21,7 +21,7 @@ interface DecoroutinatorSpec {
     fun resumeNext(result: Any?): Any?
 }
 
-@Target(AnnotationTarget.CLASS)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
 @Retention
 annotation class DecoroutinatorTransformed(
     val fileNamePresent: Boolean = true,

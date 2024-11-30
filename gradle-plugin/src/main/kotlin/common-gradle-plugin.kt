@@ -33,7 +33,7 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 val decoroutinatorTransformedVersionAttribute: Attribute<Int> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.transformedVersion3",
+    "dev.reformator.stacktracedecoroutinator.transformedVersion4",
     Int::class.javaObjectType
 )
 

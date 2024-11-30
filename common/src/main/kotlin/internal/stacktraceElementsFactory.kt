@@ -7,8 +7,6 @@ import java.lang.invoke.VarHandle
 import java.lang.reflect.Field
 import java.lang.reflect.GenericSignatureFormatError
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     @Suppress("UNCHECKED_CAST")
@@ -54,22 +52,27 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
 
     private val specsByClassName: MutableMap<String, BaseContinuationClassSpec> = ConcurrentHashMap()
     @Volatile private var specsByClassNameSnapshot: Map<String, BaseContinuationClassSpec> = emptyMap()
-    private val updateSpecsByClassNameSnapshotLock = ReentrantLock()
 
-    private fun updateSpecsByClassNameSnapshot() {
-        updateSpecsByClassNameSnapshotLock.withLock {
-            specsByClassNameSnapshot = HashMap(specsByClassName)
+    private fun getBaseContinuationClassSpec(
+        baseContinuationClassName: String,
+        new: () -> BaseContinuationClassSpec = { BaseContinuationClassSpec(ReflectionLabelExtractor()) },
+        updateSnapshot: Boolean = true
+    ): BaseContinuationClassSpec {
+        var updated = false
+        val result = specsByClassNameSnapshot[baseContinuationClassName] ?: run {
+            updated = true
+            specsByClassName.computeIfAbsent(baseContinuationClassName) { _ -> new() }
         }
-    }
-
-    private fun getBaseContinuationClassSpec(baseContinuationClassName: String): BaseContinuationClassSpec =
-        specsByClassNameSnapshot[baseContinuationClassName] ?: run {
-            val result = specsByClassName.computeIfAbsent(baseContinuationClassName) { _ ->
-                BaseContinuationClassSpec(ReflectionLabelExtractor())
+        if (updateSnapshot && updated) {
+            while (true) {
+                try {
+                    specsByClassNameSnapshot = HashMap(specsByClassName)
+                    break
+                } catch (_: ConcurrentModificationException) { }
             }
-            updateSpecsByClassNameSnapshot()
-            result
         }
+        return result
+    }
 
     init {
         if (supportsVarHandles) {
@@ -203,21 +206,15 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 
-    private fun updateLabelExtractor(baseContinuationClassName: String, lookup: MethodHandles.Lookup) {
-        val newLabelExtractor = VarHandleLabelExtractor(lookup)
-        specsByClassName.compute(baseContinuationClassName) { _, oldSpec: BaseContinuationClassSpec? ->
-            if (oldSpec != null) {
-                oldSpec.labelExtractor = newLabelExtractor
-                oldSpec
-            } else {
-                BaseContinuationClassSpec(newLabelExtractor)
-            }
-        }
-        updateSpecsByClassNameSnapshot()
-    }
-
     private fun updateLabelExtractor(spec: TransformedClassesRegistry.TransformedClassSpec) {
-        spec.baseContinuationClasses.forEach { updateLabelExtractor(it, spec.lookup) }
+        spec.baseContinuationClasses.forEach { baseContinuationClassName ->
+            val newLabelExtractor = VarHandleLabelExtractor(spec.lookup)
+            getBaseContinuationClassSpec(
+                baseContinuationClassName = baseContinuationClassName,
+                new = { BaseContinuationClassSpec(newLabelExtractor) },
+                updateSnapshot = false
+            ).labelExtractor = newLabelExtractor
+        }
     }
 }
 

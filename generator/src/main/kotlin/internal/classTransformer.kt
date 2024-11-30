@@ -524,7 +524,7 @@ private fun ClassTransformationInfo.getTransformedAnnotation(clazz: ClassNode): 
         add(lineNumbers.flatMap { it.value })
 
         add(DecoroutinatorTransformed::baseContinuationClasses.name)
-        add(baseContinuationInternalClassNames.toList())
+        add(baseContinuationInternalClassNames.map { Type.getObjectType(it).className })
 
         add(DecoroutinatorTransformed::version.name)
         add(TRANSFORMED_VERSION)

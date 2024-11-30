@@ -14,6 +14,7 @@ import com.android.dx.rop.type.Type
 import dalvik.system.InMemoryDexClassLoader
 import dev.reformator.stacktracedecoroutinator.common.internal.*
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import java.io.IOException
 import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -29,22 +30,32 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
     ): Map<String, SpecMethodsFactory> {
         // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
         repeat(3) {
-            val loader = buildClassLoader(
-                className = className,
-                fileName = fileName,
-                lineNumbersByMethod = lineNumbersByMethod
-            )
-            val clazz = loader.findClass(className)
+            val loader = try {
+                buildClassLoader(
+                    className = className,
+                    fileName = fileName,
+                    lineNumbersByMethod = lineNumbersByMethod
+                )
+            // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/42#issuecomment-2508562491
+            } catch (_: IOException) {
+                return@repeat
+            }
+            val clazz = try {
+                loader.findClass(className)
+            // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/42#issuecomment-2508562491
+            } catch (_: ClassNotFoundException) {
+                return@repeat
+            }
             val result = run {
                 lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
                     val handle = try {
                         MethodHandles.publicLookup().findStatic(clazz, methodName, specMethodType)
                     // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
                     } catch (_: NoSuchMethodException) {
-                        return@run null
+                        return@repeat
                     // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/39#issuecomment-2421913959
                     } catch (_: IllegalAccessException) {
-                        return@run null
+                        return@repeat
                     }
                     SpecMethodsFactory { cookie, element, nextContinuation, nextSpec ->
                         assert { element.className == className }
@@ -64,11 +75,9 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                     }
                 }
             }
-            if (result != null) {
-                // https://issuetracker.google.com/issues/366474683
-                loaders.add(loader)
-                return result
-            }
+            // https://issuetracker.google.com/issues/366474683
+            loaders.add(loader)
+            return result
         }
         return emptyMap()
     }

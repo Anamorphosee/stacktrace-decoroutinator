@@ -5,7 +5,7 @@
     lineNumbersCounts = [],
     lineNumbers = [],
     baseContinuationClasses = [],
-    version = TRANSFORMED_VERSION
+    version = 0
 )
 
 package dev.reformator.stacktracedecoroutinator.common.internal

@@ -2,13 +2,11 @@
 
 package dev.reformator.bytecodeprocessor.plugins
 
-import dev.reformator.bytecodeprocessor.intrinsics.GET_CURRENT_LINE_NUMBER_METHOD_NAME
-import dev.reformator.bytecodeprocessor.intrinsics.getCurrentLineNumberIntrinsicClassName
+import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
-import dev.reformator.bytecodeprocessor.plugins.internal.internalName
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
+import dev.reformator.bytecodeprocessor.plugins.internal.eq
+import dev.reformator.bytecodeprocessor.plugins.internal.readAsm
 import org.objectweb.asm.tree.LdcInsnNode
 import org.objectweb.asm.tree.LineNumberNode
 import org.objectweb.asm.tree.MethodInsnNode
@@ -18,11 +16,7 @@ object GetCurrentLineNumberProcessor: Processor {
         directory.classes.forEach { clazz ->
             clazz.node.methods?.forEach { method ->
                 method.instructions?.forEach { instruction ->
-                    if (instruction is MethodInsnNode && instruction.opcode == Opcodes.INVOKESTATIC
-                        && instruction.owner == getCurrentLineNumberIntrinsicClassName.internalName
-                        && instruction.name == GET_CURRENT_LINE_NUMBER_METHOD_NAME
-                        && instruction.desc == "()${Type.INT_TYPE.descriptor}"
-                    ) {
+                    if (instruction is MethodInsnNode && instruction eq currentLineNumberInstruction) {
                         var prevInstruction = instruction.previous
                         while (prevInstruction != null && prevInstruction !is LineNumberNode) {
                             prevInstruction = prevInstruction.previous
@@ -39,4 +33,14 @@ object GetCurrentLineNumberProcessor: Processor {
             }
         }
     }
+
+    private fun usage() {
+        currentLineNumber
+    }
+
+    private val currentLineNumberInstruction =
+        GetCurrentLineNumberProcessor::class.java.readAsm().methods.first { it.name == ::usage.name }.instructions
+            .asSequence()
+            .mapNotNull { it as? MethodInsnNode }
+            .first()
 }

@@ -2,6 +2,7 @@
 
 package dev.reformator.bytecodeprocessor.plugins.internal
 
+import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
@@ -57,3 +58,16 @@ internal inline fun <T> List<T>.forEachAllowingAddingToEnd(action: (T) -> Unit) 
         action(get(index++))
     }
 }
+
+internal fun Class<*>.readAsm(): ClassNode =
+    classLoader.getResourceAsStream(
+        name.replace('.', '/') + ".class"
+    )!!.use {
+        val classReader = ClassReader(it)
+        val classNode = ClassNode(Opcodes.ASM9)
+        classReader.accept(classNode, 0)
+        classNode
+    }
+
+internal infix fun MethodInsnNode.eq(other: MethodInsnNode): Boolean =
+    opcode == other.opcode && owner == other.owner && name == other.name && desc == other.desc

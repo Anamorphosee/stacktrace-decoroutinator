@@ -541,8 +541,8 @@ private inline fun transformClassesDir(
                 )
             }
             readProviderModule = readProviderModule || transformationStatus.needReadProviderModule
-            if (transformationStatus.updatedBody != null) {
-                onFile(relativePath, transformationStatus.updatedBody!!.inputStream(), true)
+            transformationStatus.updatedBody?.let {
+                onFile(relativePath, it.inputStream(), true)
                 return@forEach
             }
         }

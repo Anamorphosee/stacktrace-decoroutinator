@@ -1,6 +1,7 @@
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentLineNumberProcessor
 import dev.reformator.bytecodeprocessor.plugins.RemoveModuleRequiresProcessor
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
@@ -38,4 +39,15 @@ bytecodeProcessor {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+    }
 }

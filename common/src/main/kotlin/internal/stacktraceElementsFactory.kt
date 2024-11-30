@@ -170,12 +170,12 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     private class VarHandleLabelExtractor(
         private val lookup: MethodHandles.Lookup,
     ): ReflectionLabelExtractor() {
-        override fun getLabel(baseContinuation: BaseContinuation): Int =
-            getField(baseContinuation)?.let { field ->
+        override fun getLabel(continuation: BaseContinuation): Int =
+            getField(continuation)?.let { field ->
                 try {
-                    field[baseContinuation] as Int
+                    field[continuation] as Int
                 } catch (_: Throwable) { null }
-            } ?: super.getLabel(baseContinuation)
+            } ?: super.getLabel(continuation)
 
         private var field: VarHandle? = null
 

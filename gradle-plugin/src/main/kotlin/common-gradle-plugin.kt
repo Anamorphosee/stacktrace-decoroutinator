@@ -433,8 +433,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
                 outputs.dir(inputArtifact)
             }
         } else {
-            log.debug { "artifact [${root.absolutePath}] does not exist" }
-            outputs.dir("empty")
+            error("artifact [${root.absolutePath}] does not exist")
         }
     }
 }

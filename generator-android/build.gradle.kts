@@ -7,9 +7,9 @@ import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 
 plugins {
-    id("com.android.library")
+    alias(libs.plugins.android.library)
     kotlin("android")
-    id("org.jetbrains.dokka")
+    alias(libs.plugins.dokka)
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
@@ -93,10 +93,10 @@ dependencies {
 
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
-    implementation("com.jakewharton.android.repackaged:dalvik-dx:${versions["dalvikDx"]}")
+    implementation(libs.dalvik.dx)
 
     androidTestRuntimeOnly(project(":test-utils"))
-    androidTestRuntimeOnly("androidx.test:runner:${versions["androidTestRunner"]}")
+    androidTestRuntimeOnly(libs.androidx.test.runner)
 }
 
 bytecodeProcessor {

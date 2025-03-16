@@ -1,4 +1,3 @@
-import org.gradle.kotlin.dsl.versions
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 buildscript {
@@ -9,8 +8,8 @@ buildscript {
 }
 
 plugins {
-    kotlin("jvm") version versions["kotlin"]
-    id("com.gradle.plugin-publish") version versions["pluginPublish"]
+    alias(libs.plugins.kotlin.jvm.version)
+    alias(libs.plugins.gradle.plugin.publish)
 }
 
 group = "dev.reformator.forcevariantjavaversion"
@@ -21,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.oshai:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
+    implementation(libs.kotlin.logging.jvm)
 }
 
 java {

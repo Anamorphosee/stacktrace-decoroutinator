@@ -3,10 +3,10 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
-    id("org.jetbrains.dokka")
+    alias(libs.plugins.dokka)
     `maven-publish`
     signing
-    id("com.gradle.plugin-publish")
+    alias(libs.plugins.gradle.plugin.publish)
     id("dev.reformator.bytecodeprocessor")
 }
 
@@ -40,8 +40,8 @@ dependencies {
 
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
-    implementation("io.github.oshai:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:${versions["kotlinGradlePluginApi"]}")
+    implementation(libs.kotlin.logging.jvm)
+    implementation(libs.kotlin.gradle.plugin.api)
 
     testImplementation(kotlin("test"))
 }

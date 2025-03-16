@@ -16,11 +16,11 @@ repositories {
 dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
-    implementation("org.junit.jupiter:junit-jupiter-api:${versions["junit5"]}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
-    implementation("io.github.oshai:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
+    implementation(libs.junit5.api)
+    implementation(libs.kotlinx.coroutines.jdk8)
+    implementation(libs.kotlin.logging.jvm)
 
-    runtimeOnly("ch.qos.logback:logback-classic:${versions["logbackClassic"]}")
+    runtimeOnly(libs.logback.classic)
 }
 
 bytecodeProcessor {

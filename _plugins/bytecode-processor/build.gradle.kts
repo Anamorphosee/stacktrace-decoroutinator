@@ -5,8 +5,7 @@ buildscript {
         gradlePluginPortal()
     }
     dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${versions["kotlin"]}")
-        classpath("com.gradle.publish:plugin-publish-plugin:${versions["pluginPublish"]}")
+        classpath(libs.kotlin.gradle.plugin)
     }
 }
 

@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
-    id("org.jetbrains.dokka")
+    alias(libs.plugins.dokka)
     `maven-publish`
     signing
     jacoco
@@ -19,12 +19,12 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
-    implementation("net.bytebuddy:byte-buddy-agent:${versions["byteBuddy"]}")
+    implementation(libs.byte.buddy.agent)
 
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
+    testImplementation(libs.kotlinx.coroutines.jdk8)
 }
 
 tasks.test {

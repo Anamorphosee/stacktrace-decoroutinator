@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     kotlin("jvm")
     id("dev.reformator.bytecodeprocessor")
-    id("com.github.johnrengelman.shadow")
+    alias(libs.plugins.shadow)
 }
 
 repositories {
@@ -14,8 +14,8 @@ repositories {
 dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
-    implementation("org.junit.jupiter:junit-jupiter-api:${versions["junit5"]}")
+    implementation(libs.kotlinx.coroutines.jdk8)
+    implementation(libs.junit5.api)
 }
 
 bytecodeProcessor {

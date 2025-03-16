@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
+    implementation(libs.asm.utils)
     testImplementation(kotlin("test"))
 }
 

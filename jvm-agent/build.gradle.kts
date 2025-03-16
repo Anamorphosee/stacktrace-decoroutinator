@@ -5,8 +5,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
-    id("org.jetbrains.dokka")
-    id("com.github.johnrengelman.shadow")
+    alias(libs.plugins.dokka)
+    alias(libs.plugins.shadow)
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
@@ -26,7 +26,7 @@ dependencies {
 
     testImplementation(project(":test-utils"))
     testImplementation(kotlin("test"))
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
+    testImplementation(libs.kotlinx.coroutines.jdk8)
 }
 
 bytecodeProcessor {

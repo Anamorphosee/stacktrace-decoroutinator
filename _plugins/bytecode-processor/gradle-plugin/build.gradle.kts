@@ -1,9 +1,8 @@
-import org.gradle.kotlin.dsl.versions
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
-    id("com.gradle.plugin-publish")
+    alias(libs.plugins.gradle.plugin.publish)
 }
 
 repositories {
@@ -11,12 +10,12 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:${versions["kotlinGradlePluginApi"]}")
+    implementation(libs.kotlin.gradle.plugin.api)
     implementation(project(":bytecode-processor-plugin-api"))
     implementation(project(":bytecode-processor-impl"))
     implementation(project(":bytecode-processor-plugins"))
     implementation(project(":bytecode-processor-intrinsics"))
-    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
+    implementation(libs.asm.utils)
     testImplementation(kotlin("test"))
 }
 

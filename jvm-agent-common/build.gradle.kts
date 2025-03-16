@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
-    id("org.jetbrains.dokka")
+    alias(libs.plugins.dokka)
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
@@ -19,7 +19,7 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
-    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
+    implementation(libs.asm.utils)
 
     testImplementation(kotlin("test"))
 }

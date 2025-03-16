@@ -1,5 +1,4 @@
 import dev.reformator.bytecodeprocessor.plugins.*
-import org.gradle.kotlin.dsl.versions
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 buildscript {
@@ -11,8 +10,8 @@ buildscript {
 }
 
 plugins {
-    kotlin("jvm") version versions["kotlin"]
-    id("com.gradle.plugin-publish") version versions["pluginPublish"]
+    alias(libs.plugins.kotlin.jvm.version)
+    alias(libs.plugins.gradle.plugin.publish)
     id("dev.reformator.bytecodeprocessor")
 }
 
@@ -27,9 +26,9 @@ repositories {
 dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:${versions["kotlin"]}")
-    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
-    implementation("io.github.oshai:kotlin-logging-jvm:${versions["kotlinLoggingJvm"]}")
+    implementation(libs.kotlin.gradle.plugin.api)
+    implementation(libs.asm.utils)
+    implementation(libs.kotlin.logging.jvm)
 }
 
 bytecodeProcessor {

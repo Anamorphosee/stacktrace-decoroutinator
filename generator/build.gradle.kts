@@ -10,7 +10,7 @@ import java.util.zip.ZipEntry
 
 plugins {
     kotlin("jvm")
-    id("org.jetbrains.dokka")
+    alias(libs.plugins.dokka)
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
@@ -82,7 +82,7 @@ dependencies {
 
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
-    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
+    implementation(libs.asm.utils)
 
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))

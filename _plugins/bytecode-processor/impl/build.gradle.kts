@@ -1,4 +1,3 @@
-import org.gradle.kotlin.dsl.versions
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -11,7 +10,7 @@ repositories {
 
 dependencies {
     implementation(project(":bytecode-processor-plugin-api"))
-    implementation("org.ow2.asm:asm-util:${versions["asm"]}")
+    implementation(libs.asm.utils)
     testImplementation(kotlin("test"))
 }
 

@@ -2,7 +2,7 @@ import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentLineNumberProcessor
 
 plugins {
-    id("com.android.library")
+    alias(libs.plugins.android.library)
     kotlin("android")
     id("dev.reformator.stacktracedecoroutinator")
     id("dev.reformator.bytecodeprocessor")
@@ -20,12 +20,12 @@ stacktraceDecoroutinator {
 
 dependencies {
     androidTestImplementation(project(":test-utils"))
-    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions["kotlinxCoroutines"]}")
-    androidTestImplementation("junit:junit:${versions["junit4"]}")
+    androidTestImplementation(libs.kotlinx.coroutines.jdk8)
+    androidTestImplementation(libs.junit4)
 
     androidTestCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
-    androidTestRuntimeOnly("androidx.test:runner:${versions["androidTestRunner"]}")
+    androidTestRuntimeOnly(libs.androidx.test.runner)
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-common"))
 }
 

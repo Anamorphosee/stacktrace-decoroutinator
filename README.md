@@ -176,7 +176,10 @@ If you use ProGuard (usually for Android) please add the following exclusion rul
 -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed class * { *; }
 ```
 
-### Problem with Jacoco and Decoroutinator
+### Problem with Shadow Gradle plugin
+There is [a bug](https://github.com/GradleUp/shadow/issues/882) in Shadow Gradle plugin which may lead to some build issues when both Decoroutinator as a Gradle plugin and Shadow are applied. But there are some [workarounds](https://github.com/GradleUp/shadow/issues/882#issuecomment-1715703146) for it. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/46. 
+
+### Problem with Jacoco
 Using Jacoco and Decoroutinator as a Java agent may lead to the loss of code coverage. It's [a common Jacoco Problem](https://www.eclemma.org/jacoco/trunk/doc/classids.html). In order not to lose coverage, make sure that the Jacoco agent comes before the Decoroutinator agent. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/24.
 
 ### Troubleshooting

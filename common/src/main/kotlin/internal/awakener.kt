@@ -22,7 +22,7 @@ internal fun BaseContinuation.awake(cookie: Cookie, result: Any?) {
         }
     }
 
-    val stacktraceElements = stacktraceElementsFactory.getStacktraceElements(baseContinuations.toSet())
+    val stacktraceElements = stacktraceElementsFactory.getStacktraceElements(baseContinuations)
     if (result.toResult.isFailure && recoveryExplicitStacktrace) {
         val exception = (result as FailureResult).exception
         recoveryExplicitStacktrace(exception, baseContinuations, stacktraceElements)

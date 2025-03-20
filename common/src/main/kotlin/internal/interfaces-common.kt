@@ -84,7 +84,7 @@ internal data class StacktraceElements(
 )
 
 internal interface StacktraceElementsFactory {
-    fun getStacktraceElements(continuations: Set<BaseContinuation>): StacktraceElements
+    fun getStacktraceElements(continuations: Collection<BaseContinuation>): StacktraceElements
     fun getLabelExtractor(continuation: BaseContinuation): LabelExtractor
 
     fun interface LabelExtractor {

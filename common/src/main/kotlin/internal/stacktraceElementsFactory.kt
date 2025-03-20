@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     @Suppress("UNCHECKED_CAST")
-    override fun getStacktraceElements(continuations: Set<BaseContinuation>): StacktraceElements {
+    override fun getStacktraceElements(continuations: Collection<BaseContinuation>): StacktraceElements {
         val elementsByContinuation = mutableMapOf<BaseContinuation, StacktraceElement>()
         val possibleElements = mutableSetOf<StacktraceElement>()
         continuations.groupBy { it.javaClass }.forEach { (baseContinuationClass, continuations) ->

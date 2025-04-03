@@ -1,6 +1,9 @@
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import dev.reformator.stacktracedecoroutinator.test.checkStacktrace
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import kotlin.test.Test
@@ -12,6 +15,15 @@ class TestLocalFile {
     @Test
     fun localTest(): Unit = runBlocking {
         fun1()
+    }
+
+    @Test
+    fun inlineTransformedClassForKotlinc() {
+        runBlocking {
+            flowOf(1)
+                .transform { emit(it) }
+                .collect()
+        }
     }
 
     suspend fun fun1() {

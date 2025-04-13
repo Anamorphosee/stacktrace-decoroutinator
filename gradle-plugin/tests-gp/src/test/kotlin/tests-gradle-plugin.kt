@@ -1,5 +1,6 @@
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
+import dev.reformator.stacktracedecoroutinator.duplicatejar.*
 import dev.reformator.stacktracedecoroutinator.test.checkStacktrace
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
@@ -23,6 +24,21 @@ class TestLocalFile {
             flowOf(1)
                 .transform { emit(it) }
                 .collect()
+        }
+    }
+
+    @Test
+    fun transformedDuplicateEntityJar() {
+        runBlocking {
+            call {
+                yield()
+                checkStacktrace(StackTraceElement(
+                    duplicateJarCallClassName,
+                    duplicateJarCallMethodName,
+                    duplicateJarFileName,
+                    duplicateJarCallLineNumber
+                ))
+            }
         }
     }
 

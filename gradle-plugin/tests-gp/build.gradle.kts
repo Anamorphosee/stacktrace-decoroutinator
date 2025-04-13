@@ -27,6 +27,7 @@ dependencies {
     testImplementation(project(":test-utils-jvm"))
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.jdk8)
+    testImplementation(project(":gradle-plugin:duplicate-entity-jar-builder", configuration = "duplicateJar"))
 }
 
 bytecodeProcessor {

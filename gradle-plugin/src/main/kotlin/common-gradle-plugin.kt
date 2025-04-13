@@ -449,11 +449,16 @@ private inline fun transformZip(
     putFileBody: (modified: Boolean, body: InputStream) -> Unit,
     closeEntry: () -> Unit
 ) {
+    val names = mutableSetOf<String>()
     ZipFile(zip).use { input ->
         var readProviderModule = false
 
         input.entries().asSequence().forEach { entry: ZipEntry ->
             if (entry.isDirectory || !entry.name.isModuleInfo) {
+                if (!names.add(entry.name)) {
+                    log.warn { "Duplicate zip entry '${entry.name}' in file '$zip'. Ignoring it" }
+                    return@forEach
+                }
                 putNextEntry(ZipEntry(entry.name).apply {
                     entry.lastModifiedTime?.let { lastModifiedTime = it }
                     entry.lastAccessTime?.let { lastAccessTime = it }
@@ -490,6 +495,10 @@ private inline fun transformZip(
 
         input.entries().asSequence().forEach { entry: ZipEntry ->
             if (!entry.isDirectory && entry.name.isModuleInfo) {
+                if (!names.add(entry.name)) {
+                    log.warn { "Duplicate module-info entry '${entry.name}' in file '$zip'. Ignoring it" }
+                    return@forEach
+                }
                 putNextEntry(ZipEntry(entry.name).apply {
                     entry.lastModifiedTime?.let { lastModifiedTime = it }
                     entry.lastAccessTime?.let { lastAccessTime = it }

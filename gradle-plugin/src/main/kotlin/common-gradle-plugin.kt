@@ -82,13 +82,13 @@ internal class StringMatcher(property: StringMatcherProperty) {
 open class DecoroutinatorPluginExtension {
     // high level configurations
     internal val _addAndroidRuntimeDependency = ObservableProperty(false)
-    internal val _addJvmRuntimeDependency = ObservableProperty(false)
     var enabled = true
     @Suppress("unused")
     var addAndroidRuntimeDependency: Boolean by _addAndroidRuntimeDependency
-    var addJvmRuntimeDependency: Boolean by _addJvmRuntimeDependency
+    var addJvmRuntimeDependency = true
     var androidTestsOnly = false
     var jvmTestsOnly = false
+    var useTransformedClassesForCompilation = false
 
     // low level configurations
     internal val _artifactTypes = ObservableProperty(setOf<String>())
@@ -103,15 +103,7 @@ open class DecoroutinatorPluginExtension {
 private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: Project) {
     val isAndroid = project.pluginManager.hasPlugin("com.android.base")
     val isKmp = project.pluginManager.hasPlugin("org.jetbrains.kotlin.multiplatform")
-    val addAndroidRuntimeDependency = when {
-        _addAndroidRuntimeDependency.set -> _addAndroidRuntimeDependency.value
-        androidTestsOnly -> true
-        else -> false
-    }
-    val addJvmRuntimeDependency = when {
-        _addJvmRuntimeDependency.set -> _addJvmRuntimeDependency.value
-        else -> true
-    }
+    _addAndroidRuntimeDependency.updateIfNotSet { androidTestsOnly }
 
     val androidDepConfigurations = when {
         isKmp && androidTestsOnly -> setOf("androidTestImplementation")
@@ -145,58 +137,79 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: P
     }
 
     transformedClassesConfigurations._include.updateIfNotSet {
-        val androidConfigurations = when {
-            isKmp && androidTestsOnly -> setOf(
-                ".*AndroidTestCompileClasspath",
-                ".*AndroidTestRuntimeClasspath"
-            )
-            isKmp -> setOf(
-                "androidDebugCompileClasspath",
-                "androidDebugRuntimeClasspath",
-                "androidReleaseCompileClasspath",
-                "androidReleaseRuntimeClasspath",
-                ".*AndroidTestCompileClasspath",
-                ".*AndroidTestRuntimeClasspath",
-                "releaseRuntimeClasspath",
-                "debugRuntimeClasspath"
-            )
-            isAndroid && androidTestsOnly -> setOf(
-                ".*AndroidTestCompileClasspath",
-                ".*AndroidTestRuntimeClasspath"
-            )
-            isAndroid -> setOf(
-                ".*RuntimeClasspath",
-                "runtimeClasspath",
-                ".*CompileClasspath",
-                "compileClasspath"
-            )
-            else -> emptySet()
+        when {
+            isKmp -> {
+                val android = if (androidTestsOnly) {
+                    setOf(".*AndroidTestRuntimeClasspath")
+                } else {
+                    setOf(
+                        "androidDebugRuntimeClasspath",
+                        "androidReleaseRuntimeClasspath",
+                        ".*AndroidTestRuntimeClasspath",
+                        "releaseRuntimeClasspath",
+                        "debugRuntimeClasspath"
+                    )
+                }
+                val jvm = if (jvmTestsOnly) {
+                    setOf(
+                        "android.*UnitTestRuntimeClasspath",
+                        "desktopTestRuntimeClasspath"
+                    )
+                } else {
+                    setOf(
+                        "android.*UnitTestRuntimeClasspath",
+                        "desktopRuntimeClasspath"
+                    )
+                }
+                val compile = if (useTransformedClassesForCompilation) {
+                    setOf(
+                        ".*AndroidTestCompileClasspath",
+                        "androidDebugCompileClasspath",
+                        "androidReleaseCompileClasspath",
+                        "android.*UnitTestCompileClasspath",
+                        "desktopTestCompileClasspath",
+                        "desktopCompileClasspath"
+                    )
+                } else {
+                    emptySet()
+                }
+                android + jvm + compile
+            }
+            isAndroid -> {
+                val runtime = if (androidTestsOnly) {
+                    setOf(".*AndroidTestRuntimeClasspath")
+                } else {
+                    setOf(
+                        ".*RuntimeClasspath",
+                        "runtimeClasspath"
+                    )
+                }
+                val compile = if (useTransformedClassesForCompilation) {
+                    setOf(
+                        ".*CompileClasspath",
+                        "compileClasspath"
+                    )
+                } else {
+                    emptySet()
+                }
+                runtime + compile
+            }
+            else -> {
+                val runtime = setOf(
+                    ".*RuntimeClasspath",
+                    "runtimeClasspath"
+                )
+                val compile = if (useTransformedClassesForCompilation) {
+                    setOf(
+                        ".*CompileClasspath",
+                        "compileClasspath"
+                    )
+                } else {
+                    emptySet()
+                }
+                runtime + compile
+            }
         }
-        val jvmConfigurations = when {
-            isKmp && jvmTestsOnly -> setOf(
-                "android.*UnitTestCompileClasspath",
-                "android.*UnitTestRuntimeClasspath",
-                "desktopTestCompileClasspath",
-                "desktopTestRuntimeClasspath"
-            )
-            isKmp -> setOf(
-                "android.*UnitTestCompileClasspath",
-                "android.*UnitTestRuntimeClasspath",
-                "desktopCompileClasspath",
-                "desktopRuntimeClasspath"
-            )
-            isAndroid -> setOf(
-                ".*UnitTestRuntimeClasspath",
-                ".*UnitTestCompileClasspath"
-            )
-            else -> setOf(
-                ".*RuntimeClasspath",
-                "runtimeClasspath",
-                ".*CompileClasspath",
-                "compileClasspath"
-            )
-        }
-        androidConfigurations + jvmConfigurations
     }
 
     tasks._include.updateIfNotSet {

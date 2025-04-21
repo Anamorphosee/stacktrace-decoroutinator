@@ -10,7 +10,7 @@ buildscript {
 }
 
 plugins {
-    alias(libs.plugins.kotlin.jvm.version)
+    alias(libs.plugins.kotlin.jvm.build)
     alias(libs.plugins.gradle.plugin.publish)
     id("dev.reformator.bytecodeprocessor")
 }

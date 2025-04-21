@@ -20,7 +20,7 @@ stacktraceDecoroutinator {
 
 dependencies {
     androidTestImplementation(project(":test-utils"))
-    androidTestImplementation(libs.kotlinx.coroutines.jdk8)
+    androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)
     androidTestImplementation(libs.junit4)
 
     androidTestCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")

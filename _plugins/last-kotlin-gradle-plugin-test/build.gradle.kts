@@ -24,7 +24,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.junit5.api)
     testImplementation(libs.junit4)
-    testImplementation(libs.kotlinx.coroutines.jdk8)
+    testImplementation(libs.kotlinx.coroutines.jdk8.latest)
     testImplementation(libs.kotlin.logging.jvm)
 
     testRuntimeOnly(libs.ktor.io.jvm)

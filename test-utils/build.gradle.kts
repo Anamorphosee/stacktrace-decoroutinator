@@ -18,7 +18,7 @@ dependencies {
 
     implementation(libs.junit5.api)
     implementation(libs.junit4)
-    implementation(libs.kotlinx.coroutines.jdk8)
+    implementation(libs.kotlinx.coroutines.jdk8.build)
     implementation(libs.kotlin.logging.jvm)
 
     runtimeOnly(libs.ktor.io.jvm)

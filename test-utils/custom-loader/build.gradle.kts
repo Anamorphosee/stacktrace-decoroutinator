@@ -14,7 +14,7 @@ repositories {
 dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
-    implementation(libs.kotlinx.coroutines.jdk8)
+    implementation(libs.kotlinx.coroutines.jdk8.build)
     implementation(libs.junit5.api)
 }
 

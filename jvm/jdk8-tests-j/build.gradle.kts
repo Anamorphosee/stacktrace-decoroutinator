@@ -11,7 +11,7 @@ dependencies {
     testImplementation(project(":stacktrace-decoroutinator-common"))
     testImplementation(project(":stacktrace-decoroutinator-provider"))
     testImplementation(project(":stacktrace-decoroutinator-jvm"))
-    testImplementation(libs.kotlinx.coroutines.jdk8)
+    testImplementation(libs.kotlinx.coroutines.jdk8.build)
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))

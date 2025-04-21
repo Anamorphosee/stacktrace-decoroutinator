@@ -26,7 +26,7 @@ dependencies {
 
     testImplementation(project(":test-utils"))
     testImplementation(kotlin("test"))
-    testImplementation(libs.kotlinx.coroutines.jdk8)
+    testImplementation(libs.kotlinx.coroutines.jdk8.build)
 }
 
 bytecodeProcessor {

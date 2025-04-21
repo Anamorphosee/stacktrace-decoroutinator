@@ -5,17 +5,18 @@ kotlin = "1.9.0"
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version = "8.5.2" }
 shadow-gradle-plugin = { group = "com.github.johnrengelman", name = "shadow", version = "8.1.1" }
-asm-utils = { group = "org.ow2.asm", name = "asm-util", version = "9.7.1" }
+asm-utils = { group = "org.ow2.asm", name = "asm-util", version = "9.8" }
 dalvik-dx = { group = "com.jakewharton.android.repackaged", name = "dalvik-dx", version = "14.0.0_r21" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.5.2" }
 kotlin-logging-jvm = { group = "io.github.oshai", name = "kotlin-logging-jvm", version = "7.0.0" }
 kotlin-gradle-plugin-api = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin-api", version = "1.7.0" }
-byte-buddy-agent = { group = "net.bytebuddy", name = "byte-buddy-agent", version = "1.17.2" }
-kotlinx-coroutines-jdk8 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version = "1.8.1" }
+byte-buddy-agent = { group = "net.bytebuddy", name = "byte-buddy-agent", version = "1.17.5" }
 ktor-io-jvm = { group = "io.ktor", name = "ktor-io-jvm", version = "2.0.1" }
-logback-classic = { group = "ch.qos.logback", name = "logback-classic", version = "1.2.10" }
+logback-classic = { group = "ch.qos.logback", name = "logback-classic", version = "1.5.18" }
 junit5-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", version = "5.10.3" }
 junit4 = { group = "junit", name = "junit", version = "4.13.2" }
+kotlinx-coroutines-jdk8-build = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version = "1.8.1" }
+kotlinx-coroutines-jdk8-latest = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version = "1.10.2" }
 
 [plugins]
 shadow = { id = "com.github.johnrengelman.shadow" }

@@ -22,6 +22,7 @@ kotlinx-coroutines-jdk8-latest = { group = "org.jetbrains.kotlinx", name = "kotl
 shadow = { id = "com.github.johnrengelman.shadow" }
 dokka = { id = "org.jetbrains.dokka", version = "1.9.20" }
 android-library = { id = "com.android.library" }
+nmcp = { id = "com.gradleup.nmcp", version = "0.0.9" }
 gradle-plugin-publish = { id = "com.gradle.plugin-publish", version = "1.2.1" }
 kotlin-jvm-build = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-jvm-latest = { id = "org.jetbrains.kotlin.jvm", version = "2.2.0-Beta1" }

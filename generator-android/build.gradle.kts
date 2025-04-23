@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.android.library)
     kotlin("android")
     alias(libs.plugins.dokka)
+    alias(libs.plugins.nmcp)
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
@@ -118,10 +119,12 @@ val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
     from(dokkaJavadocTask.outputDirectory)
 }
 
+val mavenPublicationName = "maven"
+
 afterEvaluate {
     publishing {
         publications {
-            create<MavenPublication>("maven") {
+            create<MavenPublication>(mavenPublicationName) {
                 from(components["release"])
                 artifact(dokkaJavadocsJar)
                 pom {
@@ -149,26 +152,14 @@ afterEvaluate {
                 }
             }
         }
-        repositories {
-            maven {
-                name = "sonatype"
-                val releaseRepoUrl = uri("https://ossrh-staging-api.central.sonatype.com/service/local/")
-                val snapshotRepoUrl = uri("https://central.sonatype.com/repository/maven-snapshots/")
-                url = if (version.toString().endsWith("SNAPSHOT")) {
-                    snapshotRepoUrl
-                } else {
-                    releaseRepoUrl
-                }
-                credentials {
-                    username = properties["sonatype.username"] as String?
-                    password = properties["sonatype.password"] as String?
-                }
-            }
-        }
     }
 
     signing {
         useGpgCmd()
-        sign(publishing.publications["maven"])
+        sign(publishing.publications[mavenPublicationName])
+    }
+
+    nmcp {
+        publish(mavenPublicationName) {}
     }
 }

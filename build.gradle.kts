@@ -15,7 +15,27 @@ buildscript {
     }
 }
 
+plugins {
+    alias(libs.plugins.nmcp)
+}
+
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
-    version = "2.4.9-SNAPSHOT"
+    version = "2.4.9"
+}
+
+nmcp {
+    publishAggregation {
+        project(":stacktrace-decoroutinator-common")
+        project(":stacktrace-decoroutinator-generator")
+        project(":stacktrace-decoroutinator-generator-android")
+        project(":stacktrace-decoroutinator-gradle-plugin")
+        project(":stacktrace-decoroutinator-jvm")
+        project(":stacktrace-decoroutinator-jvm-agent")
+        project(":stacktrace-decoroutinator-jvm-agent-common")
+        project(":stacktrace-decoroutinator-provider")
+        username = properties["sonatype.username"] as String?
+        password = properties["sonatype.password"] as String?
+        publicationType = "USER_MANAGED"
+    }
 }

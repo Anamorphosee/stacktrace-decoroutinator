@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     kotlin("jvm")
     alias(libs.plugins.dokka)
+    alias(libs.plugins.nmcp)
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
@@ -69,9 +70,11 @@ val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
     from(dokkaJavadocTask.outputDirectory)
 }
 
+val mavenPublicationName = "maven"
+
 publishing {
     publications {
-        create<MavenPublication>("maven") {
+        create<MavenPublication>(mavenPublicationName) {
             from(components["java"])
             artifact(dokkaJavadocsJar)
             artifact(tasks.named("kotlinSourcesJar"))
@@ -100,25 +103,13 @@ publishing {
             }
         }
     }
-    repositories {
-        maven {
-            name = "sonatype"
-            val releaseRepoUrl = uri("https://ossrh-staging-api.central.sonatype.com/service/local/")
-            val snapshotRepoUrl = uri("https://central.sonatype.com/repository/maven-snapshots/")
-            url = if (version.toString().endsWith("SNAPSHOT")) {
-                snapshotRepoUrl
-            } else {
-                releaseRepoUrl
-            }
-            credentials {
-                username = properties["sonatype.username"] as String?
-                password = properties["sonatype.password"] as String?
-            }
-        }
-    }
 }
 
 signing {
     useGpgCmd()
-    sign(publishing.publications["maven"])
+    sign(publishing.publications[mavenPublicationName])
+}
+
+nmcp {
+    publish(mavenPublicationName) {}
 }

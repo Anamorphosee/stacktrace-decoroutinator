@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     kotlin("jvm")
     alias(libs.plugins.dokka)
+    alias(libs.plugins.nmcp)
     `maven-publish`
     signing
     alias(libs.plugins.gradle.plugin.publish)
@@ -72,9 +73,11 @@ tasks.test {
     dependsOn(project(":gradle-plugin:jdk8-tests-gp").tasks.test)
 }
 
+val mavenPublicationName = "maven"
+
 publishing {
     publications {
-        create<MavenPublication>("maven") {
+        create<MavenPublication>(mavenPublicationName) {
             artifactId = "dev.reformator.stacktracedecoroutinator.gradle.plugin"
             from(components["java"])
             pom {
@@ -102,25 +105,13 @@ publishing {
             }
         }
     }
-    repositories {
-        maven {
-            name = "sonatype"
-            val releaseRepoUrl = uri("https://ossrh-staging-api.central.sonatype.com/service/local/")
-            val snapshotRepoUrl = uri("https://central.sonatype.com/repository/maven-snapshots/")
-            url = if (version.toString().endsWith("SNAPSHOT")) {
-                snapshotRepoUrl
-            } else {
-                releaseRepoUrl
-            }
-            credentials {
-                username = properties["sonatype.username"] as String?
-                password = properties["sonatype.password"] as String?
-            }
-        }
-    }
 }
 
 signing {
     useGpgCmd()
-    sign(publishing.publications["maven"])
+    sign(publishing.publications[mavenPublicationName])
+}
+
+nmcp {
+    publish(mavenPublicationName) {}
 }

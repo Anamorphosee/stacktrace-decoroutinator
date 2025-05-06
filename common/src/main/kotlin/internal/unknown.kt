@@ -4,8 +4,7 @@
     methodNames = [],
     lineNumbersCounts = [],
     lineNumbers = [],
-    baseContinuationClasses = [],
-    version = 0
+    baseContinuationClasses = []
 )
 
 package dev.reformator.stacktracedecoroutinator.common.internal

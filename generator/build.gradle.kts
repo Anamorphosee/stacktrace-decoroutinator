@@ -44,6 +44,7 @@ abstract class Transform: TransformAction<TransformParameters.None> {
                             output.write(input.getInputStream(entry).use {
                                 transformClassBody(
                                     classBody = it,
+                                    skipSpecMethods = false,
                                     metadataResolver = { error("no need") }
                                 ).updatedBody!!
                             })

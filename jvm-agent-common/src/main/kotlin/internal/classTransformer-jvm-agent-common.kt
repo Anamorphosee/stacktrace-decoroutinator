@@ -113,6 +113,7 @@ private class DecoroutinatorClassFileTransformer(
         }
         return transformClassBody(
             classBody = ByteArrayInputStream(classfileBuffer),
+            skipSpecMethods = false,
             metadataResolver = metadataInfoResolveStrategy
         )
     }

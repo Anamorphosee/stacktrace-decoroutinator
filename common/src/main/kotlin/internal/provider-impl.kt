@@ -77,5 +77,8 @@ internal class Provider: DecoroutinatorProvider {
         )
     }
 
+    override val isRegistrationTransfromedClassesEnabled: Boolean
+        get() = enabled
+
     private val prepareCookieLock = ReentrantLock()
 }

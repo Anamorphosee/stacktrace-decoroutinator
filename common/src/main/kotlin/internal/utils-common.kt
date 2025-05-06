@@ -20,8 +20,6 @@ import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 
 const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 
-const val TRANSFORMED_VERSION = 0
-
 const val UNKNOWN_LINE_NUMBER = 0
 
 val specMethodType = MethodType.methodType(
@@ -59,13 +57,7 @@ inline fun assert(check: () -> Boolean) {
 }
 
 val Class<*>.isTransformed: Boolean
-    get() {
-        val transformed = getDeclaredAnnotation(DecoroutinatorTransformed::class.java) ?: return false
-        if (transformed.version > TRANSFORMED_VERSION) {
-            error("Class [$this] has transformed meta of version [${transformed.version}]. Please update Decoroutinator")
-        }
-        return transformed.version == TRANSFORMED_VERSION
-    }
+    get() = getDeclaredAnnotation(DecoroutinatorTransformed::class.java) != null
 
 fun parseTransformationMetadata(
     fileNamePresent: Boolean?,
@@ -74,7 +66,7 @@ fun parseTransformationMetadata(
     lineNumbersCounts: List<Int>,
     lineNumbers: List<Int>,
     baseContinuationClasses: Set<String>,
-    version: Int
+    skipSpecMethods: Boolean?
 ): TransformationMetadata {
     val lineNumberIterator = lineNumbers.iterator()
     return TransformationMetadata(
@@ -90,7 +82,7 @@ fun parseTransformationMetadata(
             )
         },
         baseContinuationClasses = baseContinuationClasses,
-        version = version
+        skipSpecMethods = skipSpecMethods ?: false
     )
 }
 

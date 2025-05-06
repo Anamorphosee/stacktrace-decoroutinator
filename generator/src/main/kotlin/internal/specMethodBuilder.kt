@@ -269,5 +269,5 @@ private fun getResumeNextAndReturnInstructions(lineNumbers: List<Int>) = InsnLis
     add(InsnNode(Opcodes.POP2))
 }
 
-private fun getGetterMethodName(propertyName: String): String =
+internal fun getGetterMethodName(propertyName: String): String =
     if (propertyName.startsWith("is")) propertyName else "get${propertyName[0].uppercase()}${propertyName.substring(1)}"

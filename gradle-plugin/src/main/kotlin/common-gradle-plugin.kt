@@ -3,7 +3,6 @@
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
-import dev.reformator.stacktracedecoroutinator.common.internal.TRANSFORMED_VERSION
 import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
 import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
@@ -18,7 +17,9 @@ import org.gradle.api.artifacts.transform.TransformParameters
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.compile.AbstractCompile
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
@@ -32,9 +33,15 @@ import java.util.zip.ZipOutputStream
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
-val decoroutinatorTransformedVersionAttribute: Attribute<Int> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.transformedVersion4",
-    Int::class.javaObjectType
+enum class DecoroutinatorTransformedState {
+    UNTRANSFORMED,
+    TRANSFORMED,
+    TRANSFORMED_SKIPPING_SPEC_METHODS
+}
+
+val decoroutinatorTransformedStateAttribute: Attribute<DecoroutinatorTransformedState> = Attribute.of(
+    "dev.reformator.stacktracedecoroutinator.transformedState",
+    DecoroutinatorTransformedState::class.java
 )
 
 internal class ObservableProperty<T>(private var _value: T): ReadWriteProperty<Any?, T> {
@@ -81,10 +88,8 @@ internal class StringMatcher(property: StringMatcherProperty) {
 
 open class DecoroutinatorPluginExtension {
     // high level configurations
-    internal val _addAndroidRuntimeDependency = ObservableProperty(false)
     var enabled = true
-    @Suppress("unused")
-    var addAndroidRuntimeDependency: Boolean by _addAndroidRuntimeDependency
+    var addAndroidRuntimeDependency = true
     var addJvmRuntimeDependency = true
     var androidTestsOnly = false
     var jvmTestsOnly = false
@@ -96,14 +101,15 @@ open class DecoroutinatorPluginExtension {
     val jvmRuntimeDependencyConfigurations = StringMatcherProperty()
     val androidRuntimeDependencyConfigurations = StringMatcherProperty()
     val transformedClassesConfigurations = StringMatcherProperty()
+    val transformedClassesSkippingSpecMethodsConfigurations = StringMatcherProperty()
     val tasks = StringMatcherProperty()
+    val tasksSkippingSpecMethods = StringMatcherProperty()
     var artifactTypes: Set<String> by _artifactTypes
 }
 
 private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: Project) {
     val isAndroid = project.pluginManager.hasPlugin("com.android.base")
     val isKmp = project.pluginManager.hasPlugin("org.jetbrains.kotlin.multiplatform")
-    _addAndroidRuntimeDependency.updateIfNotSet { androidTestsOnly }
 
     val androidDepConfigurations = when {
         isKmp && androidTestsOnly -> setOf("androidTestImplementation")
@@ -253,23 +259,48 @@ class DecoroutinatorPlugin: Plugin<Project> {
                 ::stacktraceDecoroutinator.name,
                 DecoroutinatorPluginExtension::class.java
             )
-            dependencies.attributesSchema.attribute(decoroutinatorTransformedVersionAttribute)
+            dependencies.attributesSchema.attribute(decoroutinatorTransformedStateAttribute)
 
             afterEvaluate { _ ->
                 if (pluginExtension.enabled) {
                     pluginExtension.setupLowLevelConfigurations(target)
                     log.debug { "registering DecoroutinatorArtifactTransformer for types [${pluginExtension.artifactTypes}]" }
                     pluginExtension.artifactTypes.forEach { artifactType ->
-                        (NO_TRANSFORMATION_VERSION until TRANSFORMED_VERSION).forEach { fromVersion ->
-                            dependencies.registerTransform(DecoroutinatorTransformAction::class.java) {
-                                it.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                                it.from.attribute(decoroutinatorTransformedVersionAttribute, fromVersion)
-                                it.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                                it.to.attribute(decoroutinatorTransformedVersionAttribute, TRANSFORMED_VERSION)
+                        dependencies.registerTransform(DecoroutinatorTransformAction::class.java) { transformation ->
+                            transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                            transformation.from.attribute(
+                                decoroutinatorTransformedStateAttribute,
+                                DecoroutinatorTransformedState.UNTRANSFORMED
+                            )
+                            transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                            transformation.to.attribute(
+                                decoroutinatorTransformedStateAttribute,
+                                DecoroutinatorTransformedState.TRANSFORMED
+                            )
+                            transformation.parameters {
+                                it.skipSpecMethods.set(false)
+                            }
+                        }
+                        dependencies.registerTransform(DecoroutinatorTransformAction::class.java) { transformation ->
+                            transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                            transformation.from.attribute(
+                                decoroutinatorTransformedStateAttribute,
+                                DecoroutinatorTransformedState.UNTRANSFORMED
+                            )
+                            transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                            transformation.to.attribute(
+                                decoroutinatorTransformedStateAttribute,
+                                DecoroutinatorTransformedState.TRANSFORMED_SKIPPING_SPEC_METHODS
+                            )
+                            transformation.parameters {
+                                it.skipSpecMethods.set(true)
                             }
                         }
                         dependencies.artifactTypes.maybeCreate(artifactType).attributes
-                            .attribute(decoroutinatorTransformedVersionAttribute, NO_TRANSFORMATION_VERSION)
+                            .attribute(
+                                decoroutinatorTransformedStateAttribute,
+                                DecoroutinatorTransformedState.UNTRANSFORMED
+                            )
                     }
 
                     //runtime dependency
@@ -311,28 +342,59 @@ class DecoroutinatorPlugin: Plugin<Project> {
 
                     run {
                         val matcher = pluginExtension.transformedClassesConfigurations.matcher
+                        val skippingSpecMethodsMatcher =
+                            pluginExtension.transformedClassesSkippingSpecMethodsConfigurations.matcher
                         configurations.all { config ->
-                            if (matcher.matches(config.name)) {
-                                log.debug { "setting decoroutinatorTransformedAttribute for configuration [${config.name}]" }
-                                config.attributes.attribute(decoroutinatorTransformedVersionAttribute, TRANSFORMED_VERSION)
+                            val state = when {
+                                matcher.matches(config.name) -> DecoroutinatorTransformedState.TRANSFORMED
+                                skippingSpecMethodsMatcher.matches(config.name) ->
+                                    DecoroutinatorTransformedState.TRANSFORMED_SKIPPING_SPEC_METHODS
+                                else -> null
+                            }
+                            if (state != null) {
+                                log.debug { "setting decoroutinatorTransformedStateAttribute for configuration [${config.name}] and state [$state]" }
+                                config.attributes.attribute(decoroutinatorTransformedStateAttribute, state)
+                            } else {
+                                log.debug { "skipping setting decoroutinatorTransformedStateAttribute for configuration [${config.name}]" }
                             }
                         }
                     }
 
                     run {
                         val matcher = pluginExtension.tasks.matcher
+                        val skippingSpecMethodsMatcher = pluginExtension.tasksSkippingSpecMethods.matcher
                         tasks.withType(KotlinJvmCompile::class.java) { task ->
-                            if (matcher.matches(task.name)) {
-                                log.debug { "setting transform classes action for task [${task.name}]" }
+                            val skipSpecMethods = when {
+                                matcher.matches(task.name) -> false
+                                skippingSpecMethodsMatcher.matches(task.name) -> true
+                                else -> null
+                            }
+                            if (skipSpecMethods != null) {
+                                log.debug { "setting transform classes action for task [${task.name}], skipSpecMethods = [$skipSpecMethods]" }
                                 task.doLast { _ ->
-                                    transformClassesDirInPlace(task.destinationDirectory.get().asFile)
+                                    val dir = task.destinationDirectory.get().asFile
+                                    log.debug { "performing in-place transformation of a classes directory [${dir.absolutePath}], skipSpecMethods = [$skipSpecMethods]" }
+                                    transformClassesDir(
+                                        root = dir,
+                                        skipSpecMethods = skipSpecMethods,
+                                        onDirectory = { },
+                                        onFile = { relativePath, content, modified ->
+                                            if (modified) {
+                                                val file = dir.resolve(relativePath)
+                                                log.debug { "class file [${file.absolutePath}] was transformed, skipSpecMethods = [$skipSpecMethods]" }
+                                                file.outputStream().use { output ->
+                                                    content.copyTo(output)
+                                                }
+                                            }
+                                        }
+                                    )
                                 }
                             } else {
                                 log.debug { "skipped transform classes action for task [${task.name}]" }
                             }
                         }
                         tasks.withType(AbstractCompile::class.java) { task ->
-                            if (matcher.matches(task.name)) {
+                            if (matcher.matches(task.name) || skippingSpecMethodsMatcher.matches(task.name)) {
                                 log.debug { "setting 'addReadProviderModule' action for task [${task.name}]" }
                                 task.doLast { _ ->
                                     visitModuleInfoFiles(task.destinationDirectory.get().asFile) { path, _ ->
@@ -353,8 +415,11 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         project.configurations.forEach { conf ->
                             conf.outgoing.variants.forEach { variant ->
                                 if (variant.artifacts.any { it.type in pluginExtension.artifactTypes }) {
-                                    log.debug { "unsetting decoroutinatorTransformedAttribute for outgoing variant [${variant.name}] of cofiguarion [${conf.name}]" }
-                                    variant.attributes.attribute(decoroutinatorTransformedVersionAttribute, NO_TRANSFORMATION_VERSION)
+                                    log.debug { "unsetting decoroutinatorTransformedStateAttribute for outgoing variant [${variant.name}] of cofiguarion [${conf.name}]" }
+                                    variant.attributes.attribute(
+                                        decoroutinatorTransformedStateAttribute,
+                                        DecoroutinatorTransformedState.UNTRANSFORMED
+                                    )
                                 }
                             }
                         }
@@ -374,7 +439,12 @@ class DecoroutinatorPlugin: Plugin<Project> {
     }
 }
 
-abstract class DecoroutinatorTransformAction: TransformAction<TransformParameters.None> {
+abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTransformAction.Parameters> {
+    interface Parameters: TransformParameters {
+        @get:Input
+        val skipSpecMethods: Property<Boolean>
+    }
+
     @get:InputArtifact
     abstract val inputArtifact: Provider<FileSystemLocation>
 
@@ -387,6 +457,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
                 try {
                     transformZip(
                         zip = root,
+                        skipSpecMethods = parameters.skipSpecMethods.get(),
                         putNextEntry = { },
                         putFileBody = { modified, _ ->
                             if (modified) {
@@ -407,6 +478,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
                 ZipOutputStream(newFile.outputStream()).use { output ->
                     transformZip(
                         zip = root,
+                        skipSpecMethods = parameters.skipSpecMethods.get(),
                         putNextEntry = { output.putNextEntry(it) },
                         putFileBody = { _, body -> body.copyTo(output) },
                         closeEntry = { output.closeEntry() }
@@ -422,6 +494,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
             val needModification = run {
                 transformClassesDir(
                     root = root,
+                    skipSpecMethods = parameters.skipSpecMethods.get(),
                     onDirectory = { },
                     onFile = { _, _, modified ->
                         if (modified) return@run true
@@ -433,6 +506,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
                 val newRoot = outputs.dir(root.name + "-decoroutinator")
                 transformClassesDir(
                     root = root,
+                    skipSpecMethods = parameters.skipSpecMethods.get(),
                     onDirectory = { newRoot.resolve(it).mkdir() },
                     onFile = { relativePath, content, _ ->
                         newRoot.resolve(relativePath).outputStream().use { output ->
@@ -453,11 +527,11 @@ abstract class DecoroutinatorTransformAction: TransformAction<TransformParameter
 
 private const val CLASS_EXTENSION = ".class"
 private const val MODULE_INFO_CLASS_NAME = "module-info.class"
-private const val NO_TRANSFORMATION_VERSION = -1
 private val log = KotlinLogging.logger { }
 
 private inline fun transformZip(
     zip: File,
+    skipSpecMethods: Boolean,
     putNextEntry: (ZipEntry) -> Unit,
     putFileBody: (modified: Boolean, body: InputStream) -> Unit,
     closeEntry: () -> Unit
@@ -491,7 +565,8 @@ private inline fun transformZip(
                                     input.getInputStream(classEntry).use {
                                         getDebugMetadataInfoFromClassBody(it)
                                     }
-                                }
+                                },
+                                skipSpecMethods = skipSpecMethods
                             )
                         }
                         readProviderModule = readProviderModule || transformationStatus.needReadProviderModule
@@ -537,6 +612,7 @@ private inline fun transformZip(
 
 private inline fun transformClassesDir(
     root: File,
+    skipSpecMethods: Boolean,
     onDirectory: (relativePath: File) -> Unit,
     onFile: (relativePath: File, content: InputStream, modified: Boolean) -> Unit
 ) {
@@ -558,7 +634,8 @@ private inline fun transformClassesDir(
                         } else {
                             null
                         }
-                    }
+                    },
+                    skipSpecMethods = skipSpecMethods
                 )
             }
             readProviderModule = readProviderModule || transformationStatus.needReadProviderModule
@@ -595,23 +672,6 @@ private inline fun visitModuleInfoFiles(root: File, onModuleInfoFile: (path: Fil
             onModuleInfoFile(file, relativePath)
         }
     }
-}
-
-private fun transformClassesDirInPlace(dir: File) {
-    log.debug { "performing in-place transformation of a classes directory [${dir.absolutePath}]" }
-    transformClassesDir(
-        root = dir,
-        onDirectory = { },
-        onFile = { relativePath, content, modified ->
-            if (modified) {
-                val file = dir.resolve(relativePath)
-                log.debug { "class file [${file.absolutePath}] was transformed" }
-                file.outputStream().use { output ->
-                    content.copyTo(output)
-                }
-            }
-        }
-    )
 }
 
 private val String.isModuleInfo: Boolean

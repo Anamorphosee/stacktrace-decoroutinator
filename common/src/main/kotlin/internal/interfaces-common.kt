@@ -38,7 +38,7 @@ data class TransformationMetadata(
     val fileName: String?,
     val methods: List<Method>,
     val baseContinuationClasses: Set<String>,
-    val version: Int
+    val skipSpecMethods: Boolean
 ) {
     @Suppress("ArrayInDataClass")
     data class Method(

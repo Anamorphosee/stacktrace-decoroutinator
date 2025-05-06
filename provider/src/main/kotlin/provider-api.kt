@@ -9,9 +9,6 @@ import dev.reformator.stacktracedecoroutinator.provider.internal.provider
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 
-const val IS_DECOROUTINATOR_ENABLED_METHOD_NAME = "isDecoroutinatorEnabled"
-const val GET_COOKIE_METHOD_NAME = "getCookie"
-
 interface DecoroutinatorSpec {
     val lineNumber: Int
     val isLastSpec: Boolean
@@ -30,14 +27,17 @@ annotation class DecoroutinatorTransformed(
     val lineNumbersCounts: IntArray,
     val lineNumbers: IntArray,
     val baseContinuationClasses: Array<String>,
-    val version: Int
+    val skipSpecMethods: Boolean = false
 )
 
 val isDecoroutinatorEnabled: Boolean
-    @JvmName(IS_DECOROUTINATOR_ENABLED_METHOD_NAME) get() = provider.isDecoroutinatorEnabled
+    get() = provider.isDecoroutinatorEnabled
 
 val cookie: Any?
-    @JvmName(GET_COOKIE_METHOD_NAME) get() = provider.cookie
+    get() = provider.cookie
+
+val isRegistrationTransfromedClassesEnabled: Boolean
+    get() = provider.isRegistrationTransfromedClassesEnabled
 
 
 fun prepareCookie(lookup: MethodHandles.Lookup): Any =

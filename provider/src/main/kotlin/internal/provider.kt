@@ -18,6 +18,7 @@ interface DecoroutinatorProvider {
         methodName: String,
         lineNumber: Int
     ): Any?
+    val isRegistrationTransfromedClassesEnabled: Boolean
 }
 
 val provider: DecoroutinatorProvider = ServiceLoader.load(DecoroutinatorProvider::class.java).iterator().next()

@@ -47,7 +47,7 @@ internal object TransformedClassesRegistry {
                     lineNumbersCounts = transformedAnnotation.lineNumbersCounts.toList(),
                     lineNumbers = transformedAnnotation.lineNumbers.toList(),
                     baseContinuationClasses = transformedAnnotation.baseContinuationClasses.toSet(),
-                    version = transformedAnnotation.version
+                    skipSpecMethods = transformedAnnotation.skipSpecMethods
                 )
             }
         // https://youtrack.jetbrains.com/issue/KT-25337
@@ -64,7 +64,7 @@ internal object TransformedClassesRegistry {
                 null
             }
         }
-        if (meta != null && meta.version <= TRANSFORMED_VERSION) {
+        if (meta != null) {
             val transformedClassSpec = run {
                 val lineNumbersByMethod = meta.methods.asSequence()
                     .map { it.name to it.lineNumbers }
@@ -79,8 +79,6 @@ internal object TransformedClassesRegistry {
             }
             _transformedClasses[clazz.name] = transformedClassSpec
             callListeners(transformedClassSpec)
-        } else if (meta != null) {
-            error("Class [$clazz] has transformed meta of version [${meta.version}]. Please update Decoroutinator")
         }
     }
 

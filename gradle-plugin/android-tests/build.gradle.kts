@@ -16,6 +16,7 @@ repositories {
 stacktraceDecoroutinator {
     dependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
+    addAndroidRuntimeDependency = false
 }
 
 dependencies {

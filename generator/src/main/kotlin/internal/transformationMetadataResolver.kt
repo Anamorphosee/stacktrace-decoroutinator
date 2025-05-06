@@ -21,7 +21,7 @@ class AnnotationMetadataResolverImpl: AnnotationMetadataResolver {
         val lineNumbersCounts = transformedAnnotation.getField(DecoroutinatorTransformed::lineNumbersCounts.name) as List<Int>
         val lineNumbers = transformedAnnotation.getField(DecoroutinatorTransformed::lineNumbers.name) as List<Int>
         val baseContinuationClasses = transformedAnnotation.getField(DecoroutinatorTransformed::baseContinuationClasses.name) as List<String>
-        val version = transformedAnnotation.getField(DecoroutinatorTransformed::version.name) as Int
+        val skipSpecMethods = transformedAnnotation.getField(DecoroutinatorTransformed::skipSpecMethods.name) as Boolean?
         return parseTransformationMetadata(
             fileNamePresent = fileNamePresent,
             fileName = fileName,
@@ -29,7 +29,7 @@ class AnnotationMetadataResolverImpl: AnnotationMetadataResolver {
             lineNumbersCounts = lineNumbersCounts,
             lineNumbers = lineNumbers,
             baseContinuationClasses = baseContinuationClasses.toSet(),
-            version = version
+            skipSpecMethods = skipSpecMethods
         )
     }
 

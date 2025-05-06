@@ -15,6 +15,7 @@ import java.io.InputStream
 import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
+import dev.reformator.stacktracedecoroutinator.provider.cookie as providerCookie
 
 class ClassBodyTransformationStatus(
     val updatedBody: ByteArray?,
@@ -29,14 +30,10 @@ class NeedTransformationStatus(
 val Class<*>.needTransformation: NeedTransformationStatus
     get() {
         getDeclaredAnnotation(DecoroutinatorTransformed::class.java)?.let { transformedAnnotation ->
-            return if (transformedAnnotation.version < TRANSFORMED_VERSION) {
-                fullNeedTransformationStatus
-            } else if (transformedAnnotation.version == TRANSFORMED_VERSION) {
-                readProviderNeedTransformationStatus
-            } else {
-                error("class [$name]'s transformed meta has version [${transformedAnnotation.version}]. " +
-                        "Please update Decoroutinator")
+            if (transformedAnnotation.skipSpecMethods) {
+                error("not implemented")
             }
+            return readProviderNeedTransformationStatus
         }
         if (name == BASE_CONTINUATION_CLASS_NAME) {
             return fullNeedTransformationStatus
@@ -51,18 +48,10 @@ val Class<*>.needTransformation: NeedTransformationStatus
 
 fun transformClassBody(
     classBody: InputStream,
-    metadataResolver: (className: String) -> DebugMetadataInfo?
+    metadataResolver: (className: String) -> DebugMetadataInfo?,
+    skipSpecMethods: Boolean
 ): ClassBodyTransformationStatus {
     val node = getClassNode(classBody) ?: return noClassBodyTransformationStatus
-    val version = node.decoroutinatorTransformedVersion
-    if (version != null) {
-        if (version == TRANSFORMED_VERSION) {
-            return readProviderClassBodyTransformationStatus
-        }
-        if (version > TRANSFORMED_VERSION) {
-            error("class [${node.name}]'s transformed meta has version [$version]. Please update Decoroutinator")
-        }
-    }
     if (node.name == BASE_CONTINUATION_CLASS_NAME.internalName) {
         transformBaseContinuation(node)
         return ClassBodyTransformationStatus(
@@ -70,8 +59,9 @@ fun transformClassBody(
             needReadProviderModule = true
         )
     }
-    val transformationInfo = node.getClassTransformationInfo(metadataResolver) ?: return noClassBodyTransformationStatus
-    node.transform(transformationInfo)
+    val transformationInfo = node.getClassTransformationInfo(metadataResolver, skipSpecMethods) ?:
+        return noClassBodyTransformationStatus
+    node.transform(transformationInfo, skipSpecMethods)
     return ClassBodyTransformationStatus(
         updatedBody = node.classBody,
         needReadProviderModule = true
@@ -104,7 +94,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode) {
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
-            IS_DECOROUTINATOR_ENABLED_METHOD_NAME,
+            getGetterMethodName(::isDecoroutinatorEnabled.name),
             "()${Type.BOOLEAN_TYPE.descriptor}"
         ))
         val defaultAwakeLabel = LabelNode()
@@ -115,7 +105,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode) {
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
-            GET_COOKIE_METHOD_NAME,
+            getGetterMethodName(::providerCookie.name),
             "()${Type.getDescriptor(Object::class.java)}"
         ))
         add(InsnNode(Opcodes.DUP))
@@ -158,7 +148,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode) {
     annotations.add(ClassTransformationInfo(
         lineNumbersByMethod = emptyMap(),
         baseContinuationInternalClassNames = emptySet()
-    ).getTransformedAnnotation(baseContinuation))
+    ).getTransformedAnnotation(baseContinuation, false))
 }
 
 fun getDebugMetadataInfoFromClassBody(body: InputStream): DebugMetadataInfo? =
@@ -206,7 +196,10 @@ private data class ClassTransformationInfo(
     val baseContinuationInternalClassNames: Set<String>
 )
 
-private fun ClassNode.transform(classTransformationInfo: ClassTransformationInfo) {
+private fun ClassNode.transform(
+    classTransformationInfo: ClassTransformationInfo,
+    skipSpecMethods: Boolean
+) {
     val isInterface = access and Opcodes.ACC_INTERFACE != 0
     val isPrivateMethodsInInterfacesSupported = version >= Opcodes.V9
     val makePrivate = !isInterface || isPrivateMethodsInInterfacesSupported
@@ -229,7 +222,7 @@ private fun ClassNode.transform(classTransformationInfo: ClassTransformationInfo
     if (visibleAnnotations == null) {
         visibleAnnotations = mutableListOf()
     }
-    visibleAnnotations.add(classTransformationInfo.getTransformedAnnotation(this))
+    visibleAnnotations.add(classTransformationInfo.getTransformedAnnotation(this, skipSpecMethods))
 }
 
 internal fun getClassNode(classBody: InputStream, skipCode: Boolean = false): ClassNode? {
@@ -264,23 +257,22 @@ internal fun AnnotationNode.getField(name: String): Any? {
     return null
 }
 
-private val ClassNode.decoroutinatorTransformedVersion: Int?
-    get() {
-        val meta = decoroutinatorTransformedAnnotation ?: return null
-        return meta.getField(DecoroutinatorTransformed::version.name) as Int
-    }
-
-private fun ClassNode.getClassTransformationInfo(metadataResolver: (className: String) -> DebugMetadataInfo?): ClassTransformationInfo? {
+private fun ClassNode.getClassTransformationInfo(
+    metadataResolver: (className: String) -> DebugMetadataInfo?,
+    skipSpecMethods: Boolean
+): ClassTransformationInfo? {
     val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
     val baseContinuationInternalClassNames = mutableSetOf<String>()
     var needTransformation = false
     val check = { info: DebugMetadataInfo? ->
         if (info != null && info.specClassInternalClassName == name) {
             needTransformation = true
-            val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(info.methodName) {
-                mutableSetOf(UNKNOWN_LINE_NUMBER)
+            if (!skipSpecMethods) {
+                val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(info.methodName) {
+                    mutableSetOf(UNKNOWN_LINE_NUMBER)
+                }
+                currentLineNumbers.addAll(info.lineNumbers)
             }
-            currentLineNumbers.addAll(info.lineNumbers)
             baseContinuationInternalClassNames.add(info.baseContinuationInternalClassName)
         }
     }
@@ -491,6 +483,17 @@ private fun ClassNode.getOrCreateClinitMethod(): MethodNode =
 private fun buildCallRegisterLookupInstructions() = InsnList().apply {
     add(MethodInsnNode(
         Opcodes.INVOKESTATIC,
+        Type.getInternalName(providerApiClass),
+        getGetterMethodName(::isRegistrationTransfromedClassesEnabled.name),
+        "()${Type.BOOLEAN_TYPE.descriptor}"
+    ))
+    val disabledLabel = LabelNode()
+    add(JumpInsnNode(
+        Opcodes.IFEQ,
+        disabledLabel
+    ))
+    add(MethodInsnNode(
+        Opcodes.INVOKESTATIC,
         Type.getInternalName(MethodHandles::class.java),
         MethodHandles::lookup.name,
         "()${Type.getDescriptor(MethodHandles.Lookup::class.java)}"
@@ -501,9 +504,14 @@ private fun buildCallRegisterLookupInstructions() = InsnList().apply {
         ::registerTransformedClass.name,
         "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})V"
     ))
+    add(disabledLabel)
+    add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
 }
 
-private fun ClassTransformationInfo.getTransformedAnnotation(clazz: ClassNode): AnnotationNode {
+private fun ClassTransformationInfo.getTransformedAnnotation(
+    clazz: ClassNode,
+    skipSpecMethods: Boolean
+): AnnotationNode {
     val result = AnnotationNode(Opcodes.ASM9, Type.getDescriptor(DecoroutinatorTransformed::class.java))
     val lineNumbers = lineNumbersByMethod.entries.toList()
     result.values = buildList {
@@ -526,8 +534,10 @@ private fun ClassTransformationInfo.getTransformedAnnotation(clazz: ClassNode): 
         add(DecoroutinatorTransformed::baseContinuationClasses.name)
         add(baseContinuationInternalClassNames.map { Type.getObjectType(it).className })
 
-        add(DecoroutinatorTransformed::version.name)
-        add(TRANSFORMED_VERSION)
+        if (skipSpecMethods) {
+            add(DecoroutinatorTransformed::skipSpecMethods.name)
+            add(true)
+        }
     }
     return result
 }

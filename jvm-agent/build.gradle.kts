@@ -34,7 +34,7 @@ bytecodeProcessor {
     processors = setOf(RemoveKotlinStdlibProcessor())
 }
 
-val shadowJarTask = tasks.named<ShadowJar>("shadowJar") {
+tasks.named<ShadowJar>("shadowJar") {
     manifest {
         attributes(mapOf(
             "Premain-Class" to "dev.reformator.stacktracedecoroutinator.jvmagent.DecoroutinatorAgentKt"

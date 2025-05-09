@@ -25,7 +25,7 @@ internal class GeneratorSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                 assert { element.fileName == fileName }
                 assert { element.methodName == methodName }
                 assert { element.lineNumber in lineNumbersByMethod[element.methodName]!! }
-                val spec = DecoroutinatorSpecImpl(
+                val spec = methodHandleInvoker.createSpec(
                     cookie = cookie,
                     lineNumber = element.lineNumber,
                     nextSpecAndItsMethod = nextSpec,

@@ -3,6 +3,9 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 import java.lang.invoke.MethodHandles
 import java.util.ServiceLoader
 
+val methodHandleInvoker: MethodHandleInvoker =
+    ServiceLoader.load(MethodHandleInvoker::class.java).iterator().next()
+
 internal val supportsVarHandles =
     try {
         _supportsVarHandleStub().check()

@@ -67,6 +67,7 @@ dependencies {
 
 
     testRuntimeOnly(project(":stacktrace-decoroutinator-generator"))
+    testRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
 
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))

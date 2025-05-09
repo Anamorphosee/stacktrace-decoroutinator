@@ -41,18 +41,15 @@ internal fun BaseContinuation.awake(cookie: Cookie, result: Any?) {
         result
     }
 
-    val lastBaseContinuationResult = baseContinuations.last().callInvokeSuspend(cookie, specResult)
+    val lastBaseContinuationResult = methodHandleInvoker.callInvokeSuspend(
+        continuation = baseContinuations.last(),
+        cookie = cookie,
+        specResult = specResult
+    )
     if (lastBaseContinuationResult === COROUTINE_SUSPENDED) return
 
     baseContinuations.last().completion!!.resumeWith(Result.success(lastBaseContinuationResult))
 }
-
-private val unknownStacktraceElement = StacktraceElement(
-    lineNumber = UNKNOWN_LINE_NUMBER,
-    className = "Unknown",
-    methodName = "unknown",
-    fileName = null
-)
 
 private fun callSpecMethods(
     cookie: Cookie,
@@ -66,20 +63,38 @@ private fun callSpecMethods(
     var specAndItsMethodHandle: SpecAndItsMethodHandle? = null
     (1 ..< baseContinuations.size).forEach { index ->
         val continuation = baseContinuations[index]
-        val element = stacktraceElements.elementsByContinuation[continuation] ?: unknownStacktraceElement
-        val factory = specFactories[element] ?: UnknownSpecMethodsFactory
+        val element = stacktraceElements.elementsByContinuation[continuation]
+        val factory = specFactories[element]
         val nextContinuation = baseContinuations[index - 1]
-        specAndItsMethodHandle = factory.getSpecAndItsMethodHandle(
-            cookie = cookie,
-            element = element,
-            nextSpec = specAndItsMethodHandle,
-            nextContinuation = nextContinuation
-        )
+        specAndItsMethodHandle = if (element != null && factory != null) {
+            factory.getSpecAndItsMethodHandle(
+                cookie = cookie,
+                element = element,
+                nextSpec = specAndItsMethodHandle,
+                nextContinuation = nextContinuation
+            )
+        } else {
+            SpecAndItsMethodHandle(
+                specMethodHandle = methodHandleInvoker.unknownSpecMethodHandle,
+                spec = methodHandleInvoker.createSpec(
+                    cookie = cookie,
+                    lineNumber = UNKNOWN_LINE_NUMBER,
+                    nextSpecAndItsMethod = specAndItsMethodHandle,
+                    nextContinuation = nextContinuation
+                )
+            )
+        }
     }
-    return if (specAndItsMethodHandle != null) {
-        specAndItsMethodHandle!!.specMethodHandle.invokeExact(specAndItsMethodHandle!!.spec, result)
-    } else {
-        result
+    return specAndItsMethodHandle.let {
+        if (it != null) {
+            methodHandleInvoker.callSpecMethod(
+                handle = it.specMethodHandle,
+                spec = it.spec,
+                result = result
+            )
+        } else {
+            result
+        }
     }
 }
 
@@ -96,9 +111,14 @@ private fun recoveryExplicitStacktrace(
                 val continuation = baseContinuations[it]
                 val element = stacktraceElements.elementsByContinuation[continuation]
                 if (element == null) {
-                    artificialFrame("unknown")
+                    unknownStacktraceElement
                 } else {
-                    StackTraceElement(element.className, element.methodName, element.fileName, element.lineNumber)
+                    StackTraceElement(
+                        element.className,
+                        element.methodName,
+                        element.fileName,
+                        element.lineNumber
+                    )
                 }
             }
             it == baseContinuations.size -> decoroutinatorBoundaryStacktraceElement
@@ -112,3 +132,4 @@ private fun artificialFrame(message: String) =
     StackTraceElement("", "", message, -1)
 
 private val decoroutinatorBoundaryStacktraceElement = artificialFrame("decoroutinator-boundary")
+private val unknownStacktraceElement = artificialFrame("unknown")

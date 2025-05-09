@@ -484,7 +484,7 @@ private fun buildCallRegisterLookupInstructions() = InsnList().apply {
     add(MethodInsnNode(
         Opcodes.INVOKESTATIC,
         Type.getInternalName(providerApiClass),
-        getGetterMethodName(::isRegistrationTransfromedClassesEnabled.name),
+        getGetterMethodName(::isDecoroutinatorEnabled.name),
         "()${Type.BOOLEAN_TYPE.descriptor}"
     ))
     val disabledLabel = LabelNode()

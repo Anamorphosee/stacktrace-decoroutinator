@@ -28,5 +28,9 @@ fun DependencyHandler.decoroutinatorJvmRuntime(): Any =
 fun DependencyHandler.decoroutinatorAndroidRuntime(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-android:$projectVersionIntrinsic"
 
+@Suppress("UnusedReceiverParameter")
+fun DependencyHandler.decoroutinatorRegularMethodHandleInvoker(): Any =
+    "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-mh-invoker:$projectVersionIntrinsic"
+
 private val projectVersionIntrinsic: String
     @LoadConstant get() { error("intrinsics failed") }

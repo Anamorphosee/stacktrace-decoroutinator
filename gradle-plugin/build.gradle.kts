@@ -15,7 +15,6 @@ repositories {
     mavenCentral()
 }
 
-@Suppress("UnstableApiUsage")
 gradlePlugin {
     website = "https://github.com/Anamorphosee/stacktrace-decoroutinator"
     vcsUrl = "https://github.com/Anamorphosee/stacktrace-decoroutinator.git"
@@ -43,6 +42,8 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.kotlin.gradle.plugin.api)
+
+    runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
 
     testImplementation(kotlin("test"))
 }

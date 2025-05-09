@@ -22,6 +22,7 @@ dependencies {
     testCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     testRuntimeOnly(project(":stacktrace-decoroutinator-common"))
+    testRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
 
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))

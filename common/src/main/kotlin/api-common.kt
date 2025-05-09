@@ -19,8 +19,7 @@ data class DecoroutinatorStatus(val successful: Boolean, val description: String
 
 object DecoroutinatorCommonApi {
     /**
-     * Get status of Decoroutinator correctness.
-     * Must be called like this:
+     * Get the status of Decoroutinator correctness.
      * @param sourceCall call this lambda. Need to check status properly. See the sample below.
      * @sample getStatusSample
      */
@@ -121,7 +120,7 @@ object DecoroutinatorCommonApi {
                 }
                 if (
                     trace.subList(0, baseContinuationResumeIndex).any {
-                        it.className == unknownSpecClass.name
+                        it.className == methodHandleInvoker.unknownSpecMethodClass.name
                     }
                 ) {
                     return DecoroutinatorStatus(
@@ -167,6 +166,7 @@ object DecoroutinatorCommonApi {
     }
 }
 
+@Suppress("unused")
 private fun getStatusSample() {
     val status = DecoroutinatorCommonApi.getStatus { it() }
     if (status.successful) {

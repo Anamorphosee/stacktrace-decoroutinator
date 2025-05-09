@@ -22,6 +22,8 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation(libs.asm.utils)
 
+    runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
+
     testImplementation(kotlin("test"))
 }
 

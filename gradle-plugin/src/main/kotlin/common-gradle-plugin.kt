@@ -251,6 +251,7 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: P
     }
 }
 
+@Suppress("unused")
 class DecoroutinatorPlugin: Plugin<Project> {
     override fun apply(target: Project) {
         log.debug { "applying Decoroutinator plugin to ${target.name}" }
@@ -311,6 +312,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                                 with (dependencies) {
                                     add(config.name, decoroutinatorCommon())
                                     add(config.name, decoroutinatorProvider())
+                                    add(config.name, decoroutinatorRegularMethodHandleInvoker())
                                 }
                             }
                         }

@@ -4,6 +4,7 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
 
@@ -20,6 +21,12 @@ fun interface SpecMethodsRegistry {
     ): Map<StacktraceElement, SpecMethodsFactory>
 }
 
+@DecoroutinatorTransformed(
+    methodNames = [],
+    lineNumbersCounts = [],
+    lineNumbers = [],
+    baseContinuationClasses = []
+)
 data class SpecAndItsMethodHandle(
     val specMethodHandle: MethodHandle,
     val spec: DecoroutinatorSpec
@@ -73,6 +80,35 @@ interface CommonSettingsProvider {
             .toBoolean()
 }
 
+@DecoroutinatorTransformed(
+    methodNames = [],
+    lineNumbersCounts = [],
+    lineNumbers = [],
+    baseContinuationClasses = []
+)
+interface MethodHandleInvoker {
+    fun createSpec(
+        cookie: Cookie,
+        lineNumber: Int,
+        nextSpecAndItsMethod: SpecAndItsMethodHandle?,
+        nextContinuation: BaseContinuation
+    ): DecoroutinatorSpec
+
+    val unknownSpecMethodHandle: MethodHandle
+
+    fun callInvokeSuspend(continuation: BaseContinuation, cookie: Cookie, specResult: Any?): Any?
+
+    fun callSpecMethod(handle: MethodHandle, spec: DecoroutinatorSpec, result: Any?): Any?
+
+    val unknownSpecMethodClass: Class<*>
+}
+
+@DecoroutinatorTransformed(
+    methodNames = [],
+    lineNumbersCounts = [],
+    lineNumbers = [],
+    baseContinuationClasses = []
+)
 class Cookie(
     val invokeSuspendHandle: MethodHandle,
     val releaseInterceptedHandle: MethodHandle

@@ -62,7 +62,7 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                         assert { element.fileName == fileName }
                         assert { element.methodName == methodName }
                         assert { element.lineNumber in lineNumbers }
-                        val spec = DecoroutinatorSpecImpl(
+                        val spec = methodHandleInvoker.createSpec(
                             cookie = cookie,
                             lineNumber = element.lineNumber,
                             nextSpecAndItsMethod = nextSpec,

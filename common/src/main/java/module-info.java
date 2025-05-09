@@ -3,6 +3,7 @@ import dev.reformator.stacktracedecoroutinator.common.internal.AnnotationMetadat
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider;
 import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsRegistry;
 import dev.reformator.stacktracedecoroutinator.common.internal.Provider;
+import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker;
 
 module dev.reformator.stacktracedecoroutinator.common {
     requires static dev.reformator.bytecodeprocessor.intrinsics;
@@ -17,11 +18,13 @@ module dev.reformator.stacktracedecoroutinator.common {
             dev.reformator.stacktracedecoroutinator.jvmagentcommon,
             dev.reformator.stacktracedecoroutinator.jvm,
             dev.reformator.stacktracedecoroutinator.generator.tests,
-            dev.reformator.stacktracedecoroutinator.jvm.tests;
+            dev.reformator.stacktracedecoroutinator.jvm.tests,
+            dev.reformator.stacktracedecoroutinator.mhinvoker;
 
     provides DecoroutinatorProvider with Provider;
 
     uses SpecMethodsRegistry;
     uses CommonSettingsProvider;
     uses AnnotationMetadataResolver;
+    uses MethodHandleInvoker;
 }

@@ -89,6 +89,8 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))
+
+    testRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
 }
 
 bytecodeProcessor {

@@ -148,11 +148,11 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             }
             return SpecAndItsMethodHandle(
                 specMethodHandle = specMethod,
-                spec = DecoroutinatorSpecImpl(
+                spec = methodHandleInvoker.createSpec(
                     cookie = cookie,
                     lineNumber = element.lineNumber,
                     nextSpecAndItsMethod = nextSpec,
-                    nextContinuation = nextContinuation,
+                    nextContinuation = nextContinuation
                 )
             )
         }

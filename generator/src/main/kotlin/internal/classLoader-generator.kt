@@ -4,7 +4,7 @@
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
 import dev.reformator.bytecodeprocessor.intrinsics.MakeStatic
-import dev.reformator.stacktracedecoroutinator.common.internal.DecoroutinatorSpecImpl
+import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker
 import dev.reformator.stacktracedecoroutinator.common.internal.specMethodType
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -13,7 +13,7 @@ import org.objectweb.asm.tree.ClassNode
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 
-internal class DecoroutinatorClassLoader: ClassLoader(DecoroutinatorSpecImpl::class.java.classLoader) {
+internal class DecoroutinatorClassLoader: ClassLoader(MethodHandleInvoker::class.java.classLoader) {
     fun buildClassAndGetSpecHandlesByMethod(
         className: String,
         fileName: String?,

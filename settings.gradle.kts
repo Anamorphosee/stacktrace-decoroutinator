@@ -8,6 +8,7 @@ include(
     "jvm",
     "jvm-agent",
     "generator-android",
+    "mh-invoker",
 
     "intrinsics",
     "test-utils",
@@ -30,6 +31,7 @@ project(":jvm-agent-common").name = "stacktrace-decoroutinator-jvm-agent-common"
 project(":jvm").name = "stacktrace-decoroutinator-jvm"
 project(":jvm-agent").name = "stacktrace-decoroutinator-jvm-agent"
 project(":generator-android").name = "stacktrace-decoroutinator-generator-android"
+project(":mh-invoker").name = "stacktrace-decoroutinator-mh-invoker"
 
 includeBuild("_plugins/bytecode-processor")
 includeBuild("_plugins/decoroutinatortest")

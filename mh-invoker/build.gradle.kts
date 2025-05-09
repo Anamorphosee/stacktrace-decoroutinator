@@ -20,8 +20,8 @@ dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     compileOnly(project(":intrinsics"))
 
-
     implementation(project(":stacktrace-decoroutinator-provider"))
+    implementation(project(":stacktrace-decoroutinator-common"))
     testImplementation(kotlin("test"))
 }
 
@@ -29,10 +29,9 @@ bytecodeProcessor {
     processors = setOf(
         RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
         ChangeClassNameProcessor(mapOf(
-            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl",
-            "dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata" to "kotlin.coroutines.jvm.internal.DebugMetadata"
+            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
         )),
-        SkipInvocationsProcessor,
+        ChangeInvocationsOwnerProcessor,
         GetOwnerClassProcessor()
     )
 }

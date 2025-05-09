@@ -28,6 +28,7 @@ dependencies {
 
     androidTestRuntimeOnly(libs.androidx.test.runner)
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-common"))
+    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
 }
 
 bytecodeProcessor {

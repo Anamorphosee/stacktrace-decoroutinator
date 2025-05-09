@@ -25,7 +25,8 @@ fun interface SpecMethodsRegistry {
     methodNames = [],
     lineNumbersCounts = [],
     lineNumbers = [],
-    baseContinuationClasses = []
+    baseContinuationClasses = [],
+    marker = true
 )
 data class SpecAndItsMethodHandle(
     val specMethodHandle: MethodHandle,
@@ -84,7 +85,8 @@ interface CommonSettingsProvider {
     methodNames = [],
     lineNumbersCounts = [],
     lineNumbers = [],
-    baseContinuationClasses = []
+    baseContinuationClasses = [],
+    marker = true
 )
 interface MethodHandleInvoker {
     fun createSpec(
@@ -107,7 +109,8 @@ interface MethodHandleInvoker {
     methodNames = [],
     lineNumbersCounts = [],
     lineNumbers = [],
-    baseContinuationClasses = []
+    baseContinuationClasses = [],
+    marker = true
 )
 class Cookie(
     val invokeSuspendHandle: MethodHandle,

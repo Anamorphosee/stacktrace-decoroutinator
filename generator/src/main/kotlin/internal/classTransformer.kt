@@ -52,6 +52,19 @@ fun transformClassBody(
     skipSpecMethods: Boolean
 ): ClassBodyTransformationStatus {
     val node = getClassNode(classBody) ?: return noClassBodyTransformationStatus
+    node.decoroutinatorTransformedAnnotation?.let { transformedAnnotation ->
+        transformedAnnotation.getField(DecoroutinatorTransformed::marker.name)?.let {
+            if (it as Boolean) {
+                return noClassBodyTransformationStatus
+            }
+        }
+        val annotationSkipSpecMethods =
+            transformedAnnotation.getField(DecoroutinatorTransformed::skipSpecMethods.name) as Boolean?
+        if (skipSpecMethods != (annotationSkipSpecMethods ?: false)) {
+            error("class [${node.name}] is already transformed but skipSpecMethods = [$annotationSkipSpecMethods]")
+        }
+        return readProviderClassBodyTransformationStatus
+    }
     if (node.name == BASE_CONTINUATION_CLASS_NAME.internalName) {
         transformBaseContinuation(node)
         return ClassBodyTransformationStatus(

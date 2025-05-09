@@ -1,5 +1,12 @@
 @file:Suppress("PackageDirectoryMismatch")
 @file:JvmName("DecoroutinatorProviderApiKt")
+@file:DecoroutinatorTransformed(
+    methodNames = [],
+    lineNumbersCounts = [],
+    lineNumbers = [],
+    baseContinuationClasses = [],
+    marker = true
+)
 
 package dev.reformator.stacktracedecoroutinator.provider
 
@@ -13,7 +20,8 @@ import java.lang.invoke.MethodHandles
     methodNames = [],
     lineNumbersCounts = [],
     lineNumbers = [],
-    baseContinuationClasses = []
+    baseContinuationClasses = [],
+    marker = true
 )
 interface DecoroutinatorSpec {
     val lineNumber: Int
@@ -33,7 +41,8 @@ annotation class DecoroutinatorTransformed(
     val lineNumbersCounts: IntArray,
     val lineNumbers: IntArray,
     val baseContinuationClasses: Array<String>,
-    val skipSpecMethods: Boolean = false
+    val skipSpecMethods: Boolean = false,
+    val marker: Boolean = false
 )
 
 val isDecoroutinatorEnabled: Boolean

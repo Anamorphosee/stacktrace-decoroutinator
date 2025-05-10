@@ -22,7 +22,8 @@ include(
     "gradle-plugin:duplicate-entity-jar-builder",
     "jvm-agent:tests-ja",
     "jvm-agent:jdk8-tests-ja",
-    "jvm:jdk8-tests-j"
+    "jvm:jdk8-tests-j",
+    "mh-invoker-android:legacy-tests"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"

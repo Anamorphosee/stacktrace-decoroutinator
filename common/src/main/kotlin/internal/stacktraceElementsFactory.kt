@@ -75,7 +75,7 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     }
 
     init {
-        if (supportsVarHandles) {
+        if (methodHandleInvoker.supportsVarHandle) {
             TransformedClassesRegistry.addListener(::updateLabelExtractor)
             TransformedClassesRegistry.transformedClasses.forEach(::updateLabelExtractor)
         }
@@ -176,7 +176,7 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         override fun getLabel(continuation: BaseContinuation): Int =
             getField(continuation)?.let { field ->
                 try {
-                    field[continuation] as Int
+                    varHandleInvoker!!.getIntVar(field, continuation)
                 } catch (_: Throwable) { null }
             } ?: super.getLabel(continuation)
 

@@ -1,17 +1,15 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
-import java.lang.invoke.MethodHandles
 import java.util.ServiceLoader
 
 val methodHandleInvoker: MethodHandleInvoker =
     ServiceLoader.load(MethodHandleInvoker::class.java).iterator().next()
 
-internal val supportsVarHandles =
-    try {
-        _supportsVarHandleStub().check()
-        true
-    } catch (_: Throwable) {
-        false
+val varHandleInvoker: VarHandleInvoker? =
+    if (methodHandleInvoker.supportsVarHandle) {
+        ServiceLoader.load(VarHandleInvoker::class.java).iterator().next()
+    } else {
+        null
     }
 
 internal val settingsProvider = ServiceLoader.load(CommonSettingsProvider::class.java).firstOrNull() ?:
@@ -30,17 +28,3 @@ internal val specMethodsRegistry: SpecMethodsRegistry =
 
 internal val annotationMetadataResolver: AnnotationMetadataResolver? =
     ServiceLoader.load(AnnotationMetadataResolver::class.java).firstOrNull()
-
-@Suppress("ClassName")
-private class _supportsVarHandleStub {
-    private var field: Int = 0
-    fun check() {
-        val varHandle = MethodHandles.lookup().findVarHandle(
-            _supportsVarHandleStub::class.java,
-            ::field.name,
-            Int::class.javaPrimitiveType
-        )
-        val fieldValue = varHandle[this] as Int
-        assert { fieldValue == 0 }
-    }
-}

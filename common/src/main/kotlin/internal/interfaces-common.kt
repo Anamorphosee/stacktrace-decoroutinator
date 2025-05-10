@@ -7,6 +7,7 @@ import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
+import java.lang.invoke.VarHandle
 
 data class StacktraceElement(
     val className: String,
@@ -103,6 +104,19 @@ interface MethodHandleInvoker {
     fun callSpecMethod(handle: MethodHandle, spec: DecoroutinatorSpec, result: Any?): Any?
 
     val unknownSpecMethodClass: Class<*>
+
+    val supportsVarHandle: Boolean
+}
+
+@DecoroutinatorTransformed(
+    methodNames = [],
+    lineNumbersCounts = [],
+    lineNumbers = [],
+    baseContinuationClasses = [],
+    marker = true
+)
+interface VarHandleInvoker {
+    fun getIntVar(handle: VarHandle, owner: BaseContinuation): Int
 }
 
 @DecoroutinatorTransformed(

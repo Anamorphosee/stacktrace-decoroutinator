@@ -1,7 +1,5 @@
-import dev.reformator.bytecodeprocessor.plugins.*
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
-import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
@@ -9,11 +7,6 @@ import java.util.zip.ZipEntry
 plugins {
     alias(libs.plugins.android.library)
     kotlin("android")
-    alias(libs.plugins.dokka)
-    alias(libs.plugins.nmcp)
-    `maven-publish`
-    signing
-    id("dev.reformator.bytecodeprocessor")
 }
 
 repositories {
@@ -22,11 +15,12 @@ repositories {
 }
 
 android {
-    namespace = "dev.reformator.stacktracedecoroutinator.generatorandroid"
+    namespace = "dev.reformator.stacktracedecoroutinator.mhinvokerandroid.legacytests"
     compileSdk = 35
     defaultConfig {
         minSdk = 14
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
     packaging {
         resources.pickFirsts.add("META-INF/*")
@@ -90,78 +84,14 @@ dependencies {
         }
     })
 
-    compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
-    compileOnly(project(":intrinsics"))
-
-    implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
-    implementation(libs.dalvik.dx)
+    runtimeOnly(project(":stacktrace-decoroutinator-generator-android"))
+    runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
 
-    androidTestRuntimeOnly(project(":test-utils"))
-    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
     androidTestRuntimeOnly(libs.androidx.test.runner)
 }
 
-bytecodeProcessor {
-    processors = setOf(
-        ChangeClassNameProcessor(mapOf(
-            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
-        ))
-    )
-}
-
 afterEvaluate {
-    configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
-}
-
-val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
-    val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
-    dependsOn(dokkaJavadocTask)
-    archiveClassifier.set("javadoc")
-    from(dokkaJavadocTask.outputDirectory)
-}
-
-val mavenPublicationName = "maven"
-
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>(mavenPublicationName) {
-                from(components["release"])
-                artifact(dokkaJavadocsJar)
-                pom {
-                    name.set("Stacktrace-decoroutinator Android runtime class generator.")
-                    description.set("Android library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
-                    url.set("https://stacktracedecoroutinator.reformator.dev")
-                    licenses {
-                        license {
-                            name.set("The Apache License, Version 2.0")
-                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                        }
-                    }
-                    developers {
-                        developer {
-                            name.set("Denis Berestinskii")
-                            email.set("berestinsky@gmail.com")
-                            url.set("https://github.com/Anamorphosee")
-                        }
-                    }
-                    scm {
-                        connection.set("scm:git:git://github.com/Anamorphosee/stacktrace-decoroutinator.git")
-                        developerConnection.set("scm:git:ssh://github.com:Anamorphosee/stacktrace-decoroutinator.git")
-                        url.set("http://github.com/Anamorphosee/stacktrace-decoroutinator/tree/master")
-                    }
-                }
-            }
-        }
-    }
-
-    signing {
-        useGpgCmd()
-        sign(publishing.publications[mavenPublicationName])
-    }
-
-    nmcp {
-        publish(mavenPublicationName) {}
-    }
+    configurations["debugRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
+    configurations["releaseRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
 }

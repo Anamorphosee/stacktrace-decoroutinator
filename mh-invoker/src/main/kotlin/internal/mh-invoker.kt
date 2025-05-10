@@ -7,11 +7,14 @@ import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.common.internal.Cookie
 import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker
 import dev.reformator.stacktracedecoroutinator.common.internal.SpecAndItsMethodHandle
+import dev.reformator.stacktracedecoroutinator.common.internal.VarHandleInvoker
+import dev.reformator.stacktracedecoroutinator.common.internal.assert
 import dev.reformator.stacktracedecoroutinator.common.internal.specMethodType
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
+import java.lang.invoke.VarHandle
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
@@ -43,6 +46,36 @@ internal class RegularMethodHandleInvoker: MethodHandleInvoker {
         handle.invokeExact(spec, result)
 
     override val unknownSpecMethodClass: Class<*> = unknownSpecClass
+
+    override val supportsVarHandle: Boolean =
+        try {
+            _supportsVarHandleStub().check()
+            true
+        } catch (_: Throwable) {
+            false
+        }
+}
+
+internal class RegularVarHandleInvoker: VarHandleInvoker {
+    override fun getIntVar(
+        handle: VarHandle,
+        owner: BaseContinuation
+    ): Int =
+        handle[owner] as Int
+}
+
+@Suppress("ClassName")
+private class _supportsVarHandleStub {
+    private var field: Int = 0
+    fun check() {
+        val varHandle = MethodHandles.lookup().findVarHandle(
+            _supportsVarHandleStub::class.java,
+            ::field.name,
+            Int::class.javaPrimitiveType
+        )
+        val fieldValue = varHandle[this] as Int
+        assert { fieldValue == 0 }
+    }
 }
 
 internal class DecoroutinatorSpecImpl(

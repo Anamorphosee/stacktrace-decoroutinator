@@ -8,9 +8,12 @@ import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker
 import dalvik.system.InMemoryDexClassLoader
+import dev.reformator.stacktracedecoroutinator.common.internal.VarHandleInvoker
 import java.nio.ByteBuffer
 
 internal class AndroidMethodHandleInvoker: MethodHandleInvoker by loadRegularMethodHandleInvoker()
+
+internal class AndroidVarHandleInvoker: VarHandleInvoker by loadRegularVarHandleInvoker()
 
 private val regularMethodHandleDexBase64: String
     @LoadConstant get() { fail() }
@@ -18,10 +21,17 @@ private val regularMethodHandleDexBase64: String
 private val String.decodeBase64: ByteArray
     get() = Base64.decode(this, Base64.DEFAULT)
 
+private val regularMethodHandleLoader = InMemoryDexClassLoader(
+    ByteBuffer.wrap(regularMethodHandleDexBase64.decodeBase64),
+    MethodHandleInvoker::class.java.classLoader
+)
+
 private fun loadRegularMethodHandleInvoker(): MethodHandleInvoker =
-    InMemoryDexClassLoader(
-        ByteBuffer.wrap(regularMethodHandleDexBase64.decodeBase64),
-        MethodHandleInvoker::class.java.classLoader
-    ).loadClass("dev.reformator.stacktracedecoroutinator.mhinvoker.internal.RegularMethodHandleInvoker")
+    regularMethodHandleLoader.loadClass("dev.reformator.stacktracedecoroutinator.mhinvoker.internal.RegularMethodHandleInvoker")
         .getDeclaredConstructor()
         .newInstance() as MethodHandleInvoker
+
+private fun loadRegularVarHandleInvoker(): VarHandleInvoker =
+    regularMethodHandleLoader.loadClass("dev.reformator.stacktracedecoroutinator.mhinvoker.internal.RegularVarHandleInvoker")
+        .getDeclaredConstructor()
+        .newInstance() as VarHandleInvoker

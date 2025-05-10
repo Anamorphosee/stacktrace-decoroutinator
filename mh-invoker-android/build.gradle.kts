@@ -27,7 +27,7 @@ android {
     namespace = "dev.reformator.stacktracedecoroutinator.mhinvokerandroid"
     compileSdk = 35
     defaultConfig {
-        minSdk = 26
+        minSdk = 14
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     packaging {
@@ -111,8 +111,9 @@ bytecodeProcessor {
 
 val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
     val mhInvokerProject = project(":stacktrace-decoroutinator-mh-invoker")
-    val mhInvokerCompileTask = mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin")
-    dependsOn(mhInvokerCompileTask)
+    mhInvokerProject.afterEvaluate {
+        dependsOn(mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin"))
+    }
     doLast {
         val tmpDir = temporaryDir
         providers.exec {
@@ -121,7 +122,8 @@ val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
                     "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
                     "--min-api", "26",
                     "--output", tmpDir.absolutePath
-                ) + mhInvokerCompileTask.get().destinationDirectory.get().asFile.walk()
+                ) + mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin").get()
+                    .destinationDirectory.get().asFile.walk()
                     .filter { it.isFile && it.name.endsWith(".class") && it.name != "module-info.class" }
                     .map { it.absolutePath }
             ).asIterable())

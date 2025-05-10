@@ -1,0 +1,2 @@
+@Suppress("unused")
+class Dummy

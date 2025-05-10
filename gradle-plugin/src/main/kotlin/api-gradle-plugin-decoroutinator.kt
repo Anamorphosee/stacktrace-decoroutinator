@@ -4,6 +4,7 @@
 package org.gradle.kotlin.dsl
 
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
+import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPluginExtension
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
@@ -15,10 +16,6 @@ fun Project.stacktraceDecoroutinator(configure: DecoroutinatorPluginExtension.()
 @Suppress("UnusedReceiverParameter")
 fun DependencyHandler.decoroutinatorCommon(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-common:$projectVersionIntrinsic"
-
-@Suppress("UnusedReceiverParameter")
-fun DependencyHandler.decoroutinatorProvider(): Any =
-    "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-provider:$projectVersionIntrinsic"
 
 @Suppress("UnusedReceiverParameter")
 fun DependencyHandler.decoroutinatorJvmRuntime(): Any =
@@ -37,4 +34,4 @@ fun DependencyHandler.decoroutinatorAndroidMethodHandleInvoker(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-mh-invoker-android:$projectVersionIntrinsic"
 
 private val projectVersionIntrinsic: String
-    @LoadConstant get() { error("intrinsics failed") }
+    @LoadConstant get() { fail() }

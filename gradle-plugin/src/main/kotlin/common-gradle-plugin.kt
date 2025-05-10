@@ -311,7 +311,6 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             if (matcher.matches(config.name)) {
                                 with (dependencies) {
                                     add(config.name, decoroutinatorCommon())
-                                    add(config.name, decoroutinatorProvider())
                                     add(config.name, decoroutinatorRegularMethodHandleInvoker())
                                 }
                             }

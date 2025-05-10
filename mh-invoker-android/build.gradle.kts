@@ -2,6 +2,8 @@ import dev.reformator.bytecodeprocessor.plugins.*
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import java.util.Base64
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
@@ -22,7 +24,7 @@ repositories {
 }
 
 android {
-    namespace = "dev.reformator.stacktracedecoroutinator.generatorandroid"
+    namespace = "dev.reformator.stacktracedecoroutinator.mhinvokerandroid"
     compileSdk = 35
     defaultConfig {
         minSdk = 26
@@ -91,14 +93,11 @@ dependencies {
     })
 
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
-    compileOnly(project(":intrinsics"))
 
-    implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
-    implementation(libs.dalvik.dx)
 
+    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-generator-android"))
     androidTestRuntimeOnly(project(":test-utils"))
-    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
     androidTestRuntimeOnly(libs.androidx.test.runner)
 }
 
@@ -108,6 +107,40 @@ bytecodeProcessor {
             "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
         ))
     )
+}
+
+val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
+    val mhInvokerProject = project(":stacktrace-decoroutinator-mh-invoker")
+    val mhInvokerCompileTask = mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(mhInvokerCompileTask)
+    doLast {
+        val tmpDir = temporaryDir
+        providers.exec {
+            setCommandLine((
+                sequenceOf(
+                    "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
+                    "--min-api", "26",
+                    "--output", tmpDir.absolutePath
+                ) + mhInvokerCompileTask.get().destinationDirectory.get().asFile.walk()
+                    .filter { it.isFile && it.name.endsWith(".class") && it.name != "module-info.class" }
+                    .map { it.absolutePath }
+            ).asIterable())
+        }.result.get().rethrowFailure()
+        bytecodeProcessor {
+            processors += LoadConstantProcessor(mapOf(
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.mhinvokerandroid.MhInvokerAndroidKt",
+                    "getRegularMethodHandleDexBase64"
+                ) to LoadConstantProcessor.Value(
+                    Base64.getEncoder().encodeToString(tmpDir.resolve("classes.dex").readBytes())
+                )
+            ))
+        }
+    }
+}
+
+tasks.withType(KotlinJvmCompile::class.java) {
+    dependsOn(fillConstantProcessorTask)
 }
 
 afterEvaluate {
@@ -130,7 +163,7 @@ afterEvaluate {
                 from(components["release"])
                 artifact(dokkaJavadocsJar)
                 pom {
-                    name.set("Stacktrace-decoroutinator Android runtime class generator.")
+                    name.set("Stacktrace-decoroutinator Android runtime MethodHandle invoker.")
                     description.set("Android library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
                     url.set("https://stacktracedecoroutinator.reformator.dev")
                     licenses {

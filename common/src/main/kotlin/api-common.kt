@@ -27,6 +27,12 @@ object DecoroutinatorCommonApi {
         allowTailCallOptimization: Boolean = false,
         sourceCall: suspend (callThisAndReturnItsResult: suspend () -> Any?) -> Any? = SelfCalledSuspendLambda
     ): DecoroutinatorStatus {
+        if (!supportsMethodHandle) {
+            return DecoroutinatorStatus(
+                successful = false,
+                description = "The platform doesn't support MethodHandle's API"
+            )
+        }
         if (!enabled) {
             return DecoroutinatorStatus(
                 successful = false,

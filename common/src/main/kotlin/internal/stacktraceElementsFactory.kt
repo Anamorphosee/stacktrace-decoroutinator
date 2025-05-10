@@ -8,7 +8,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.GenericSignatureFormatError
 import java.util.concurrent.ConcurrentHashMap
 
-internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
+internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     @Suppress("UNCHECKED_CAST")
     override fun getStacktraceElements(continuations: Collection<BaseContinuation>): StacktraceElements {
         val elementsByContinuation = mutableMapOf<BaseContinuation, StacktraceElement>()
@@ -176,7 +176,7 @@ internal object StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         override fun getLabel(continuation: BaseContinuation): Int =
             getField(continuation)?.let { field ->
                 try {
-                    varHandleInvoker!!.getIntVar(field, continuation)
+                    varHandleInvoker.getIntVar(field, continuation)
                 } catch (_: Throwable) { null }
             } ?: super.getLabel(continuation)
 

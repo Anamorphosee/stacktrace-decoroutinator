@@ -88,10 +88,14 @@ dependencies {
     runtimeOnly(project(":stacktrace-decoroutinator-generator-android"))
     runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
 
+    androidTestImplementation(libs.junit4)
+    androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)
+    androidTestImplementation(libs.junit5.api)
     androidTestRuntimeOnly(libs.androidx.test.runner)
 }
 
 afterEvaluate {
     configurations["debugRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
     configurations["releaseRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
+    configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
 }

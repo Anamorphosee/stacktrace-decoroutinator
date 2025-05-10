@@ -1,30 +1,81 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
+import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType
 import java.util.ServiceLoader
-
-val methodHandleInvoker: MethodHandleInvoker =
-    ServiceLoader.load(MethodHandleInvoker::class.java).iterator().next()
-
-val varHandleInvoker: VarHandleInvoker? =
-    if (methodHandleInvoker.supportsVarHandle) {
-        ServiceLoader.load(VarHandleInvoker::class.java).iterator().next()
-    } else {
-        null
-    }
 
 internal val settingsProvider = ServiceLoader.load(CommonSettingsProvider::class.java).firstOrNull() ?:
     object: CommonSettingsProvider {}
 
-internal val enabled = settingsProvider.decoroutinatorEnabled
+internal val supportsMethodHandle = try {
+    _supportsMethodHandleStub().check()
+    true
+} catch (_: Throwable) {
+    false
+}
+
+internal val enabled = supportsMethodHandle && settingsProvider.decoroutinatorEnabled
 internal val recoveryExplicitStacktrace = enabled && settingsProvider.recoveryExplicitStacktrace
 internal val tailCallDeoptimize = enabled && settingsProvider.tailCallDeoptimize
 
 internal var cookie: Cookie? = null
 
-internal val stacktraceElementsFactory: StacktraceElementsFactory = StacktraceElementsFactoryImpl
+@Suppress("ObjectPropertyName")
+private val _methodHandleInvoker: MethodHandleInvoker? =
+    if (enabled) {
+        ServiceLoader.load(MethodHandleInvoker::class.java).iterator().next()
+    } else {
+        null
+    }
 
-internal val specMethodsRegistry: SpecMethodsRegistry =
-    ServiceLoader.load(SpecMethodsRegistry::class.java).firstOrNull() ?: SpecMethodsRegistryImpl
+@Suppress("ObjectPropertyName")
+private val _stacktraceElementsFactory: StacktraceElementsFactory? =
+    if (enabled) StacktraceElementsFactoryImpl() else null
+
+@Suppress("ObjectPropertyName")
+private val _specMethodsRegistry: SpecMethodsRegistry? =
+    if (enabled) {
+        ServiceLoader.load(SpecMethodsRegistry::class.java).firstOrNull() ?: SpecMethodsRegistryImpl
+    } else {
+        null
+    }
 
 internal val annotationMetadataResolver: AnnotationMetadataResolver? =
-    ServiceLoader.load(AnnotationMetadataResolver::class.java).firstOrNull()
+    if (enabled) {
+        ServiceLoader.load(AnnotationMetadataResolver::class.java).firstOrNull()
+    } else {
+        null
+    }
+
+@Suppress("ObjectPropertyName")
+private val _varHandleInvoker: VarHandleInvoker? =
+    if (_methodHandleInvoker?.supportsVarHandle == true) {
+        ServiceLoader.load(VarHandleInvoker::class.java).iterator().next()
+    } else {
+        null
+    }
+
+val methodHandleInvoker: MethodHandleInvoker
+    get() = _methodHandleInvoker!!
+
+internal val stacktraceElementsFactory: StacktraceElementsFactory
+    get() = _stacktraceElementsFactory!!
+
+internal val specMethodsRegistry: SpecMethodsRegistry
+    get() = _specMethodsRegistry!!
+
+internal val varHandleInvoker: VarHandleInvoker
+    get() = _varHandleInvoker!!
+
+@Suppress("ClassName")
+private class _supportsMethodHandleStub {
+    fun check() {
+        val methodHandle = MethodHandles.lookup().findVirtual(
+            _supportsMethodHandleStub::class.java,
+            ::met.name,
+            MethodType.methodType(Void.TYPE)
+        )
+        assert { methodHandle != null }
+    }
+    fun met() { }
+}

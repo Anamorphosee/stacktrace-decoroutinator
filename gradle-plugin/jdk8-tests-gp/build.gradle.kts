@@ -8,7 +8,7 @@ plugins {
 }
 
 stacktraceDecoroutinator {
-    dependencyConfigurations.include = emptySet()
+    regularDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
 }
 

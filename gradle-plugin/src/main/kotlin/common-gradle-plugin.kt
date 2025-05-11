@@ -61,9 +61,9 @@ internal class ObservableProperty<T>(private var _value: T): ReadWriteProperty<A
     val value: T
         get() = _value
 
-    fun updateIfNotSet(setter: () -> T) {
+    fun updateIfNotSet(setter: (T) -> T) {
         if (!set) {
-            _value = setter()
+            _value = setter(_value)
         }
     }
 }
@@ -94,10 +94,12 @@ open class DecoroutinatorPluginExtension {
     var androidTestsOnly = false
     var jvmTestsOnly = false
     var useTransformedClassesForCompilation = false
+    var legacyAndroidCompatibility = false
 
     // low level configurations
     internal val _artifactTypes = ObservableProperty(setOf<String>())
-    val dependencyConfigurations = StringMatcherProperty()
+    val regularDependencyConfigurations = StringMatcherProperty()
+    val androidDependencyConfigurations = StringMatcherProperty()
     val jvmRuntimeDependencyConfigurations = StringMatcherProperty()
     val androidRuntimeDependencyConfigurations = StringMatcherProperty()
     val transformedClassesConfigurations = StringMatcherProperty()
@@ -107,138 +109,206 @@ open class DecoroutinatorPluginExtension {
     var artifactTypes: Set<String> by _artifactTypes
 }
 
-private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: Project) {
-    val isAndroid = project.pluginManager.hasPlugin("com.android.base")
-    val isKmp = project.pluginManager.hasPlugin("org.jetbrains.kotlin.multiplatform")
+private val Project.isAndroid: Boolean
+    get() = pluginManager.hasPlugin("com.android.base")
 
-    val androidDepConfigurations = when {
+private val Project.isKmp: Boolean
+    get() = pluginManager.hasPlugin("org.jetbrains.kotlin.multiplatform")
+
+private fun DecoroutinatorPluginExtension.setupLowLevelDependencyConfig(project: Project) {
+    val isAndroid = project.isAndroid
+    val isKmp = project.isKmp
+    val androidConfigurations = when {
         isKmp && androidTestsOnly -> setOf("androidTestImplementation")
         isKmp -> setOf("androidMainImplementation")
         isAndroid && androidTestsOnly -> setOf("androidTestImplementation")
         isAndroid -> setOf("implementation")
         else -> setOf()
     }
-    val jvmDepConfigurations = when {
+    val jvmConfigurations = when {
         isKmp && jvmTestsOnly -> setOf("desktopTestImplementation", "androidUnitTestImplementation")
         isKmp -> setOf("desktopMainImplementation", "androidUnitTestImplementation")
         isAndroid -> setOf("testImplementation")
+        jvmTestsOnly -> setOf("testImplementation")
         else -> setOf("implementation")
     }
-    dependencyConfigurations._include.updateIfNotSet {
-        androidDepConfigurations + jvmDepConfigurations
+    regularDependencyConfigurations._include.updateIfNotSet {
+        if (legacyAndroidCompatibility) {
+            jvmConfigurations
+        } else {
+            jvmConfigurations + androidConfigurations
+        }
     }
-    androidRuntimeDependencyConfigurations._include.updateIfNotSet {
-        if (addAndroidRuntimeDependency) {
-            androidDepConfigurations
+    androidDependencyConfigurations._include.updateIfNotSet {
+        if (legacyAndroidCompatibility) {
+            androidConfigurations
         } else {
             emptySet()
         }
     }
     jvmRuntimeDependencyConfigurations._include.updateIfNotSet {
         if (addJvmRuntimeDependency) {
-            jvmDepConfigurations
+            jvmConfigurations
         } else {
             emptySet()
         }
     }
+    androidRuntimeDependencyConfigurations._include.updateIfNotSet {
+        if (addAndroidRuntimeDependency) {
+            androidConfigurations
+        } else {
+            emptySet()
+        }
+    }
+}
 
-    transformedClassesConfigurations._include.updateIfNotSet {
-        when {
-            isKmp -> {
-                val android = if (androidTestsOnly) {
-                    setOf(".*AndroidTestRuntimeClasspath")
-                } else {
-                    setOf(
-                        "androidDebugRuntimeClasspath",
-                        "androidReleaseRuntimeClasspath",
-                        ".*AndroidTestRuntimeClasspath",
-                        "releaseRuntimeClasspath",
-                        "debugRuntimeClasspath"
-                    )
-                }
-                val jvm = if (jvmTestsOnly) {
-                    setOf(
-                        "android.*UnitTestRuntimeClasspath",
-                        "desktopTestRuntimeClasspath"
-                    )
-                } else {
-                    setOf(
-                        "android.*UnitTestRuntimeClasspath",
-                        "desktopRuntimeClasspath"
-                    )
-                }
-                val compile = if (useTransformedClassesForCompilation) {
-                    setOf(
-                        ".*AndroidTestCompileClasspath",
-                        "androidDebugCompileClasspath",
-                        "androidReleaseCompileClasspath",
-                        "android.*UnitTestCompileClasspath",
-                        "desktopTestCompileClasspath",
-                        "desktopCompileClasspath"
-                    )
-                } else {
-                    emptySet()
-                }
-                android + jvm + compile
-            }
-            isAndroid -> {
-                val runtime = if (androidTestsOnly) {
-                    setOf(".*AndroidTestRuntimeClasspath")
-                } else {
-                    setOf(
-                        ".*RuntimeClasspath",
-                        "runtimeClasspath"
-                    )
-                }
-                val compile = if (useTransformedClassesForCompilation) {
-                    setOf(
-                        ".*CompileClasspath",
-                        "compileClasspath"
-                    )
-                } else {
-                    emptySet()
-                }
-                runtime + compile
-            }
-            else -> {
-                val runtime = setOf(
-                    ".*RuntimeClasspath",
-                    "runtimeClasspath"
+private fun DecoroutinatorPluginExtension.setupLowLevelRuntimeTransformedClassesConfig(project: Project) {
+    val isAndroid = project.isAndroid
+    val isKmp = project.isKmp
+    val androidConfigurations = when {
+        isKmp -> {
+            if (androidTestsOnly) {
+                setOf(".*AndroidTestRuntimeClasspath", "androidTestRuntimeClasspath")
+            } else {
+                setOf(
+                    "androidDebugRuntimeClasspath",
+                    "androidReleaseRuntimeClasspath",
+                    ".*AndroidTestRuntimeClasspath",
+                    "androidTestRuntimeClasspath",
                 )
-                val compile = if (useTransformedClassesForCompilation) {
-                    setOf(
-                        ".*CompileClasspath",
-                        "compileClasspath"
-                    )
-                } else {
-                    emptySet()
-                }
-                runtime + compile
+            }
+        }
+        isAndroid -> {
+            if (androidTestsOnly) {
+                setOf(".*AndroidTestRuntimeClasspath", "androidTestRuntimeClasspath")
+            } else {
+                setOf(".*RuntimeClasspath", "runtimeClasspath")
+            }
+        }
+        else -> emptySet()
+    }
+    val jvmConfigurations = when {
+        isKmp -> {
+            if (jvmTestsOnly) {
+                setOf("android.*UnitTestRuntimeClasspath", "desktopTestRuntimeClasspath")
+            } else {
+                setOf("android.*UnitTestRuntimeClasspath", "desktopRuntimeClasspath")
+            }
+        }
+        isAndroid -> setOf(".*UnitTestRuntimeClasspath", "unitTestRuntimeClasspath")
+        else -> {
+            if (jvmTestsOnly) {
+                setOf(".*TestRuntimeClasspath", "testRuntimeClasspath")
+            } else {
+                setOf(".*RuntimeClasspath", "runtimeClasspath")
             }
         }
     }
-
-    tasks._include.updateIfNotSet {
-        if (!androidTestsOnly && !jvmTestsOnly) {
-            return@updateIfNotSet setOf(".*")
+    transformedClassesConfigurations._include.updateIfNotSet {
+        if (legacyAndroidCompatibility) {
+            emptySet()
+        } else {
+            androidConfigurations + jvmConfigurations
         }
-        val androidConfigurations = when {
+    }
+    transformedClassesSkippingSpecMethodsConfigurations._include.updateIfNotSet {
+        if (legacyAndroidCompatibility) {
+            androidConfigurations + jvmConfigurations
+        } else {
+            emptySet()
+        }
+    }
+}
+
+private fun DecoroutinatorPluginExtension.setupLowLevelCompileTransformedClassesConfig(project: Project) {
+    val isAndroid = project.isAndroid
+    val isKmp = project.isKmp
+    val androidConfigurations = when {
+        isKmp -> {
+            if (androidTestsOnly) {
+                setOf(".*AndroidTestCompileClasspath", "androidTestCompileClasspath")
+            } else {
+                setOf(
+                    "androidDebugCompileClasspath",
+                    "androidReleaseCompileClasspath",
+                    ".*AndroidTestCompileClasspath",
+                    "androidTestCompileClasspath",
+                )
+            }
+        }
+        isAndroid -> {
+            if (androidTestsOnly) {
+                setOf(".*AndroidTestCompileClasspath", "androidTestCompileClasspath")
+            } else {
+                setOf(".*CompileClasspath", "compileClasspath")
+            }
+        }
+        else -> emptySet()
+    }
+    val jvmConfigurations = when {
+        isKmp -> {
+            if (jvmTestsOnly) {
+                setOf("android.*UnitTestCompileClasspath", "desktopTestCompileClasspath")
+            } else {
+                setOf("android.*UnitTestCompileClasspath", "desktopCompileClasspath")
+            }
+        }
+        isAndroid -> setOf(".*UnitTestCompileClasspath", "unitTestCompileClasspath")
+        else -> {
+            if (jvmTestsOnly) {
+                setOf(".*TestCompileClasspath", "testCompileClasspath")
+            } else {
+                setOf(".*CompileClasspath", "compileClasspath")
+            }
+        }
+    }
+    transformedClassesConfigurations._include.updateIfNotSet {
+        if (legacyAndroidCompatibility) {
+            it
+        } else {
+            it + androidConfigurations + jvmConfigurations
+        }
+    }
+    transformedClassesSkippingSpecMethodsConfigurations._include.updateIfNotSet {
+        if (legacyAndroidCompatibility) {
+            it + androidConfigurations + jvmConfigurations
+        } else {
+            it
+        }
+    }
+}
+
+private fun DecoroutinatorPluginExtension.setupLowLevelTasksConfig(project: Project) {
+    val taskPatterns = if (!androidTestsOnly && !jvmTestsOnly) {
+        setOf(".*")
+    } else {
+        val isAndroid = project.isAndroid
+        val isKmp = project.isKmp
+        val androidTasks = when {
             isKmp && androidTestsOnly -> setOf(".*AndroidTest.*")
             isKmp -> setOf(".*Android.*", ".*android.*")
             isAndroid && androidTestsOnly -> setOf(".*Test.*")
             isAndroid -> setOf(".*")
             else -> emptySet()
         }
-        val jvmConfigurations = when {
+        val jvmTasks = when {
             isKmp && jvmTestsOnly -> setOf(".*DesktopTest.*")
             isKmp -> setOf(".*Desktop.*")
             !isAndroid && jvmTestsOnly -> setOf(".*Test.*")
             !isAndroid -> setOf(".*")
             else -> emptySet()
         }
-        androidConfigurations + jvmConfigurations
+        androidTasks + jvmTasks
     }
+    tasks._include.updateIfNotSet {
+        if (legacyAndroidCompatibility) emptySet() else taskPatterns
+    }
+    tasksSkippingSpecMethods._include.updateIfNotSet {
+        if (legacyAndroidCompatibility) taskPatterns else emptySet()
+    }
+}
 
+private fun DecoroutinatorPluginExtension.setupLowLevelArtifactTypesConfig() {
     _artifactTypes.updateIfNotSet {
         setOf(
             ArtifactTypeDefinition.JAR_TYPE,
@@ -249,6 +319,16 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfigurations(project: P
             "android-classes-directory"
         )
     }
+}
+
+private fun DecoroutinatorPluginExtension.setupLowLevelConfig(project: Project) {
+    setupLowLevelDependencyConfig(project)
+    setupLowLevelRuntimeTransformedClassesConfig(project)
+    if (useTransformedClassesForCompilation) {
+        setupLowLevelCompileTransformedClassesConfig(project)
+    }
+    setupLowLevelTasksConfig(project)
+    setupLowLevelArtifactTypesConfig()
 }
 
 @Suppress("unused")
@@ -264,7 +344,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
 
             afterEvaluate { _ ->
                 if (pluginExtension.enabled) {
-                    pluginExtension.setupLowLevelConfigurations(target)
+                    pluginExtension.setupLowLevelConfig(target)
                     log.debug { "registering DecoroutinatorArtifactTransformer for types [${pluginExtension.artifactTypes}]" }
                     pluginExtension.artifactTypes.forEach { artifactType ->
                         dependencies.registerTransform(DecoroutinatorTransformAction::class.java) { transformation ->
@@ -304,14 +384,27 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             )
                     }
 
-                    //runtime dependency
+                    //regular runtime dependency
                     run {
-                        val matcher = pluginExtension.dependencyConfigurations.matcher
+                        val matcher = pluginExtension.regularDependencyConfigurations.matcher
                         configurations.all { config ->
                             if (matcher.matches(config.name)) {
                                 with (dependencies) {
                                     add(config.name, decoroutinatorCommon())
                                     add(config.name, decoroutinatorRegularMethodHandleInvoker())
+                                }
+                            }
+                        }
+                    }
+
+                    //android runtime dependency
+                    run {
+                        val matcher = pluginExtension.androidDependencyConfigurations.matcher
+                        configurations.all { config ->
+                            if (matcher.matches(config.name)) {
+                                with (dependencies) {
+                                    add(config.name, decoroutinatorCommon())
+                                    add(config.name, decoroutinatorAndroidMethodHandleInvoker())
                                 }
                             }
                         }

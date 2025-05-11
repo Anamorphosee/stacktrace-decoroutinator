@@ -66,7 +66,7 @@ fun transformClassBody(
         return readProviderClassBodyTransformationStatus
     }
     if (node.name == BASE_CONTINUATION_CLASS_NAME.internalName) {
-        transformBaseContinuation(node)
+        transformBaseContinuation(node, skipSpecMethods)
         return ClassBodyTransformationStatus(
             updatedBody = node.classBody,
             needReadProviderModule = true
@@ -98,7 +98,7 @@ fun addReadProviderModuleToModuleInfo(moduleInfoBody: InputStream): ByteArray? {
     return node.classBody
 }
 
-private fun transformBaseContinuation(baseContinuation: ClassNode) {
+private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMethods: Boolean) {
     val resumeWithMethod = baseContinuation.methods?.find {
         it.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}" && !it.isStatic
     } ?: error("[${BaseContinuation::resumeWith.name}] method is not found")
@@ -161,7 +161,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode) {
     annotations.add(ClassTransformationInfo(
         lineNumbersByMethod = emptyMap(),
         baseContinuationInternalClassNames = emptySet()
-    ).getTransformedAnnotation(baseContinuation, false))
+    ).getTransformedAnnotation(baseContinuation, skipSpecMethods))
 }
 
 fun getDebugMetadataInfoFromClassBody(body: InputStream): DebugMetadataInfo? =
@@ -300,6 +300,7 @@ private fun ClassNode.getClassTransformationInfo(
                     clazz = this,
                     method = method,
                     lineNumbersByMethod = lineNumbersByMethod,
+                    skipSpecMethods = skipSpecMethods
                 )
             }
             null -> { }
@@ -320,6 +321,7 @@ private fun tailCallDeopt(
     clazz: ClassNode,
     method: MethodNode,
     lineNumbersByMethod: MutableMap<String, MutableSet<Int>>,
+    skipSpecMethods: Boolean
 ) {
     method.instructions.forEach { instruction ->
         if (instruction is VarInsnNode && instruction.opcode == Opcodes.ALOAD && instruction.`var` == completionVarIndex) {
@@ -329,10 +331,12 @@ private fun tailCallDeopt(
                 .takeWhile { it.opcode == -1 }
                 .mapNotNull { it as? LineNumberNode }
                 .firstOrNull()?.line ?: UNKNOWN_LINE_NUMBER
-            val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(method.name) {
-                mutableSetOf(UNKNOWN_LINE_NUMBER)
+            if (!skipSpecMethods) {
+                val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(method.name) {
+                    mutableSetOf(UNKNOWN_LINE_NUMBER)
+                }
+                currentLineNumbers.add(lineNumber)
             }
-            currentLineNumbers.add(lineNumber)
             method.instructions.insert(instruction, InsnList().apply {
                 if (clazz.sourceFile != null) {
                     add(LdcInsnNode(clazz.sourceFile))

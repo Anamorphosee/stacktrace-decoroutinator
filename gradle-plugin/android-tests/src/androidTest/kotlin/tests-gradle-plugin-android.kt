@@ -40,7 +40,12 @@ class TestLocalFile {
 
 class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
     @Test
-    fun localBasic() {
+    fun performBasic() {
         basic()
+    }
+
+    @Test
+    fun performInterfaceWithDefaultMethodImpl() {
+        interfaceWithDefaultMethodImpl()
     }
 }

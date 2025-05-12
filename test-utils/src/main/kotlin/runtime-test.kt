@@ -259,7 +259,7 @@ open class CustomClassLoaderTest {
         loadCustomLoaderStubClass(false)
     }
 
-    fun performCheck(allowTailCallOptimization: Boolean) {
+    fun basic(allowTailCallOptimization: Boolean) {
         val clazz = loadCustomLoaderStubClass(true)
         val instance = clazz.getDeclaredConstructor().newInstance()
         val performCheckMethod = clazz.getDeclaredMethod("performCheck", Boolean::class.javaPrimitiveType)

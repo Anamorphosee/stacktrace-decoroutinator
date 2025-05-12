@@ -55,12 +55,12 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     }
 
     @Test
-    fun localBasic() {
+    fun performBasic() {
         basic()
     }
 
     @Test
-    fun localInterfaceWithDefaultMethodImpl() {
+    fun performInterfaceWithDefaultMethodImpl() {
         interfaceWithDefaultMethodImpl()
     }
 }
@@ -82,8 +82,8 @@ class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
     }
 
     @Test
-    fun check() {
-        `start class with spaces`(true)
+    fun performClassWithSpaces() {
+        `class with spaces`(true)
     }
 }
 

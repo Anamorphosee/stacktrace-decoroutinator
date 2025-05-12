@@ -79,6 +79,7 @@ internal val String.internalName: String
     get() = replace('.', '/')
 
 private val specClass = Type.internClassName(DecoroutinatorSpec::class.java.name.internalName)
+@Suppress("NewApi")
 private val methodHandleClass = Type.internClassName(MethodHandle::class.java.name.internalName)
 private val illegalArgumentExceptionClass = Type.internClassName(
     java.lang.IllegalArgumentException::class.java.name.internalName

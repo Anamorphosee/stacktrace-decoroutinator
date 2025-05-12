@@ -41,6 +41,7 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                 return@repeat
             }
             val clazz = try {
+                @Suppress("NewApi")
                 loader.findClass(className)
             // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/42#issuecomment-2508562491
             } catch (_: ClassNotFoundException) {
@@ -49,6 +50,7 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
             val result = run {
                 lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
                     val handle = try {
+                        @Suppress("NewApi")
                         MethodHandles.publicLookup().findStatic(clazz, methodName, specMethodType)
                     // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
                     } catch (_: NoSuchMethodException) {
@@ -112,6 +114,7 @@ private fun buildClassLoader(
         ))
     }
     dexFile.add(classDef)
+    @Suppress("NewApi")
     return InMemoryDexClassLoader(
         ByteBuffer.wrap(dexFile.toDex(null, false)),
         DecoroutinatorSpec::class.java.classLoader

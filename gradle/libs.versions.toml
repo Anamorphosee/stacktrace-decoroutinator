@@ -3,7 +3,7 @@ kotlin = "1.9.0"
 
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
-android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version = "8.5.2" }
+android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version = "8.9.2" }
 shadow-gradle-plugin = { group = "com.github.johnrengelman", name = "shadow", version = "8.1.1" }
 asm-utils = { group = "org.ow2.asm", name = "asm-util", version = "9.8" }
 dalvik-dx = { group = "com.jakewharton.android.repackaged", name = "dalvik-dx", version = "14.0.0_r21" }
@@ -25,4 +25,4 @@ android-library = { id = "com.android.library" }
 nmcp = { id = "com.gradleup.nmcp", version = "0.0.9" }
 gradle-plugin-publish = { id = "com.gradle.plugin-publish", version = "1.2.1" }
 kotlin-jvm-build = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-kotlin-jvm-latest = { id = "org.jetbrains.kotlin.jvm", version = "2.2.0-Beta1" }
+kotlin-jvm-latest = { id = "org.jetbrains.kotlin.jvm", version = "2.2.0-Beta2" }

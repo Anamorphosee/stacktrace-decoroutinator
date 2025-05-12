@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.kotlin.jvm.latest)
     id("dev.reformator.stacktracedecoroutinator")
@@ -17,6 +15,7 @@ repositories {
 dependencies {
     implementation(files("../../provider/build/libs/").asFileTree)
     implementation(files("../../common/build/libs/").asFileTree)
+    implementation(files("../../mh-invoker/build/libs/").asFileTree)
 
 //    testCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
@@ -35,13 +34,5 @@ tasks.test {
     useJUnitPlatform()
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    targetCompatibility = JavaVersion.VERSION_1_9
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_1_8
-    }
-}
+val kotlinTestSources = sourceSets.test.get().kotlin
+kotlinTestSources.srcDirs("../../test-utils/src/main/kotlin")

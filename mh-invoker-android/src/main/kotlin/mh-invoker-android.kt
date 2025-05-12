@@ -21,6 +21,7 @@ private val regularMethodHandleDexBase64: String
 private val String.decodeBase64: ByteArray
     get() = Base64.decode(this, Base64.DEFAULT)
 
+@Suppress("NewApi")
 private val regularMethodHandleLoader = InMemoryDexClassLoader(
     ByteBuffer.wrap(regularMethodHandleDexBase64.decodeBase64),
     MethodHandleInvoker::class.java.classLoader

@@ -88,7 +88,9 @@ dependencies {
     registerTransform(Transform::class.java, object: Action<TransformSpec<TransformParameters.None>> {
         override fun execute(t: TransformSpec<TransformParameters.None>) {
             t.from.attribute(transformedAttribute, false)
+            t.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, "jar")
             t.to.attribute(transformedAttribute, true)
+            t.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, "jar")
         }
     })
 

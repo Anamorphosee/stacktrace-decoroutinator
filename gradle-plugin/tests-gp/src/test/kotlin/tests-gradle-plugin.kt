@@ -71,19 +71,19 @@ class TestLocalFile {
 
 class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
     @Test
-    fun localBasic() {
+    fun performBasic() {
         basic()
     }
 
     @Test
-    fun localInterfaceWithDefaultMethodImpl() {
+    fun performInterfaceWithDefaultMethodImpl() {
         interfaceWithDefaultMethodImpl()
     }
 }
 
 class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
-    @org.junit.jupiter.api.Test
-    fun check() {
-        `start class with spaces`(false)
+    @Test
+    fun performClassWithSpaces() {
+        `class with spaces`(false)
     }
 }

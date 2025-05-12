@@ -5,13 +5,13 @@ class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
 class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
     @Test
     fun check() {
-        performCheck(false)
+        performCheck(true)
     }
 }
 
 class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
     @Test
     fun check() {
-        `start class with spaces`(false)
+        `start class with spaces`(true)
     }
 }

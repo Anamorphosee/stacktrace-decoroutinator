@@ -84,6 +84,6 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
 class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
     @org.junit.jupiter.api.Test
     fun check() {
-        `start class with spaces`(true)
+        `start class with spaces`(false)
     }
 }

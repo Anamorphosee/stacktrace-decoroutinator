@@ -35,21 +35,23 @@ bytecodeProcessor {
 }
 
 val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
+    val taskDir = layout.buildDirectory.dir("fillConstantProcessor")
     val customLoaderProject = project(":test-utils:custom-loader")
     customLoaderProject.afterEvaluate {
         val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
         dependsOn(customLoaderJarTask)
     }
     doLast {
-        val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
+        val customLoaderJarUri = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
+            .get().archiveFile.get().asFile.toURI().toString()
+        taskDir.get().asFile.mkdirs()
+        taskDir.get().file("customLoaderJarUri.txt").asFile.writeText(customLoaderJarUri)
         bytecodeProcessor {
             processors += LoadConstantProcessor(mapOf(
                 LoadConstantProcessor.Key(
                     "dev.reformator.stacktracedecoroutinator.test.Runtime_testKt",
                     "getCustomLoaderJarUri"
-                ) to LoadConstantProcessor.Value(
-                    customLoaderJarTask.get().archiveFile.get().asFile.toURI().toString()
-                )
+                ) to LoadConstantProcessor.Value(customLoaderJarUri)
             ))
         }
     }

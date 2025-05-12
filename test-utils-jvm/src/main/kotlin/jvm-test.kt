@@ -15,7 +15,7 @@ open class JvmTest {
         yield()
     }
 
-    fun `start class with spaces`(allowTailCallsOptimization: Boolean = false) = runBlocking {
+    fun `start class with spaces`(allowTailCallsOptimization: Boolean) = runBlocking {
         if (allowTailCallsOptimization) {
             checkTailCallsOptimized()
         } else {
@@ -31,6 +31,7 @@ open class JvmTest {
             currentFileName,
             lineNumber
         ))
+        tailCallDeoptimize()
     }
 
     suspend fun checkWithoutTailCallsOptimization() {
@@ -41,7 +42,6 @@ open class JvmTest {
             currentFileName,
             lineNumber
         ))
-        tailCallDeoptimize()
     }
 
     suspend fun check(parent: StackTraceElement) {

@@ -83,7 +83,7 @@ class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
 
     @Test
     fun check() {
-        `start class with spaces`(false)
+        `start class with spaces`(true)
     }
 }
 

@@ -32,13 +32,13 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
 class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
     @Test
     fun check() {
-        performCheck(true)
+        performCheck(false)
     }
 }
 
 class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
     @Test
     fun check() {
-        `start class with spaces`(true)
+        `start class with spaces`(false)
     }
 }

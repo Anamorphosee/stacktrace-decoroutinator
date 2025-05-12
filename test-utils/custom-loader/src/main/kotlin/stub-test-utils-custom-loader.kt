@@ -27,6 +27,7 @@ class ClassWithSuspendFunctionsStub {
             currentFileName,
             lineNumber
         ))
+        tailCallDeoptimizer()
     }
 
     suspend fun basicCheck() {
@@ -37,7 +38,6 @@ class ClassWithSuspendFunctionsStub {
             currentFileName,
             lineNumber
         ))
-        tailCallDeoptimizer()
     }
 
     suspend fun check(parentFrame: StackTraceElement) {

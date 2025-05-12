@@ -99,3 +99,7 @@ afterEvaluate {
     configurations["releaseRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
     configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
 }
+
+afterEvaluate {
+    tasks.create("legacyAndrolegacyAndroidTestidTest").dependsOn(tasks.named("connectedAndroidTest"))
+}

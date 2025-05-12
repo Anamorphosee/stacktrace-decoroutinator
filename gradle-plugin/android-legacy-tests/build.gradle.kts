@@ -14,7 +14,6 @@ stacktraceDecoroutinator {
     androidDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     addAndroidRuntimeDependency = false
-    legacyAndroidCompatibility = true
 }
 
 android {
@@ -42,4 +41,8 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)
     androidTestImplementation(libs.junit5.api)
     androidTestRuntimeOnly(libs.androidx.test.runner)
+}
+
+afterEvaluate {
+    tasks.create("legacyAndroidTest").dependsOn(tasks.named("connectedAndroidTest"))
 }

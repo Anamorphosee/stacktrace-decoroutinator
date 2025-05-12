@@ -10,6 +10,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.UnknownDomainObjectException
 import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
 import org.gradle.api.artifacts.transform.TransformOutputs
@@ -88,13 +89,14 @@ internal class StringMatcher(property: StringMatcherProperty) {
 
 open class DecoroutinatorPluginExtension {
     // high level configurations
+    internal val _legacyAndroidCompatibility = ObservableProperty(false)
     var enabled = true
     var addAndroidRuntimeDependency = true
     var addJvmRuntimeDependency = true
     var androidTestsOnly = false
     var jvmTestsOnly = false
     var useTransformedClassesForCompilation = false
-    var legacyAndroidCompatibility = false
+    var legacyAndroidCompatibility: Boolean by _legacyAndroidCompatibility
 
     // low level configurations
     internal val _artifactTypes = ObservableProperty(setOf<String>())
@@ -114,6 +116,29 @@ private val Project.isAndroid: Boolean
 
 private val Project.isKmp: Boolean
     get() = pluginManager.hasPlugin("org.jetbrains.kotlin.multiplatform")
+
+private val Project.androidMinSdk: Int?
+    get() {
+        try {
+            val ext = extensions.getByName("android") ?: return null
+            val defaultConfig = ext.javaClass.getMethod("getDefaultConfig").invoke(ext) ?: return null
+            return defaultConfig.javaClass.getMethod("getMinSdk").invoke(defaultConfig) as? Int?
+        } catch (_: UnknownDomainObjectException) {
+            return null
+        } catch (_: ReflectiveOperationException) {
+            return null
+        }
+    }
+
+private fun DecoroutinatorPluginExtension.setupHighLevelConfig(project: Project) {
+    _legacyAndroidCompatibility.updateIfNotSet {
+        if (!project.isAndroid) {
+            return@updateIfNotSet false
+        }
+        val minSdk = project.androidMinSdk
+        minSdk != null && minSdk < 26
+    }
+}
 
 private fun DecoroutinatorPluginExtension.setupLowLevelDependencyConfig(project: Project) {
     val isAndroid = project.isAndroid
@@ -322,6 +347,7 @@ private fun DecoroutinatorPluginExtension.setupLowLevelArtifactTypesConfig() {
 }
 
 private fun DecoroutinatorPluginExtension.setupLowLevelConfig(project: Project) {
+    setupHighLevelConfig(project)
     setupLowLevelDependencyConfig(project)
     setupLowLevelRuntimeTransformedClassesConfig(project)
     if (useTransformedClassesForCompilation) {

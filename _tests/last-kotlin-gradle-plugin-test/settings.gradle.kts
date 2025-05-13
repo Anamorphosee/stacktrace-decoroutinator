@@ -1,11 +1,11 @@
 rootProject.name = "last-kotlin-gradle-plugin-test"
 
-includeBuild("../decoroutinatortest")
-includeBuild("../bytecode-processor")
+includeBuild("../../_plugins/decoroutinatortest")
+includeBuild("../../_plugins/bytecode-processor")
 
 pluginManagement {
-    includeBuild("../decoroutinatortest")
-    includeBuild("../bytecode-processor")
+    includeBuild("../../_plugins/decoroutinatortest")
+    includeBuild("../../_plugins/bytecode-processor")
 }
 
 dependencyResolutionManagement {

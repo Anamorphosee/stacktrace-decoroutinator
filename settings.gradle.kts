@@ -40,7 +40,9 @@ project(":mh-invoker-android").name = "stacktrace-decoroutinator-mh-invoker-andr
 includeBuild("_plugins/bytecode-processor")
 includeBuild("_plugins/decoroutinatortest")
 includeBuild("_plugins/force-variant-java-version")
-includeBuild("_plugins/last-kotlin-gradle-plugin-test")
+
+includeBuild("_tests/last-kotlin-gradle-plugin-test")
+includeBuild("_tests/last-kotlin-kmp-gradle-plugin-test")
 
 pluginManagement {
     includeBuild("_plugins/bytecode-processor")

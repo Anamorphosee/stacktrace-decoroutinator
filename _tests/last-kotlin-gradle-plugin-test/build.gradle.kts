@@ -17,9 +17,9 @@ repositories {
 
 dependencies {
     runtimeOnly(files("../../provider/build/libs/").asFileTree)
-    runtimeOnly(files("../../common/build/libs/").asFileTree)
-    runtimeOnly(files("../../mh-invoker/build/libs/").asFileTree)
-    runtimeOnly(files("../../generator/build/libs/").asFileTree)
+    implementation(files("../../common/build/libs/").asFileTree)
+    implementation(files("../../mh-invoker/build/libs/").asFileTree)
+    implementation(files("../../generator/build/libs/").asFileTree)
     runtimeOnly(libs.asm.utils)
 
     testCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")

@@ -22,7 +22,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
             .forEach { (className, elements) ->
                 val clazz = classesByName.computeIfAbsent(className) { _ -> ClassSpec() }
                 elements.groupBy { it.fileName }.forEach { (fileName, elements) ->
-                    val methodsByName = clazz.methodsByFileNameAndMethodName[fileName]
+                    val methodsByName = clazz[fileName]
                     val needRebuild = methodsByName == null || elements.groupBy { it.methodName }.any { (methodName, elements) ->
                         val method = methodsByName[methodName]
                         method == null || elements.any {
@@ -39,7 +39,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                         val factoriesByMethod = synchronized(clazz) {
                             clazz.revision++
                             val lineNumbersByMethod = mutableMapOf<String, Set<Int>>()
-                            clazz.methodsByFileNameAndMethodName[fileName]?.let { methodsByName ->
+                            clazz[fileName]?.let { methodsByName ->
                                 methodsByName.forEach { (methodName, method) ->
                                     lineNumbersByMethod[methodName] = method.lineNumbers
                                 }
@@ -58,7 +58,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                 fileName = fileName,
                                 lineNumbersByMethod = lineNumbersByMethod
                             )
-                            clazz.methodsByFileNameAndMethodName[fileName] = factoriesByMethod.mapValues { (methodName, factory) ->
+                            clazz[fileName] = factoriesByMethod.mapValues { (methodName, factory) ->
                                 MethodSpec(
                                     factory = factory,
                                     lineNumbers = lineNumbersByMethod[methodName]!!
@@ -95,7 +95,19 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
 
     private class ClassSpec {
         var revision: Int = -1
-        val methodsByFileNameAndMethodName: MutableMap<String?, Map<String, MethodSpec>> = ConcurrentHashMap()
+        private val methodsByFileNameAndMethodName: MutableMap<String, Map<String, MethodSpec>> = ConcurrentHashMap()
+        @Volatile private var methodsByMethodNameForUnknownFileName: Map<String, MethodSpec>? = null
+
+        operator fun get(fileName: String?): Map<String, MethodSpec>? =
+            if (fileName == null) methodsByMethodNameForUnknownFileName else methodsByFileNameAndMethodName[fileName]
+
+        operator fun set(fileName: String?, methodsByMethodName: Map<String, MethodSpec>) {
+            if (fileName == null) {
+                methodsByMethodNameForUnknownFileName = methodsByMethodName
+            } else {
+                methodsByFileNameAndMethodName[fileName] = methodsByMethodName
+            }
+        }
     }
 }
 

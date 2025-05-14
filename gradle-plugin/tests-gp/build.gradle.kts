@@ -11,6 +11,8 @@ plugins {
 
 stacktraceDecoroutinator {
     regularDependencyConfigurations.include = emptySet()
+    androidDependencyConfigurations.include = emptySet()
+    jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
 }
 

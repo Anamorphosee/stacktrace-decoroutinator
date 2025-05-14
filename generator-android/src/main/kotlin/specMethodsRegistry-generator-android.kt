@@ -22,6 +22,12 @@ import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList
 
 internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
+    init {
+        //assert the platform
+        @Suppress("NewApi")
+        Class.forName(InMemoryDexClassLoader::class.java.name)
+    }
+
     override fun generateSpecMethodFactories(
         className: String,
         classRevision: Int,

@@ -20,6 +20,7 @@ stacktraceDecoroutinator {
     androidDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     addAndroidRuntimeDependency = false
+    //transformedClassesSkippingSpecMethodsConfigurations.include = setOf(".*RuntimeClasspath", "runtimeClasspath")
 }
 
 bytecodeProcessor {
@@ -67,13 +68,25 @@ kotlin {
             implementation("androidx.activity:activity-compose:1.10.1")
             implementation(files("../../generator-android/build/outputs/aar/stacktrace-decoroutinator-generator-android-release.aar"))
             implementation(files("../../mh-invoker-android/build/outputs/aar/stacktrace-decoroutinator-mh-invoker-android-release.aar"))
+            implementation(libs.kotlin.logging.jvm)
             runtimeOnly(libs.dalvik.dx)
+            runtimeOnly(libs.logback.classic)
         }
         androidInstrumentedTest.dependencies {
             compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
             runtimeOnly(libs.androidx.test.runner)
             implementation(kotlin("test"))
             implementation(files("../../test-utils/build/libs/").asFileTree)
+            implementation(libs.junit5.api)
+            runtimeOnly(libs.ktor.io.jvm)
+        }
+        androidUnitTest.dependencies {
+            compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+            implementation(kotlin("test"))
+            implementation(files("../../test-utils/build/libs/").asFileTree)
+            implementation(files("../../generator/build/libs/").asFileTree)
+            implementation(files("../../mh-invoker/build/libs/").asFileTree)
+            runtimeOnly(libs.asm.utils)
             implementation(libs.junit5.api)
             runtimeOnly(libs.ktor.io.jvm)
         }
@@ -88,8 +101,6 @@ kotlin {
             implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
             implementation(files("../../provider/build/libs/").asFileTree)
             implementation(files("../../common/build/libs/").asFileTree)
-            implementation(libs.kotlin.logging.jvm)
-            runtimeOnly(libs.logback.classic)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -117,6 +128,7 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        resources.merges.add("META-INF/services/*")
         resources.pickFirsts.add("META-INF/*")
     }
     buildTypes {

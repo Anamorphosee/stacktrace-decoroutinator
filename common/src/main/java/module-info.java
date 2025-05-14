@@ -15,7 +15,8 @@ module dev.reformator.stacktracedecoroutinator.common {
             dev.reformator.stacktracedecoroutinator.jvm,
             dev.reformator.stacktracedecoroutinator.generator.tests,
             dev.reformator.stacktracedecoroutinator.jvm.tests,
-            dev.reformator.stacktracedecoroutinator.mhinvoker;
+            dev.reformator.stacktracedecoroutinator.mhinvoker,
+            dev.reformator.stacktracedecoroutinator.mhinvokerjvm;
 
     provides DecoroutinatorProvider with Provider;
 

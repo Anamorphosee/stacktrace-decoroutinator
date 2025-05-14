@@ -35,7 +35,8 @@ dependencies {
 }
 
 bytecodeProcessor {
-    val customLoaderJarUri = file("../../test-utils/build/fillConstantProcessor/customLoaderJarUri.txt").readText()
+    val customLoaderJarFile = file("../../test-utils/build/fillConstantProcessor/customLoaderJarUri.txt")
+    val customLoaderJarUri = if (customLoaderJarFile.exists()) customLoaderJarFile.readText() else ""
     processors = setOf(
         GetCurrentFileNameProcessor,
         GetCurrentLineNumberProcessor,

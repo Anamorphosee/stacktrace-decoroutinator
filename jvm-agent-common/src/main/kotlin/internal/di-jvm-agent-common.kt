@@ -2,9 +2,9 @@
 
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal
 
-import java.util.ServiceLoader
+import dev.reformator.stacktracedecoroutinator.common.internal.loadService
 
-internal val settingsProvider = ServiceLoader.load(JvmAgentCommonSettingsProvider::class.java).firstOrNull() ?:
+internal val settingsProvider = loadService<JvmAgentCommonSettingsProvider>() ?:
     object: JvmAgentCommonSettingsProvider {}
 
 internal val isBaseContinuationRedefinitionAllowed = settingsProvider.isBaseContinuationRedefinitionAllowed

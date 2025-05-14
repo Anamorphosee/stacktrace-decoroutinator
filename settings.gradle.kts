@@ -10,6 +10,7 @@ include(
     "generator-android",
     "mh-invoker",
     "mh-invoker-android",
+    "mh-invoker-jvm",
 
     "intrinsics",
     "test-utils",
@@ -24,7 +25,8 @@ include(
     "jvm-agent:tests-ja",
     "jvm-agent:jdk8-tests-ja",
     "jvm:jdk8-tests-j",
-    "mh-invoker-android:legacy-tests"
+    "mh-invoker-android:legacy-tests",
+    "mh-invoker-jvm:jdk8-tests-mij"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"
@@ -36,6 +38,7 @@ project(":jvm-agent").name = "stacktrace-decoroutinator-jvm-agent"
 project(":generator-android").name = "stacktrace-decoroutinator-generator-android"
 project(":mh-invoker").name = "stacktrace-decoroutinator-mh-invoker"
 project(":mh-invoker-android").name = "stacktrace-decoroutinator-mh-invoker-android"
+project(":mh-invoker-jvm").name = "stacktrace-decoroutinator-mh-invoker-jvm"
 
 includeBuild("_plugins/bytecode-processor")
 includeBuild("_plugins/decoroutinatortest")

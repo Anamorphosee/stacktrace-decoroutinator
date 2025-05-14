@@ -6,8 +6,8 @@ package dev.reformator.stacktracedecoroutinator.mhinvokerandroid
 import android.util.Base64
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker
 import dalvik.system.InMemoryDexClassLoader
+import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker
 import dev.reformator.stacktracedecoroutinator.common.internal.VarHandleInvoker
 import java.nio.ByteBuffer
 

@@ -6,6 +6,11 @@ import dev.reformator.stacktracedecoroutinator.common.internal.*
 import java.util.concurrent.CopyOnWriteArrayList
 
 internal class GeneratorSpecMethodsRegistry: BaseSpecMethodsRegistry() {
+    init {
+        //assert the platform
+        DecoroutinatorClassLoader()
+    }
+
     override fun generateSpecMethodFactories(
         className: String,
         classRevision: Int,

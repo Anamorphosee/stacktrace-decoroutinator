@@ -96,15 +96,10 @@ interface MethodHandleInvoker {
         nextSpecAndItsMethod: SpecAndItsMethodHandle?,
         nextContinuation: BaseContinuation
     ): DecoroutinatorSpec
-
     val unknownSpecMethodHandle: MethodHandle
-
     fun callInvokeSuspend(continuation: BaseContinuation, cookie: Cookie, specResult: Any?): Any?
-
     fun callSpecMethod(handle: MethodHandle, spec: DecoroutinatorSpec, result: Any?): Any?
-
     val unknownSpecMethodClass: Class<*>
-
     val supportsVarHandle: Boolean
 }
 

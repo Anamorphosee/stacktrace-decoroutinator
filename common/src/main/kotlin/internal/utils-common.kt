@@ -10,6 +10,8 @@ import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import java.io.InputStream
 import java.lang.invoke.MethodType
+import java.util.ServiceConfigurationError
+import java.util.ServiceLoader
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.jvm.internal.CoroutineStackFrame
@@ -58,6 +60,40 @@ fun parseTransformationMetadata(
         baseContinuationClasses = baseContinuationClasses,
         skipSpecMethods = skipSpecMethods ?: false
     )
+}
+
+inline fun <reified T: Any> loadService(): T? {
+    val iter = ServiceLoader.load(T::class.java).iterator()
+    while (true) {
+        try {
+            return if (iter.hasNext()) iter.next() else null
+        } catch (_: ServiceConfigurationError) { }
+    }
+}
+
+inline fun <reified T: Any> loadMandatoryService(): T {
+    val iter = ServiceLoader.load(T::class.java).iterator()
+    val errors = mutableListOf<ServiceConfigurationError>()
+    while (true) {
+        try {
+            if (!iter.hasNext()) {
+                break
+            }
+            return iter.next()
+        } catch (e: ServiceConfigurationError) {
+            errors.add(e)
+        }
+    }
+    val message = "service [${T::class.simpleName}] not found"
+    val exception = if (errors.isNotEmpty()) {
+        IllegalStateException(message, errors[0])
+    } else {
+        IllegalStateException(message)
+    }
+    errors.asSequence().drop (1).forEach {
+        exception.addSuppressed(it)
+    }
+    throw exception
 }
 
 internal fun Class<*>.getBodyStream(loader: ClassLoader): InputStream? =

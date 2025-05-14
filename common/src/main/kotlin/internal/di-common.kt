@@ -2,10 +2,8 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
-import java.util.ServiceLoader
 
-internal val settingsProvider = ServiceLoader.load(CommonSettingsProvider::class.java).firstOrNull() ?:
-    object: CommonSettingsProvider {}
+internal val settingsProvider = loadService<CommonSettingsProvider>() ?: object: CommonSettingsProvider { }
 
 internal val supportsMethodHandle = try {
     _supportsMethodHandleStub().check()
@@ -23,7 +21,7 @@ internal var cookie: Cookie? = null
 @Suppress("ObjectPropertyName")
 private val _methodHandleInvoker: MethodHandleInvoker? =
     if (enabled) {
-        ServiceLoader.load(MethodHandleInvoker::class.java).iterator().next()
+        loadMandatoryService<MethodHandleInvoker>()
     } else {
         null
     }
@@ -35,14 +33,14 @@ private val _stacktraceElementsFactory: StacktraceElementsFactory? =
 @Suppress("ObjectPropertyName")
 private val _specMethodsRegistry: SpecMethodsRegistry? =
     if (enabled) {
-        ServiceLoader.load(SpecMethodsRegistry::class.java).firstOrNull() ?: SpecMethodsRegistryImpl
+        loadService<SpecMethodsRegistry>() ?: SpecMethodsRegistryImpl
     } else {
         null
     }
 
 internal val annotationMetadataResolver: AnnotationMetadataResolver? =
     if (enabled) {
-        ServiceLoader.load(AnnotationMetadataResolver::class.java).firstOrNull()
+        loadService<AnnotationMetadataResolver>()
     } else {
         null
     }
@@ -50,7 +48,7 @@ internal val annotationMetadataResolver: AnnotationMetadataResolver? =
 @Suppress("ObjectPropertyName")
 private val _varHandleInvoker: VarHandleInvoker? =
     if (_methodHandleInvoker?.supportsVarHandle == true) {
-        ServiceLoader.load(VarHandleInvoker::class.java).iterator().next()
+        loadMandatoryService<VarHandleInvoker>()
     } else {
         null
     }

@@ -1,4 +1,6 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dev.reformator.bytecodeprocessor.plugins.*
+import org.gradle.kotlin.dsl.named
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -6,6 +8,7 @@ plugins {
     kotlin("jvm")
     alias(libs.plugins.dokka)
     alias(libs.plugins.nmcp)
+    alias(libs.plugins.shadow)
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
@@ -34,6 +37,12 @@ bytecodeProcessor {
         ChangeInvocationsOwnerProcessor,
         GetOwnerClassProcessor()
     )
+}
+
+tasks.named<ShadowJar>("shadowJar") {
+    archiveClassifier.set("invokerjvm")
+    relocate("dev.reformator.stacktracedecoroutinator.mhinvoker", "dev.reformator.stacktracedecoroutinator.mhinvokerjvm")
+    include("dev/reformator/stacktracedecoroutinator/mhinvoker/**")
 }
 
 tasks.test {

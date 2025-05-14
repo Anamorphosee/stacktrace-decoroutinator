@@ -82,7 +82,11 @@ val mavenPublicationName = "maven"
 publishing {
     publications {
         create<MavenPublication>(mavenPublicationName) {
-            from(components["java"])
+            val component = components["java"] as AdhocComponentWithVariants
+            component.withVariantsFromConfiguration(configurations["shadowRuntimeElements"]) {
+                skip()
+            }
+            from(component)
             artifact(dokkaJavadocsJar)
             artifact(tasks.named("kotlinSourcesJar"))
             pom {

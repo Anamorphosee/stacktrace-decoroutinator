@@ -20,7 +20,6 @@ stacktraceDecoroutinator {
     androidDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     addAndroidRuntimeDependency = false
-    //transformedClassesSkippingSpecMethodsConfigurations.include = setOf(".*RuntimeClasspath", "runtimeClasspath")
 }
 
 bytecodeProcessor {

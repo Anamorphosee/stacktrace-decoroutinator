@@ -102,6 +102,7 @@ open class DecoroutinatorPluginExtension {
     internal val _artifactTypes = ObservableProperty(setOf<String>())
     val regularDependencyConfigurations = StringMatcherProperty()
     val androidDependencyConfigurations = StringMatcherProperty()
+    val jvmDependencyConfigurations = StringMatcherProperty()
     val jvmRuntimeDependencyConfigurations = StringMatcherProperty()
     val androidRuntimeDependencyConfigurations = StringMatcherProperty()
     val transformedClassesConfigurations = StringMatcherProperty()
@@ -144,32 +145,30 @@ private fun DecoroutinatorPluginExtension.setupLowLevelDependencyConfig(project:
     val isAndroid = project.isAndroid
     val isKmp = project.isKmp
     val androidConfigurations = when {
-        isKmp && androidTestsOnly -> setOf("androidTestImplementation")
+        isKmp && androidTestsOnly -> setOf(
+            "androidTestImplementation",
+            "androidInstrumentedTestImplementation"
+        )
         isKmp -> setOf("androidMainImplementation")
-        isAndroid && androidTestsOnly -> setOf("androidTestImplementation")
+        isAndroid && androidTestsOnly -> setOf("androidTestImplementation", "testImplementation")
         isAndroid -> setOf("implementation")
         else -> setOf()
     }
     val jvmConfigurations = when {
         isKmp && jvmTestsOnly -> setOf("desktopTestImplementation", "androidUnitTestImplementation")
         isKmp -> setOf("desktopMainImplementation", "androidUnitTestImplementation")
-        isAndroid -> setOf("testImplementation")
+        isAndroid -> setOf(".*UnitTestImplementation", "unitTestImplementation")
         jvmTestsOnly -> setOf("testImplementation")
         else -> setOf("implementation")
     }
     regularDependencyConfigurations._include.updateIfNotSet {
-        if (legacyAndroidCompatibility) {
-            jvmConfigurations
-        } else {
-            jvmConfigurations + androidConfigurations
-        }
+        if (legacyAndroidCompatibility) emptySet() else jvmConfigurations + androidConfigurations
     }
     androidDependencyConfigurations._include.updateIfNotSet {
-        if (legacyAndroidCompatibility) {
-            androidConfigurations
-        } else {
-            emptySet()
-        }
+        androidConfigurations
+    }
+    jvmDependencyConfigurations._include.updateIfNotSet {
+        jvmConfigurations
     }
     jvmRuntimeDependencyConfigurations._include.updateIfNotSet {
         if (addJvmRuntimeDependency) {
@@ -215,9 +214,9 @@ private fun DecoroutinatorPluginExtension.setupLowLevelRuntimeTransformedClasses
     val jvmConfigurations = when {
         isKmp -> {
             if (jvmTestsOnly) {
-                setOf("android.*UnitTestRuntimeClasspath", "desktopTestRuntimeClasspath")
+                setOf(".*UnitTestRuntimeClasspath", "desktopTestRuntimeClasspath")
             } else {
-                setOf("android.*UnitTestRuntimeClasspath", "desktopRuntimeClasspath")
+                setOf(".*UnitTestRuntimeClasspath", "desktopRuntimeClasspath", "desktopMainRuntimeClasspath")
             }
         }
         isAndroid -> setOf(".*UnitTestRuntimeClasspath", "unitTestRuntimeClasspath")
@@ -410,27 +409,25 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             )
                     }
 
-                    //regular runtime dependency
+                    //dependency configurations
                     run {
-                        val matcher = pluginExtension.regularDependencyConfigurations.matcher
+                        val regularMatcher = pluginExtension.regularDependencyConfigurations.matcher
+                        val androidMatcher = pluginExtension.androidDependencyConfigurations.matcher
+                        val jvmMatcher = pluginExtension.jvmDependencyConfigurations.matcher
                         configurations.all { config ->
-                            if (matcher.matches(config.name)) {
-                                with (dependencies) {
+                            with (dependencies) {
+                                if (regularMatcher.matches(config.name)) {
                                     add(config.name, decoroutinatorCommon())
                                     add(config.name, decoroutinatorRegularMethodHandleInvoker())
-                                }
-                            }
-                        }
-                    }
-
-                    //android runtime dependency
-                    run {
-                        val matcher = pluginExtension.androidDependencyConfigurations.matcher
-                        configurations.all { config ->
-                            if (matcher.matches(config.name)) {
-                                with (dependencies) {
-                                    add(config.name, decoroutinatorCommon())
-                                    add(config.name, decoroutinatorAndroidMethodHandleInvoker())
+                                } else {
+                                    if (androidMatcher.matches(config.name)) {
+                                        add(config.name, decoroutinatorCommon())
+                                        add(config.name, decoroutinatorAndroidMethodHandleInvoker())
+                                    }
+                                    if (jvmMatcher.matches(config.name)) {
+                                        add(config.name, decoroutinatorCommon())
+                                        add(config.name, decoroutinatorJvmMethodHandleInvoker())
+                                    }
                                 }
                             }
                         }

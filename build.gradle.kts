@@ -21,7 +21,7 @@ plugins {
 
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
-    version = "2.5.0"
+    version = "2.5.1-SNAPSHOT"
 }
 
 nmcp {

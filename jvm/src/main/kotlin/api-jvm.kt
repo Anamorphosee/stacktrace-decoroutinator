@@ -19,9 +19,11 @@ object DecoroutinatorJvmApi {
         isBaseContinuationRedefinitionAllowed: Boolean = true,
         isRedefinitionAllowed: Boolean = false,
         tailCallDeoptimize: Boolean = true,
+        recoveryExplicitStacktraceTimeoutMs: Long = 500
     ) {
         CommonSettingsProviderImpl.recoveryExplicitStacktrace = recoveryExplicitStacktrace
         CommonSettingsProviderImpl.tailCallDeoptimize = tailCallDeoptimize
+        CommonSettingsProviderImpl.recoveryExplicitStacktraceTimeoutMs = recoveryExplicitStacktraceTimeoutMs
         JvmAgentCommonSettingsProviderImpl.isBaseContinuationRedefinitionAllowed = isBaseContinuationRedefinitionAllowed
         JvmAgentCommonSettingsProviderImpl.isRedefinitionAllowed = isRedefinitionAllowed
         lock.withLock {
@@ -42,6 +44,7 @@ object DecoroutinatorJvmApi {
         }
     }
 
+    @Suppress("unused")
     fun getStatus(
         sourceCall: suspend (callThisAndReturnItsResult: suspend () -> Any?) -> Any? = { it() },
         allowTailCallOptimization: Boolean = false,

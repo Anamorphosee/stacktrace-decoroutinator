@@ -104,10 +104,23 @@ private fun recoveryExplicitStacktrace(
     stacktraceElements: StacktraceElements
 ) {
     val trace = exception.stackTrace
-    val traceStartElementIndex = trace.lastIndexOf(decoroutinatorBoundaryStacktraceElement) + 1
-    val recoveredStacktrace = Array((trace.size - traceStartElementIndex) + baseContinuations.size + 1) {
+    var traceStartElementIndex = trace.size
+    var boundaryFrameTime = NOT_BOUNDARY_FRAME_TIME
+    while (traceStartElementIndex != 0) {
+        val nextIndex = traceStartElementIndex - 1
+        boundaryFrameTime = trace[nextIndex].boundaryFrameTime
+        if (boundaryFrameTime != NOT_BOUNDARY_FRAME_TIME) break
+        traceStartElementIndex = nextIndex
+    }
+    val time = System.currentTimeMillis()
+    if (traceStartElementIndex != 0 && boundaryFrameTime < time - recoveryExplicitStacktraceTimeoutMs) {
+        traceStartElementIndex = 0
+    }
+    val baseContinuationsSize = baseContinuations.size
+    val traceOffset = baseContinuationsSize + 1 - traceStartElementIndex
+    val recoveredStacktrace = Array(trace.size + traceOffset) {
         when {
-            it < baseContinuations.size -> {
+            it < baseContinuationsSize -> {
                 val continuation = baseContinuations[it]
                 val element = stacktraceElements.elementsByContinuation[continuation]
                 if (element == null) {
@@ -121,8 +134,8 @@ private fun recoveryExplicitStacktrace(
                     )
                 }
             }
-            it == baseContinuations.size -> decoroutinatorBoundaryStacktraceElement
-            else -> trace[it - baseContinuations.size - 1 + traceStartElementIndex]
+            it == baseContinuationsSize -> boundaryFrame(time)
+            else -> trace[it - traceOffset]
         }
     }
     exception.stackTrace = recoveredStacktrace
@@ -131,5 +144,22 @@ private fun recoveryExplicitStacktrace(
 private fun artificialFrame(message: String) =
     StackTraceElement("", "", message, -1)
 
-private val decoroutinatorBoundaryStacktraceElement = artificialFrame("decoroutinator-boundary")
+private const val BOUNDARY_LABEL = "decoroutinator-boundary-"
+private const val BOUNDARY_LABEL_LENGTH = BOUNDARY_LABEL.length
+private const val NOT_BOUNDARY_FRAME_TIME = -1L
+
 private val unknownStacktraceElement = artificialFrame("unknown")
+
+private fun boundaryFrame(time: Long) = artificialFrame(BOUNDARY_LABEL + time)
+
+private val StackTraceElement.boundaryFrameTime: Long
+    get() {
+        if (className.isNotEmpty()) return NOT_BOUNDARY_FRAME_TIME
+        val fileName = fileName
+        if (fileName == null || !fileName.startsWith(BOUNDARY_LABEL)) return NOT_BOUNDARY_FRAME_TIME
+        return try {
+            java.lang.Long.parseLong(fileName, BOUNDARY_LABEL_LENGTH, fileName.length, 10)
+        } catch (_: NumberFormatException) {
+            NOT_BOUNDARY_FRAME_TIME
+        }
+    }

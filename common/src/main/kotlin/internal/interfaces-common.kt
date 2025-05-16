@@ -80,6 +80,10 @@ interface CommonSettingsProvider {
     val tailCallDeoptimize: Boolean
         get() = System.getProperty("dev.reformator.stacktracedecoroutinator.tailCallDeoptimize", "true")
             .toBoolean()
+
+    val recoveryExplicitStacktraceTimeoutMs: Long
+        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktraceTimeoutMs", "500")
+            .toLong()
 }
 
 @DecoroutinatorTransformed(

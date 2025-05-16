@@ -81,7 +81,9 @@ fun applyBytecodeProcessors(processors: Set<Processor>, classesDir: File) {
                 clazz.file
             } else {
                 require(clazz.file.delete())
-                classesDir.resolve(clazz.node.file)
+                val file = classesDir.resolve(clazz.node.file)
+                file.parentFile.mkdirs()
+                file
             }
             clazz.node.writeTo(file)
         } else {

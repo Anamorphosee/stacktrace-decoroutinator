@@ -1,8 +1,9 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import dev.reformator.bytecodeprocessor.impl.applyBytecodeProcessors
 import dev.reformator.bytecodeprocessor.plugins.*
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
+import org.apache.commons.io.output.ByteArrayOutputStream
 import org.gradle.kotlin.dsl.named
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -11,6 +12,7 @@ import java.util.Base64
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlin.apply
 import kotlin.sequences.forEach
 
@@ -75,22 +77,80 @@ bytecodeProcessor {
     )
 }
 
+private fun File.clearDir() {
+    listFiles().forEach {
+        if (it.isDirectory) {
+            it.deleteRecursively()
+        } else {
+            it.delete()
+        }
+    }
+}
+
+private val File.isClass: Boolean
+    get() = isFile && name.endsWith(".class") && name != "module-info.class"
+
+private fun File.copyClassesTo(output: File) {
+    walk().filter { it.isClass }.forEach { file ->
+        val outputFile = output.resolve(file.relativeTo(this))
+        outputFile.parentFile.mkdirs()
+        file.copyTo(outputFile)
+    }
+}
+
+private val File.classNameSequence: Sequence<String>
+    get() = walk().filter { it.isClass }.map {
+        it.relativeTo(this).path.removeSuffix(".class").replace(File.separator, ".")
+    }
+
+private fun File.zipDirectoryToArray(): ByteArray {
+    val bufferOutput = ByteArrayOutputStream()
+    ZipOutputStream(bufferOutput).use { output ->
+        walk().forEach { file ->
+            val entryName = file.toRelativeString(this).replace(File.separator, "/")
+            if (file.isDirectory) {
+                output.putNextEntry(ZipEntry("$entryName/").also {
+                    it.method = ZipEntry.DEFLATED
+                })
+            } else {
+                val buffer = file.readBytes()
+                output.putNextEntry(ZipEntry(entryName).also {
+                    it.method = ZipEntry.DEFLATED
+                    it.size = buffer.size.toLong()
+                })
+                output.write(buffer)
+            }
+        }
+    }
+    return bufferOutput.toByteArray()
+}
+
 val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
     val mhInvokerProject = project(":stacktrace-decoroutinator-mh-invoker")
     mhInvokerProject.afterEvaluate {
-        dependsOn(mhInvokerProject.tasks.named<ShadowJar>("shadowJar"))
+        dependsOn(mhInvokerProject.tasks.named("compileKotlin"))
     }
     doLast {
-        val mhInvokerJarTask = mhInvokerProject.tasks.named<ShadowJar>("shadowJar")
-        val mhInvokerJarBody = mhInvokerJarTask.get().archiveFile.get().asFile.readBytes()
+        val mhInvokerCompileKotlinTask = mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+        val tempDir = temporaryDir
+        tempDir.clearDir()
+        mhInvokerCompileKotlinTask.get().destinationDirectory.get().asFile.copyClassesTo(tempDir)
+        val changeClassNameParameters = tempDir.classNameSequence.map { className ->
+            val newClassName = "dev.reformator.stacktracedecoroutinator.mhinvokerjvm." +
+                    className.removePrefix("dev.reformator.stacktracedecoroutinator.mhinvoker.")
+            className to newClassName
+        }.toMap()
+        applyBytecodeProcessors(
+            processors = setOf(ChangeClassNameProcessor(changeClassNameParameters)),
+            classesDir = tempDir
+        )
+        val jarBodyBase64 = Base64.getEncoder().encodeToString(tempDir.zipDirectoryToArray())
         bytecodeProcessor {
             processors += LoadConstantProcessor(mapOf(
                 LoadConstantProcessor.Key(
                     "dev.reformator.stacktracedecoroutinator.mhinvokerjvm.internal.MhInvokerJvmKt",
                     "getRegularMethodHandleJarBase64"
-                ) to LoadConstantProcessor.Value(
-                    Base64.getEncoder().encodeToString(mhInvokerJarBody)
-                )
+                ) to LoadConstantProcessor.Value(jarBodyBase64)
             ))
         }
     }

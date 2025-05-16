@@ -111,6 +111,10 @@ class ChangeClassNameProcessor(
         }
 
         module.classes.forEach { processingClass ->
+            processingClass.node.name.modify {
+                processingClass.markModified()
+                processingClass.node.name = it
+            }
             processingClass.node.superName?.modify {
                 processingClass.markModified()
                 processingClass.node.superName = it

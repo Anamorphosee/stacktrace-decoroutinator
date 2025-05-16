@@ -9,6 +9,7 @@ internal class CommonSettingsProviderImpl: CommonSettingsProvider {
     companion object {
         var recoveryExplicitStacktrace: Boolean = false
         var tailCallDeoptimize: Boolean = false
+        var recoveryExplicitStacktraceTimeoutMs: Long = 0L
     }
 
     override val recoveryExplicitStacktrace: Boolean
@@ -16,6 +17,9 @@ internal class CommonSettingsProviderImpl: CommonSettingsProvider {
 
     override val tailCallDeoptimize: Boolean
         get() = CommonSettingsProviderImpl.tailCallDeoptimize
+
+    override val recoveryExplicitStacktraceTimeoutMs: Long
+        get() = CommonSettingsProviderImpl.recoveryExplicitStacktraceTimeoutMs
 }
 
 internal class JvmAgentCommonSettingsProviderImpl: JvmAgentCommonSettingsProvider {

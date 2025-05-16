@@ -15,6 +15,7 @@ internal val supportsMethodHandle = try {
 internal val enabled = supportsMethodHandle && settingsProvider.decoroutinatorEnabled
 internal val recoveryExplicitStacktrace = enabled && settingsProvider.recoveryExplicitStacktrace
 internal val tailCallDeoptimize = enabled && settingsProvider.tailCallDeoptimize
+internal val recoveryExplicitStacktraceTimeoutMs = if (tailCallDeoptimize) settingsProvider.recoveryExplicitStacktraceTimeoutMs else 0L
 
 internal var cookie: Cookie? = null
 

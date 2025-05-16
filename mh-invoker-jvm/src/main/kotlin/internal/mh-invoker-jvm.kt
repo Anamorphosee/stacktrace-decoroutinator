@@ -46,16 +46,11 @@ private val String.decodeBase64: ByteArray
     get() = Base64.getDecoder().decode(this)
 
 private fun getRegularMethodHandleInvokerClasses(): Map<String, ByteArray> = buildMap {
-    ZipInputStream(regularMethodHandleJarBase64.decodeBase64.inputStream()).use { input ->
+    ZipInputStream(regularMethodHandleJarBase64.decodeBase64.inputStream()) .use { input ->
         while (true) {
             val entry = input.nextEntry ?: return@use
-            if (entry.name.endsWith(".class") && entry.name != "module-info.class") {
-                val body = ByteArray(entry.size.toInt())
-                var read = input.read(body)
-                while (read < body.size) {
-                    read += input.read(body, read, body.size - read)
-                }
-                put(entry.name.removeSuffix(".class").replace("/", "."), body)
+            if (entry.name.endsWith(".class")) {
+                put(entry.name.removeSuffix(".class").replace("/", "."), input.readBytes())
             }
         }
     }

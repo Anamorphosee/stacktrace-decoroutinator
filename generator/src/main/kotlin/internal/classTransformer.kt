@@ -65,6 +65,12 @@ fun transformClassBody(
         }
         return readProviderClassBodyTransformationStatus
     }
+    node.kotlinMetadataAnnotation?.let { metadata ->
+        val metadataExtraInt = metadata.getField("xi") as Int? ?: 0
+        if (metadataExtraInt and (1 shl 7) != 0) {
+            return noClassBodyTransformationStatus
+        }
+    }
     if (node.name == BASE_CONTINUATION_CLASS_NAME.internalName) {
         transformBaseContinuation(node, skipSpecMethods)
         return ClassBodyTransformationStatus(
@@ -259,6 +265,11 @@ internal val ClassNode.kotlinDebugMetadataAnnotation: AnnotationNode?
         .orEmpty()
         .firstOrNull { it.desc == Type.getDescriptor(DebugMetadata::class.java) }
 
+private val ClassNode.kotlinMetadataAnnotation: AnnotationNode?
+    get() = visibleAnnotations
+        .orEmpty()
+        .firstOrNull { it.desc == Type.getDescriptor(Metadata::class.java) }
+
 internal fun AnnotationNode.getField(name: String): Any? {
     var index = 0
     while (index < values.orEmpty().size) {
@@ -274,6 +285,7 @@ private fun ClassNode.getClassTransformationInfo(
     metadataResolver: (className: String) -> DebugMetadataInfo?,
     skipSpecMethods: Boolean
 ): ClassTransformationInfo? {
+    //
     val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
     val baseContinuationInternalClassNames = mutableSetOf<String>()
     var needTransformation = false

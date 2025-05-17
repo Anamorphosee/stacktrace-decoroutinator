@@ -4,7 +4,9 @@ package dev.reformator.stacktracedecoroutinator.test
 
 import dev.reformator.bytecodeprocessor.intrinsics.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.future.await
@@ -26,6 +28,15 @@ class TestException(message: String): Exception(message)
 
 @Suppress("JUnitMixedFramework")
 open class RuntimeTest {
+    @Junit4Test @Junit5Test
+    fun inlineTransformedClassForKotlinc() {
+        runBlocking {
+            flowOf(1)
+                .transform { emit(it) }
+                .collect()
+        }
+    }
+
     @Junit4Test @Junit5Test
     fun basic() = runBlocking {
         val random = Random(123)

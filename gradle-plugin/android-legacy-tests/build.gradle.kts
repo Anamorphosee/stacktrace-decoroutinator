@@ -15,6 +15,7 @@ stacktraceDecoroutinator {
     jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     addAndroidRuntimeDependency = false
+    useTransformedClassesForCompilation = true
 }
 
 android {

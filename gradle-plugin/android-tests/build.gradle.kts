@@ -19,6 +19,7 @@ stacktraceDecoroutinator {
     jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     addAndroidRuntimeDependency = false
+    useTransformedClassesForCompilation = true
 }
 
 dependencies {
@@ -26,6 +27,7 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)
     androidTestImplementation(libs.junit4)
 
+    //noinspection UseTomlInstead
     androidTestCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     androidTestRuntimeOnly(libs.androidx.test.runner)

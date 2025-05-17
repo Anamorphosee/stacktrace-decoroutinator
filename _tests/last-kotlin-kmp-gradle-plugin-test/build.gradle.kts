@@ -21,6 +21,7 @@ stacktraceDecoroutinator {
     jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     addAndroidRuntimeDependency = false
+    useTransformedClassesForCompilation = true
 }
 
 bytecodeProcessor {
@@ -65,6 +66,7 @@ kotlin {
         
         androidMain.dependencies {
             implementation(compose.preview)
+            //noinspection UseTomlInstead
             implementation("androidx.activity:activity-compose:1.10.1")
             implementation(files("../../generator-android/build/outputs/aar/stacktrace-decoroutinator-generator-android-release.aar"))
             implementation(files("../../mh-invoker-android/build/outputs/aar/stacktrace-decoroutinator-mh-invoker-android-release.aar"))
@@ -73,6 +75,7 @@ kotlin {
             runtimeOnly(libs.logback.classic)
         }
         androidInstrumentedTest.dependencies {
+            //noinspection UseTomlInstead
             compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
             runtimeOnly(libs.androidx.test.runner)
             implementation(kotlin("test"))
@@ -81,6 +84,7 @@ kotlin {
             runtimeOnly(libs.ktor.io.jvm)
         }
         androidUnitTest.dependencies {
+            //noinspection UseTomlInstead
             compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
             implementation(kotlin("test"))
             implementation(files("../../test-utils/build/libs/").asFileTree)
@@ -97,13 +101,16 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            //noinspection UseTomlInstead
             implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:2.8.4")
+            //noinspection UseTomlInstead
             implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
             implementation(files("../../provider/build/libs/").asFileTree)
             implementation(files("../../common/build/libs/").asFileTree)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
+            //noinspection UseTomlInstead
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
             implementation(files("../../generator/build/libs/").asFileTree)
             implementation(files("../../mh-invoker/build/libs/").asFileTree)

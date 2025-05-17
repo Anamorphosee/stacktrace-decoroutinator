@@ -11,6 +11,7 @@ stacktraceDecoroutinator {
     androidDependencyConfigurations.include = emptySet()
     jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
+    useTransformedClassesForCompilation = true
 }
 
 repositories {
@@ -24,6 +25,7 @@ dependencies {
     implementation(files("../../generator/build/libs/").asFileTree)
     runtimeOnly(libs.asm.utils)
 
+    //noinspection UseTomlInstead
     testCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     testImplementation(kotlin("test"))

@@ -14,6 +14,7 @@ stacktraceDecoroutinator {
     androidDependencyConfigurations.include = emptySet()
     jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
+    useTransformedClassesForCompilation = true
 }
 
 repositories {
@@ -21,6 +22,7 @@ repositories {
 }
 
 dependencies {
+    //noinspection UseTomlInstead
     testCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     testRuntimeOnly(project(":stacktrace-decoroutinator-common"))

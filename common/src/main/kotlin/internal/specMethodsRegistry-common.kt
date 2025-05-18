@@ -1,4 +1,4 @@
-@file:Suppress("PackageDirectoryMismatch")
+@file:Suppress("NewApi", "PackageDirectoryMismatch")
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
@@ -176,6 +176,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
     )
 
     private fun register(spec: TransformedClassesRegistry.TransformedClassSpec) {
+        if (spec.skipSpecMethods) return
         val methodsByName = spec.lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
             val specMethod = spec.lookup.findStatic(spec.transformedClass, methodName, specMethodType)
             MethodSpec(

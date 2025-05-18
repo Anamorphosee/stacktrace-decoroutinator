@@ -78,7 +78,7 @@ fun transformClassBody(
             needReadProviderModule = true
         )
     }
-    val transformationInfo = node.getClassTransformationInfo(metadataResolver, skipSpecMethods) ?:
+    val transformationInfo = node.getClassTransformationInfo(metadataResolver) ?:
         return noClassBodyTransformationStatus
     node.transform(transformationInfo, skipSpecMethods)
     return ClassBodyTransformationStatus(
@@ -224,13 +224,17 @@ private fun ClassNode.transform(
     val makePrivate = !isInterface || isPrivateMethodsInInterfacesSupported
     val makeFinal = !isInterface
     version = maxOf(version, Opcodes.V1_7)
-    classTransformationInfo.lineNumbersByMethod.forEach { (methodName, lineNumbers) ->
-        methods.add(buildSpecMethodNode(
-            methodName = methodName,
-            lineNumbers = lineNumbers,
-            makePrivate = makePrivate,
-            makeFinal = makeFinal
-        ))
+    if (!skipSpecMethods) {
+        classTransformationInfo.lineNumbersByMethod.forEach { (methodName, lineNumbers) ->
+            methods.add(
+                buildSpecMethodNode(
+                    methodName = methodName,
+                    lineNumbers = lineNumbers,
+                    makePrivate = makePrivate,
+                    makeFinal = makeFinal
+                )
+            )
+        }
     }
 
     val clinit = getOrCreateClinitMethod()
@@ -282,22 +286,18 @@ internal fun AnnotationNode.getField(name: String): Any? {
 }
 
 private fun ClassNode.getClassTransformationInfo(
-    metadataResolver: (className: String) -> DebugMetadataInfo?,
-    skipSpecMethods: Boolean
+    metadataResolver: (className: String) -> DebugMetadataInfo?
 ): ClassTransformationInfo? {
-    //
     val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
     val baseContinuationInternalClassNames = mutableSetOf<String>()
     var needTransformation = false
     val check = { info: DebugMetadataInfo? ->
         if (info != null && info.specClassInternalClassName == name) {
             needTransformation = true
-            if (!skipSpecMethods) {
-                val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(info.methodName) {
-                    mutableSetOf(UNKNOWN_LINE_NUMBER)
-                }
-                currentLineNumbers.addAll(info.lineNumbers)
+            val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(info.methodName) {
+                mutableSetOf(UNKNOWN_LINE_NUMBER)
             }
+            currentLineNumbers.addAll(info.lineNumbers)
             baseContinuationInternalClassNames.add(info.baseContinuationInternalClassName)
         }
     }
@@ -311,8 +311,7 @@ private fun ClassNode.getClassTransformationInfo(
                     completionVarIndex = status.completionVarIndex,
                     clazz = this,
                     method = method,
-                    lineNumbersByMethod = lineNumbersByMethod,
-                    skipSpecMethods = skipSpecMethods
+                    lineNumbersByMethod = lineNumbersByMethod
                 )
             }
             null -> { }
@@ -332,8 +331,7 @@ private fun tailCallDeopt(
     completionVarIndex: Int,
     clazz: ClassNode,
     method: MethodNode,
-    lineNumbersByMethod: MutableMap<String, MutableSet<Int>>,
-    skipSpecMethods: Boolean
+    lineNumbersByMethod: MutableMap<String, MutableSet<Int>>
 ) {
     method.instructions.forEach { instruction ->
         if (instruction is VarInsnNode && instruction.opcode == Opcodes.ALOAD && instruction.`var` == completionVarIndex) {
@@ -343,12 +341,10 @@ private fun tailCallDeopt(
                 .takeWhile { it.opcode == -1 }
                 .mapNotNull { it as? LineNumberNode }
                 .firstOrNull()?.line ?: UNKNOWN_LINE_NUMBER
-            if (!skipSpecMethods) {
-                val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(method.name) {
-                    mutableSetOf(UNKNOWN_LINE_NUMBER)
-                }
-                currentLineNumbers.add(lineNumber)
+            val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(method.name) {
+                mutableSetOf(UNKNOWN_LINE_NUMBER)
             }
+            currentLineNumbers.add(lineNumber)
             method.instructions.insert(instruction, InsnList().apply {
                 if (clazz.sourceFile != null) {
                     add(LdcInsnNode(clazz.sourceFile))

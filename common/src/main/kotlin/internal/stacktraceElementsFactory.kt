@@ -1,3 +1,5 @@
+@file:Suppress("PackageDirectoryMismatch", "NewApi")
+
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
@@ -27,14 +29,14 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                 }
             } else {
                 val spec = getBaseContinuationClassSpec(baseContinuationClass.name)
-                val elementsByLabel = spec.getElementsByLabel(baseContinuationClass)
-                if (elementsByLabel != null) {
+                val info = spec.getInfo(baseContinuationClass)
+                if (info != null) {
                     continuations.forEach { continuation ->
                         val label = spec.labelExtractor.getLabel(continuation)
-                        val element = elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
+                        val element = info.elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
                         elementsByContinuation[continuation] = element
                     }
-                    possibleElements.addAll(elementsByLabel)
+                    possibleElements.addAll(info.possibleElements)
                 }
             }
         }
@@ -81,12 +83,18 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 
+    private class BaseContinuationClassSpecInfo(
+        val elementsByLabel: Array<StacktraceElement>,
+        val possibleElements: Set<StacktraceElement>
+    )
 
     private class BaseContinuationClassSpec(
         @Volatile var labelExtractor: StacktraceElementsFactory.LabelExtractor
     ) {
-        fun getElementsByLabel(clazz: Class<out BaseContinuation>): List<StacktraceElement>? {
-            val localElementsByLabel = elementsByLabel ?: run {
+        private var info: BaseContinuationClassSpecInfo? = null
+
+        fun getInfo(clazz: Class<out BaseContinuation>): BaseContinuationClassSpecInfo? {
+            val localInfo = info ?: run {
                 val meta = try {
                     clazz.getAnnotation(DebugMetadata::class.java)?.let { debugMetadataAnnotation ->
                         KotlinDebugMetadata(
@@ -108,29 +116,50 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                         null
                     }
                 }
-                val newElementsByLabel = if (meta != null) {
-                    List(meta.lineNumbers.size + 1) { index ->
+                val newInfo = if (meta != null) {
+                    val className = meta.className
+                    val elementsByLabel = Array(meta.lineNumbers.size + 1) { index ->
                         val lineNumber = if (index == 0) UNKNOWN_LINE_NUMBER else meta.lineNumbers[index - 1]
                         StacktraceElement(
-                            className = meta.className,
+                            className = className,
                             fileName = meta.sourceFile.ifEmpty { null },
                             methodName = meta.methodName,
                             lineNumber = lineNumber
                         )
                     }
+                    val transformedPossibleElements = TransformedClassesRegistry
+                        .transformedClasses
+                        .find { it.transformedClass.name == className }
+                        .let { transformedClass ->
+                            if (transformedClass == null) return@let emptySequence()
+                            transformedClass.lineNumbersByMethod.asSequence()
+                                .flatMap { (methodName, lineNumbers) ->
+                                    lineNumbers.asSequence().map {
+                                        StacktraceElement(
+                                            className = className,
+                                            fileName = transformedClass.fileName,
+                                            methodName = methodName,
+                                            lineNumber = it
+                                        )
+                                    }
+                                }
+                        }
+                    val possibleElements = (transformedPossibleElements + elementsByLabel.asSequence()).toSet()
+                    BaseContinuationClassSpecInfo(
+                        elementsByLabel = elementsByLabel,
+                        possibleElements = possibleElements
+                    )
                 } else {
-                    failedElementsByLabel
+                    failedInfo
                 }
-                elementsByLabel = newElementsByLabel
-                newElementsByLabel
+                info = newInfo
+                newInfo
             }
-            return if (localElementsByLabel != failedElementsByLabel) localElementsByLabel else null
+            return if (localInfo != failedInfo) localInfo else null
         }
 
-        var elementsByLabel: List<StacktraceElement>? = null
-
         private companion object {
-            val failedElementsByLabel = emptyList<StacktraceElement>()
+            val failedInfo = BaseContinuationClassSpecInfo(emptyArray(), emptySet())
         }
     }
 

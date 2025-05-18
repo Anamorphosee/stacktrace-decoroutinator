@@ -1,4 +1,4 @@
-@file:Suppress("PackageDirectoryMismatch")
+@file:Suppress("NewApi", "PackageDirectoryMismatch")
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
@@ -14,7 +14,8 @@ internal object TransformedClassesRegistry {
         val fileName: String?,
         val lookup: MethodHandles.Lookup,
         val lineNumbersByMethod: Map<String, IntArray>,
-        val baseContinuationClasses: Set<String>
+        val baseContinuationClasses: Set<String>,
+        val skipSpecMethods: Boolean
     )
 
     fun interface Listener {
@@ -74,7 +75,8 @@ internal object TransformedClassesRegistry {
                     fileName = meta.fileName,
                     lookup = lookup,
                     lineNumbersByMethod = lineNumbersByMethod,
-                    baseContinuationClasses = meta.baseContinuationClasses
+                    baseContinuationClasses = meta.baseContinuationClasses,
+                    skipSpecMethods = meta.skipSpecMethods
                 )
             }
             _transformedClasses[clazz.name] = transformedClassSpec

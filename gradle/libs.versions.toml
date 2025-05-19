@@ -1,7 +1,7 @@
 [versions]
 kotlin = "1.9.0"
 agp = "8.9.3"
-kotlin-latest = "2.2.0-Beta2"
+kotlin-latest = "2.2.0-RC"
 
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -28,7 +28,7 @@ nmcp = { id = "com.gradleup.nmcp", version = "0.0.9" }
 gradle-plugin-publish = { id = "com.gradle.plugin-publish", version = "1.2.1" }
 kotlin-jvm-build = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-jvm-latest = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-latest" }
-android-application-latest = { id = "com.android.application", version.ref = "agp" }
+android-application = { id = "com.android.application", version.ref = "agp" }
 compose-multiplatform-latest = { id = "org.jetbrains.compose", version = "1.8.0" }
 compose-compiler-latest = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin-latest" }
 kotlin-multiplatform-latest = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin-latest" }

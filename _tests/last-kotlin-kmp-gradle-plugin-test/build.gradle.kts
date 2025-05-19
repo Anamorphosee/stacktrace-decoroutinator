@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform.latest)
-    alias(libs.plugins.android.application.latest)
+    alias(libs.plugins.android.application)
     alias(libs.plugins.compose.multiplatform.latest)
     alias(libs.plugins.compose.compiler.latest)
     id("dev.reformator.stacktracedecoroutinator")

@@ -4,23 +4,23 @@ package dev.reformator.stacktracedecoroutinator.test
 
 import org.junit.jupiter.api.Assertions.assertTrue
 
-fun checkStacktrace(vararg elements: StackTraceElement) {
+fun Array<StackTraceElement>.checkStacktrace(vararg elements: StackTraceElement, fromIndex: Int = 0) {
     if (elements.isEmpty()) {
         return
     }
-    Exception().stackTrace.also { stacktrace ->
-        val startIndex = stacktrace.indexOfFirst { elements[0] eq it }
-        elements.forEachIndexed { index, element ->
-            assertTrue(element eq stacktrace[startIndex + index])
-        }
+    var startIndex = fromIndex
+    while (!(this[startIndex] eq elements[0])) startIndex++
+    elements.forEachIndexed { index, element ->
+        assertTrue(element eq this[startIndex + index])
     }
 }
 
-private infix fun StackTraceElement.eq(element: StackTraceElement) =
-    this.className == element.className && (this.methodName == element.methodName || this.methodName == ANY) &&
-            this.lineNumber == element.lineNumber
+fun checkStacktrace(vararg elements: StackTraceElement) {
+    Exception().stackTrace.checkStacktrace(*elements)
+}
 
-const val ANY = "<any>"
+private infix fun StackTraceElement.eq(element: StackTraceElement) =
+    this.className == element.className && this.methodName == element.methodName && this.lineNumber == element.lineNumber
 
 typealias Junit4Test = org.junit.Test
 typealias Junit5Test = org.junit.jupiter.api.Test

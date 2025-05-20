@@ -3,12 +3,16 @@
 package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
+import dev.reformator.bytecodeprocessor.intrinsics.ownerClass
+import dev.reformator.bytecodeprocessor.intrinsics.ownerMethodName
 import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.plugins.internal.eq
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
 import dev.reformator.bytecodeprocessor.plugins.internal.internalName
 import dev.reformator.bytecodeprocessor.plugins.internal.isStatic
+import dev.reformator.bytecodeprocessor.plugins.internal.readAsm
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.LdcInsnNode
@@ -49,19 +53,31 @@ class GetOwnerClassProcessor(
         directory.classes.forEach { processingClass ->
             processingClass.node.methods?.forEach { method ->
                 method.instructions?.forEach { instruction ->
-                    if (instruction is MethodInsnNode && instruction.opcode == Opcodes.INVOKESTATIC
-                            && instruction.desc == "()${Type.getDescriptor(Class::class.java)}") {
-                        val key = MethodKey(
-                            className = instruction.owner,
-                            methodName = instruction.name
-                        )
-                        if (key in internalMethods) {
+                    if (instruction is MethodInsnNode) {
+                        if (instruction eq ownerMethodNameInstruction) {
                             method.instructions.set(
                                 instruction,
-                                LdcInsnNode(Type.getObjectType(instruction.owner))
+                                LdcInsnNode(method.name)
                             )
-                            processingClass.markModified()
-                            modified = true
+                        } else if (instruction eq ownerClassInstruction) {
+                            method.instructions.set(
+                                instruction,
+                                LdcInsnNode(Type.getObjectType(processingClass.node.name))
+                            )
+                        } else if (instruction.opcode == Opcodes.INVOKESTATIC
+                            && instruction.desc == "()${Type.getDescriptor(Class::class.java)}") {
+                            val key = MethodKey(
+                                className = instruction.owner,
+                                methodName = instruction.name
+                            )
+                            if (key in internalMethods) {
+                                method.instructions.set(
+                                    instruction,
+                                    LdcInsnNode(Type.getObjectType(instruction.owner))
+                                )
+                                processingClass.markModified()
+                                modified = true
+                            }
                         }
                     }
                 }
@@ -86,5 +102,31 @@ class GetOwnerClassProcessor(
                 }
             }
         }
+    }
+
+    private fun usageOwnerClass() {
+        ownerClass
+    }
+    private fun usageOwnerMethodName() {
+        ownerMethodName
+    }
+
+    companion object {
+        private val ownerClassInstruction =
+            GetOwnerClassProcessor::class.java.readAsm()
+                .methods
+                .first { it.name == GetOwnerClassProcessor::usageOwnerClass.name }
+                .instructions
+                .asSequence()
+                .mapNotNull { it as? MethodInsnNode }
+                .first()
+        private val ownerMethodNameInstruction =
+            GetOwnerClassProcessor::class.java.readAsm()
+                .methods
+                .first { it.name == GetOwnerClassProcessor::usageOwnerMethodName.name }
+                .instructions
+                .asSequence()
+                .mapNotNull { it as? MethodInsnNode }
+                .first()
     }
 }

@@ -71,15 +71,79 @@ open class RuntimeTest {
                 resumeWithExceptionRec(10)
             }
         } catch (e: RuntimeException) {
-            (1..10).forEach {
-                assertEquals(StackTraceElement(
+            e.stackTrace.checkStacktrace(*(1 .. 10).map {
+                StackTraceElement(
                     RuntimeTest::class.java.typeName,
                     RuntimeTest::resumeWithExceptionRec.name,
                     currentFileName,
                     resumeWithExceptionRecBaseLineNumber + 8
-                ), e.stackTrace[it])
-            }
+                )
+            }.toTypedArray())
         }
+    }
+
+    class CustomEx(message: String): Exception(message)
+
+    @Junit4Test @Junit5Test
+    fun resumeDoubleException() {
+        var firstResumeLineNumber = 0
+        var secondResumeLineNumber = 0
+        var resumeClassName = ""
+        var resumeMethodName = ""
+        try {
+            runBlocking {
+                try {
+                    resumeClassName = ownerClass.name
+                    resumeMethodName = ownerMethodName
+                    firstResumeLineNumber = currentLineNumber + 1
+                    suspendCoroutineUninterceptedOrReturn { cont ->
+                        //ForkJoinPool.commonPool().execute {
+                            cont.resumeWithException(CustomEx("test"))
+                        //}
+                        COROUTINE_SUSPENDED
+                    }
+                } catch (e: CustomEx) {
+                    secondResumeLineNumber = currentLineNumber + 1
+                    suspendCoroutineUninterceptedOrReturn { cont ->
+                        //ForkJoinPool.commonPool().execute {
+                            cont.resumeWithException(e)
+                        //}
+                        COROUTINE_SUSPENDED
+                    }
+                }
+            }
+        } catch (e: CustomEx) {
+            e.printStackTrace()
+            val trace = e.stackTrace
+            val secondResumeTraceStart = trace.getNextBoundaryIndex() + 1
+            trace.checkStacktrace(
+                StackTraceElement(
+                    resumeClassName,
+                    resumeMethodName,
+                    currentFileName,
+                    secondResumeLineNumber
+                ),
+                fromIndex = secondResumeTraceStart
+            )
+            val firstResumeTraceStart = trace.getNextBoundaryIndex(secondResumeTraceStart) + 1
+            trace.checkStacktrace(
+                StackTraceElement(
+                    resumeClassName,
+                    resumeMethodName,
+                    currentFileName,
+                    firstResumeLineNumber
+                ),
+                fromIndex = firstResumeTraceStart
+            )
+        }
+    }
+
+    private fun Array<StackTraceElement>.getNextBoundaryIndex(startIndex: Int = 0): Int {
+        for (i in startIndex .. lastIndex) {
+            val fileName = this[i].fileName
+            if (fileName != null && fileName.startsWith("decoroutinator-boundary-")) return i
+        }
+        return -1
     }
 
     @Junit4Test @Junit5Test
@@ -133,7 +197,7 @@ open class RuntimeTest {
     private suspend fun resumeWithExceptionRec(depth: Int) {
         resumeWithExceptionRecBaseLineNumber = currentLineNumber
         if (depth == 0) {
-            suspendCancellableCoroutine<Unit> { continuation ->
+            suspendCancellableCoroutine { continuation ->
                 ForkJoinPool.commonPool().execute {
                     continuation.resumeWithException(RuntimeException("test"))
                 }
@@ -236,7 +300,7 @@ interface InterfaceWithDefaultMethod {
         val lineNumber = currentLineNumber + 1
         check(StackTraceElement(
             InterfaceWithDefaultMethod::class.java.name,
-            ANY,
+            ownerMethodName,
             currentFileName,
             lineNumber
         ))
@@ -331,7 +395,7 @@ interface InterfaceWithDefaultImplMethod {
         val lineNumber = currentLineNumber + 1
         suspendFun(StackTraceElement(
             InterfaceWithDefaultImplMethod::class.java.typeName,
-            ANY,
+            ownerMethodName,
             currentFileName,
             lineNumber
         ))

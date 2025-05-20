@@ -104,24 +104,27 @@ private fun recoveryExplicitStacktrace(
     stacktraceElements: StacktraceElements
 ) {
     val trace = exception.stackTrace
-    var traceStartElementIndex = trace.size
-    var boundaryFrameTime = NOT_BOUNDARY_FRAME_TIME
-    while (traceStartElementIndex != 0) {
-        val nextIndex = traceStartElementIndex - 1
-        boundaryFrameTime = trace[nextIndex].boundaryFrameTime
-        if (boundaryFrameTime != NOT_BOUNDARY_FRAME_TIME) break
-        traceStartElementIndex = nextIndex
+    val traceSize = trace.size
+    var prefixBoundaryIndex = 0
+    var prefixBoundaryTime = NOT_BOUNDARY_FRAME_TIME
+    while (prefixBoundaryIndex < traceSize) {
+        prefixBoundaryTime = trace[prefixBoundaryIndex].boundaryFrameTime
+        if (prefixBoundaryTime != NOT_BOUNDARY_FRAME_TIME) break
+        prefixBoundaryIndex++
     }
+    val baseContinuationBoundaryIndex = prefixBoundaryIndex + 1 + baseContinuations.size
     val time = System.currentTimeMillis()
-    if (traceStartElementIndex != 0 && boundaryFrameTime < time - recoveryExplicitStacktraceTimeoutMs) {
-        traceStartElementIndex = 0
+    val recoveredTraceSize = if (prefixBoundaryTime > time - recoveryExplicitStacktraceTimeoutMs) {
+        traceSize + 1 + baseContinuations.size
+    } else {
+        baseContinuationBoundaryIndex
     }
-    val baseContinuationsSize = baseContinuations.size
-    val traceOffset = baseContinuationsSize + 1 - traceStartElementIndex
-    val recoveredStacktrace = Array(trace.size + traceOffset) {
+    val recoveredTrace = Array(recoveredTraceSize) {
         when {
-            it < baseContinuationsSize -> {
-                val continuation = baseContinuations[it]
+            it < prefixBoundaryIndex -> trace[it]
+            it == prefixBoundaryIndex -> boundaryFrame(time)
+            it < baseContinuationBoundaryIndex -> {
+                val continuation = baseContinuations[it - prefixBoundaryIndex - 1]
                 val element = stacktraceElements.elementsByContinuation[continuation]
                 if (element == null) {
                     unknownStacktraceElement
@@ -134,11 +137,10 @@ private fun recoveryExplicitStacktrace(
                     )
                 }
             }
-            it == baseContinuationsSize -> boundaryFrame(time)
-            else -> trace[it - traceOffset]
+            else -> trace[it - baseContinuationBoundaryIndex + prefixBoundaryIndex]
         }
     }
-    exception.stackTrace = recoveredStacktrace
+    exception.stackTrace = recoveredTrace
 }
 
 private fun artificialFrame(message: String) =
@@ -158,8 +160,21 @@ private val StackTraceElement.boundaryFrameTime: Long
         val fileName = fileName
         if (fileName == null || !fileName.startsWith(BOUNDARY_LABEL)) return NOT_BOUNDARY_FRAME_TIME
         return try {
-            java.lang.Long.parseLong(fileName, BOUNDARY_LABEL_LENGTH, fileName.length, 10)
+            fileName.substringToLong(BOUNDARY_LABEL_LENGTH)
         } catch (_: NumberFormatException) {
             NOT_BOUNDARY_FRAME_TIME
         }
     }
+
+private fun String.substringToLong(beginIndex: Int = 0, endIndex: Int = length, radix: Int = 10): Long =
+    if (supportsParseLongSubstring) {
+        java.lang.Long.parseLong(this, beginIndex, endIndex, radix)
+    } else {
+        substring(beginIndex, endIndex).toLong(radix)
+    }
+
+private val supportsParseLongSubstring = try {
+    val str = "123"
+    java.lang.Long.parseLong(str, 0, str.length, 10)
+    true
+} catch (_: Throwable) { false }

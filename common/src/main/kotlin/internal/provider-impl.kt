@@ -17,6 +17,7 @@ internal class Provider: DecoroutinatorProvider {
     override val cookie: Any?
         get() = dev.reformator.stacktracedecoroutinator.common.internal.cookie
 
+    @Suppress("NewApi")
     override fun prepareCookie(lookup: MethodHandles.Lookup): Any {
         prepareCookieLock.withLock {
             dev.reformator.stacktracedecoroutinator.common.internal.cookie?.let { return it }
@@ -58,9 +59,7 @@ internal class Provider: DecoroutinatorProvider {
         if (!tailCallDeoptimize || completion == null) {
             return completion
         }
-        val isCompletionBaseContinuation = completion is BaseContinuation
-        if (isCompletionBaseContinuation && completion !is DecoroutinatorContinuationImpl) {
-            completion as BaseContinuation
+        if (completion is BaseContinuation && completion !is DecoroutinatorContinuationImpl) {
             val label = stacktraceElementsFactory.getLabelExtractor(completion).getLabel(completion)
             if (label == UNKNOWN_LABEL || label and Int.MIN_VALUE != 0) {
                 return completion

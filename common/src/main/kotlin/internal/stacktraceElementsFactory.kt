@@ -8,9 +8,65 @@ import java.lang.invoke.MethodHandles
 import java.lang.invoke.VarHandle
 import java.lang.reflect.Field
 import java.lang.reflect.GenericSignatureFormatError
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
+    private val possibleElementsBySpecClassName: MutableMap<String, Array<StacktraceElement>> = HashMap()
+    private val specsByBaseContinuationClassName: MutableMap<String, BaseContinuationClassSpec> = HashMap()
+    private val updateLock = ReentrantLock()
+
+    init {
+        TransformedClassesRegistry.addListener(::registerTransformedClassSpec)
+        updateLock.withLock {
+            TransformedClassesRegistry.transformedClasses.forEach(::registerTransformedClassSpec)
+        }
+    }
+
+    private fun getBaseContinuationClassSpec(baseContinuationClassName: String): BaseContinuationClassSpec =
+        try {
+            specsByBaseContinuationClassName[baseContinuationClassName]
+        } catch (_: ConcurrentModificationException) {
+            null
+        } ?: updateLock.withLock {
+            specsByBaseContinuationClassName[baseContinuationClassName]?.let { return it }
+            val newBaseContinuationClassSpec = BaseContinuationClassSpec()
+            specsByBaseContinuationClassName[baseContinuationClassName] = newBaseContinuationClassSpec
+            newBaseContinuationClassSpec
+        }
+
+    private fun getPossibleElements(specClassName: String): Array<StacktraceElement>? =
+        try {
+            possibleElementsBySpecClassName[specClassName]
+        } catch (_: ConcurrentModificationException) {
+            updateLock.withLock {
+                possibleElementsBySpecClassName[specClassName]
+            }
+        }
+
+    private fun registerTransformedClassSpec(spec: TransformedClassesRegistry.TransformedClassSpec) {
+        updateLock.withLock {
+            possibleElementsBySpecClassName[spec.transformedClass.name] = spec.lineNumbersByMethod.asSequence()
+                .flatMap { (methodName, lineNumbers) ->
+                    lineNumbers.asSequence().map { lineNumber ->
+                        StacktraceElement(
+                            className = spec.transformedClass.name,
+                            fileName = spec.fileName,
+                            methodName = methodName,
+                            lineNumber = lineNumber
+                        )
+                    }
+                }.toList().toTypedArray()
+
+            if (methodHandleInvoker.supportsVarHandle) {
+                spec.baseContinuationClasses.forEach { baseContinuationClassName ->
+                    getBaseContinuationClassSpec(baseContinuationClassName).labelExtractor =
+                        VarHandleLabelExtractor(spec.lookup)
+                }
+            }
+        }
+    }
+
     @Suppress("UNCHECKED_CAST")
     override fun getStacktraceElements(continuations: Collection<BaseContinuation>): StacktraceElements {
         val elementsByContinuation = mutableMapOf<BaseContinuation, StacktraceElement>()
@@ -25,6 +81,9 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                         lineNumber = continuation.lineNumber
                     )
                     elementsByContinuation[continuation] = element
+                    getPossibleElements(continuation.className)?.let {
+                        possibleElements.addAll(it)
+                    }
                     possibleElements.add(element)
                 }
             } else {
@@ -52,46 +111,19 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         return spec.labelExtractor
     }
 
-    private val specsByClassName: MutableMap<String, BaseContinuationClassSpec> = ConcurrentHashMap()
-    @Volatile private var specsByClassNameSnapshot: Map<String, BaseContinuationClassSpec> = emptyMap()
-
-    private fun getBaseContinuationClassSpec(
-        baseContinuationClassName: String,
-        new: () -> BaseContinuationClassSpec = { BaseContinuationClassSpec(ReflectionLabelExtractor()) },
-        updateSnapshot: Boolean = true
-    ): BaseContinuationClassSpec {
-        var updated = false
-        val result = specsByClassNameSnapshot[baseContinuationClassName] ?: run {
-            updated = true
-            specsByClassName.computeIfAbsent(baseContinuationClassName) { _ -> new() }
-        }
-        if (updateSnapshot && updated) {
-            while (true) {
-                try {
-                    specsByClassNameSnapshot = HashMap(specsByClassName)
-                    break
-                } catch (_: ConcurrentModificationException) { }
-            }
-        }
-        return result
-    }
-
-    init {
-        if (methodHandleInvoker.supportsVarHandle) {
-            TransformedClassesRegistry.addListener(::updateLabelExtractor)
-            TransformedClassesRegistry.transformedClasses.forEach(::updateLabelExtractor)
-        }
-    }
-
     private class BaseContinuationClassSpecInfo(
         val elementsByLabel: Array<StacktraceElement>,
-        val possibleElements: Set<StacktraceElement>
-    )
-
-    private class BaseContinuationClassSpec(
-        @Volatile var labelExtractor: StacktraceElementsFactory.LabelExtractor
+        val possibleElements: Array<StacktraceElement>
     ) {
-        private var info: BaseContinuationClassSpecInfo? = null
+        companion object {
+            val failed = BaseContinuationClassSpecInfo(emptyArray(), emptyArray())
+        }
+    }
+
+
+    private inner class BaseContinuationClassSpec {
+        var labelExtractor: StacktraceElementsFactory.LabelExtractor = ReflectionLabelExtractor()
+        var info: BaseContinuationClassSpecInfo? = null
 
         fun getInfo(clazz: Class<out BaseContinuation>): BaseContinuationClassSpecInfo? {
             val localInfo = info ?: run {
@@ -127,39 +159,21 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                             lineNumber = lineNumber
                         )
                     }
-                    val transformedPossibleElements = TransformedClassesRegistry
-                        .transformedClasses
-                        .find { it.transformedClass.name == className }
-                        .let { transformedClass ->
-                            if (transformedClass == null) return@let emptySequence()
-                            transformedClass.lineNumbersByMethod.asSequence()
-                                .flatMap { (methodName, lineNumbers) ->
-                                    lineNumbers.asSequence().map {
-                                        StacktraceElement(
-                                            className = className,
-                                            fileName = transformedClass.fileName,
-                                            methodName = methodName,
-                                            lineNumber = it
-                                        )
-                                    }
-                                }
-                        }
-                    val possibleElements = (transformedPossibleElements + elementsByLabel.asSequence()).toSet()
+                    val otherPossibleElements = getPossibleElements(className)
                     BaseContinuationClassSpecInfo(
                         elementsByLabel = elementsByLabel,
-                        possibleElements = possibleElements
+                        possibleElements = when {
+                            otherPossibleElements == null -> elementsByLabel
+                            else -> elementsByLabel + otherPossibleElements
+                        }
                     )
                 } else {
-                    failedInfo
+                    BaseContinuationClassSpecInfo.failed
                 }
                 info = newInfo
                 newInfo
             }
-            return if (localInfo != failedInfo) localInfo else null
-        }
-
-        private companion object {
-            val failedInfo = BaseContinuationClassSpecInfo(emptyArray(), emptySet())
+            return if (localInfo !== BaseContinuationClassSpecInfo.failed) localInfo else null
         }
     }
 
@@ -232,17 +246,6 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                     ::_failedField.name,
                     Int::class.javaPrimitiveType
                 )
-        }
-    }
-
-    private fun updateLabelExtractor(spec: TransformedClassesRegistry.TransformedClassSpec) {
-        spec.baseContinuationClasses.forEach { baseContinuationClassName ->
-            val newLabelExtractor = VarHandleLabelExtractor(spec.lookup)
-            getBaseContinuationClassSpec(
-                baseContinuationClassName = baseContinuationClassName,
-                new = { BaseContinuationClassSpec(newLabelExtractor) },
-                updateSnapshot = false
-            ).labelExtractor = newLabelExtractor
         }
     }
 }

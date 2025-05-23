@@ -84,6 +84,8 @@ interface CommonSettingsProvider {
     val recoveryExplicitStacktraceTimeoutMs: Long
         get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktraceTimeoutMs", "500")
             .toLong()
+
+    companion object: CommonSettingsProvider
 }
 
 @DecoroutinatorTransformed(

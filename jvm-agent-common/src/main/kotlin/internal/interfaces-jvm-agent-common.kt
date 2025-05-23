@@ -27,6 +27,8 @@ interface JvmAgentCommonSettingsProvider {
             "dev.reformator.stacktracedecoroutinator.isRedefinitionAllowed",
             "false"
         ).toBoolean()
+
+    companion object: JvmAgentCommonSettingsProvider
 }
 
 enum class MetadataInfoResolveStrategy: (String) -> DebugMetadataInfo? {

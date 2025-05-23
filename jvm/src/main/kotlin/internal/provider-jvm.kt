@@ -5,32 +5,30 @@ package dev.reformator.stacktracedecoroutinator.jvm.internal
 import dev.reformator.stacktracedecoroutinator.common.internal.CommonSettingsProvider
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.JvmAgentCommonSettingsProvider
 
-internal class CommonSettingsProviderImpl: CommonSettingsProvider {
-    companion object {
-        var recoveryExplicitStacktrace: Boolean = false
-        var tailCallDeoptimize: Boolean = false
-        var recoveryExplicitStacktraceTimeoutMs: Long = 0L
-    }
+internal var cachedRecoveryExplicitStacktrace: Boolean = CommonSettingsProvider.recoveryExplicitStacktrace
+internal var cachedTailCallDeoptimize: Boolean = CommonSettingsProvider.tailCallDeoptimize
+internal var cachedRecoveryExplicitStacktraceTimeoutMs: Long =
+    CommonSettingsProvider.recoveryExplicitStacktraceTimeoutMs
 
+internal class CommonSettingsProviderImpl: CommonSettingsProvider {
     override val recoveryExplicitStacktrace: Boolean
-        get() = CommonSettingsProviderImpl.recoveryExplicitStacktrace
+        get() = cachedRecoveryExplicitStacktrace
 
     override val tailCallDeoptimize: Boolean
-        get() = CommonSettingsProviderImpl.tailCallDeoptimize
+        get() = cachedTailCallDeoptimize
 
     override val recoveryExplicitStacktraceTimeoutMs: Long
-        get() = CommonSettingsProviderImpl.recoveryExplicitStacktraceTimeoutMs
+        get() = cachedRecoveryExplicitStacktraceTimeoutMs
 }
 
-internal class JvmAgentCommonSettingsProviderImpl: JvmAgentCommonSettingsProvider {
-    companion object {
-        var isBaseContinuationRedefinitionAllowed: Boolean = false
-        var isRedefinitionAllowed: Boolean = false
-    }
+internal var cachedIsBaseContinuationRedefinitionAllowed: Boolean =
+    JvmAgentCommonSettingsProvider.isBaseContinuationRedefinitionAllowed
+internal var cachedIsRedefinitionAllowed: Boolean = JvmAgentCommonSettingsProvider.isRedefinitionAllowed
 
+internal class JvmAgentCommonSettingsProviderImpl: JvmAgentCommonSettingsProvider {
     override val isBaseContinuationRedefinitionAllowed: Boolean
-        get() = JvmAgentCommonSettingsProviderImpl.isBaseContinuationRedefinitionAllowed
+        get() = cachedIsBaseContinuationRedefinitionAllowed
 
     override val isRedefinitionAllowed: Boolean
-        get() = JvmAgentCommonSettingsProviderImpl.isRedefinitionAllowed
+        get() = cachedIsRedefinitionAllowed
 }

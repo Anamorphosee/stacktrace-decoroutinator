@@ -5,9 +5,14 @@ package dev.reformator.stacktracedecoroutinator.jvm
 import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi
 import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorStatus
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.common.internal.CommonSettingsProvider
 import dev.reformator.stacktracedecoroutinator.common.internal.isTransformed
-import dev.reformator.stacktracedecoroutinator.jvm.internal.CommonSettingsProviderImpl
-import dev.reformator.stacktracedecoroutinator.jvm.internal.JvmAgentCommonSettingsProviderImpl
+import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedIsBaseContinuationRedefinitionAllowed
+import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedIsRedefinitionAllowed
+import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedRecoveryExplicitStacktrace
+import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedRecoveryExplicitStacktraceTimeoutMs
+import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedTailCallDeoptimize
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.JvmAgentCommonSettingsProvider
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.addDecoroutinatorTransformer
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.util.concurrent.locks.ReentrantLock
@@ -15,17 +20,18 @@ import kotlin.concurrent.withLock
 
 object DecoroutinatorJvmApi {
     fun install(
-        recoveryExplicitStacktrace: Boolean = true,
-        isBaseContinuationRedefinitionAllowed: Boolean = true,
-        isRedefinitionAllowed: Boolean = false,
-        tailCallDeoptimize: Boolean = true,
-        recoveryExplicitStacktraceTimeoutMs: Long = 500
+        recoveryExplicitStacktrace: Boolean = CommonSettingsProvider.recoveryExplicitStacktrace,
+        isBaseContinuationRedefinitionAllowed: Boolean =
+            JvmAgentCommonSettingsProvider.isBaseContinuationRedefinitionAllowed,
+        isRedefinitionAllowed: Boolean = JvmAgentCommonSettingsProvider.isRedefinitionAllowed,
+        tailCallDeoptimize: Boolean = CommonSettingsProvider.tailCallDeoptimize,
+        recoveryExplicitStacktraceTimeoutMs: Long = CommonSettingsProvider.recoveryExplicitStacktraceTimeoutMs
     ) {
-        CommonSettingsProviderImpl.recoveryExplicitStacktrace = recoveryExplicitStacktrace
-        CommonSettingsProviderImpl.tailCallDeoptimize = tailCallDeoptimize
-        CommonSettingsProviderImpl.recoveryExplicitStacktraceTimeoutMs = recoveryExplicitStacktraceTimeoutMs
-        JvmAgentCommonSettingsProviderImpl.isBaseContinuationRedefinitionAllowed = isBaseContinuationRedefinitionAllowed
-        JvmAgentCommonSettingsProviderImpl.isRedefinitionAllowed = isRedefinitionAllowed
+        cachedRecoveryExplicitStacktrace = recoveryExplicitStacktrace
+        cachedTailCallDeoptimize = tailCallDeoptimize
+        cachedRecoveryExplicitStacktraceTimeoutMs = recoveryExplicitStacktraceTimeoutMs
+        cachedIsBaseContinuationRedefinitionAllowed = isBaseContinuationRedefinitionAllowed
+        cachedIsRedefinitionAllowed = isRedefinitionAllowed
         lock.withLock {
             if (!initialized) {
                 val inst = ByteBuddyAgent.install()

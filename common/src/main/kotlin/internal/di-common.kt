@@ -3,7 +3,7 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 
-internal val settingsProvider = loadService<CommonSettingsProvider>() ?: object: CommonSettingsProvider { }
+internal val settingsProvider = loadService<CommonSettingsProvider>() ?: CommonSettingsProvider
 
 internal val supportsMethodHandle = try {
     _supportsMethodHandleStub().check()

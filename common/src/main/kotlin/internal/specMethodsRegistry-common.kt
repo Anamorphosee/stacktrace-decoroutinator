@@ -5,6 +5,8 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
     override fun getSpecMethodFactoriesByStacktraceElement(
@@ -112,18 +114,26 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
 }
 
 internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
+    private val classSpecsByName: MutableMap<String, ClassSpec> = HashMap()
+    private val classSpecsByNameUpdateLock = ReentrantLock()
+
+    private class ClassSpec(
+        val fileName: String?,
+        val methodsByName: Map<String, MethodSpec>
+    )
+
     override fun getSpecMethodFactoriesByStacktraceElement(
         elements: Set<StacktraceElement>
     ): Map<StacktraceElement, SpecMethodsFactory> {
         val specMethodFactoriesByElement = mutableMapOf<StacktraceElement, SpecMethodsFactory>()
         elements.groupBy { it.className }.forEach { (className, elements) ->
-            val clazz = classSpecsByName[className]
-            if (clazz != null) {
+            val classSpec = getClassSpec(className)
+            if (classSpec != null) {
                 elements.asSequence()
-                    .filter { it.fileName == clazz.fileName }
+                    .filter { it.fileName == classSpec.fileName }
                     .groupBy { it.methodName }
                     .forEach { (methodName, elements) ->
-                        val method = clazz.methodsByName[methodName]
+                        val method = classSpec.methodsByName[methodName]
                         if (method != null) {
                             elements.asSequence()
                                 .filter { it.lineNumber in method.lineNumbers }
@@ -135,11 +145,9 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
         return specMethodFactoriesByElement
     }
 
-    private val classSpecsByName: MutableMap<String, ClassSpec> = ConcurrentHashMap()
-
     init {
-        TransformedClassesRegistry.addListener(this::register)
-        TransformedClassesRegistry.transformedClasses.forEach(this::register)
+        TransformedClassesRegistry.addListener(::register)
+        TransformedClassesRegistry.transformedClasses.forEach(::register)
     }
 
     private class MethodSpec(
@@ -170,11 +178,6 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
         }
     }
 
-    private class ClassSpec(
-        val fileName: String?,
-        val methodsByName: Map<String, MethodSpec>
-    )
-
     private fun register(spec: TransformedClassesRegistry.TransformedClassSpec) {
         if (spec.skipSpecMethods) return
         val methodsByName = spec.lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
@@ -188,6 +191,17 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             fileName = spec.fileName,
             methodsByName = methodsByName
         )
-        classSpecsByName[spec.transformedClass.name] = classSpec
+        classSpecsByNameUpdateLock.withLock {
+            classSpecsByName[spec.transformedClass.name] = classSpec
+        }
     }
+
+    private fun getClassSpec(specClassName: String): ClassSpec? =
+        try {
+            classSpecsByName[specClassName]
+        } catch (_: ConcurrentModificationException) {
+            classSpecsByNameUpdateLock.withLock {
+                classSpecsByName[specClassName]
+            }
+        }
 }

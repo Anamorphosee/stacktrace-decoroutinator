@@ -19,6 +19,7 @@ internal class FailureResult {
     deleteAfterChanging = true
 )
 @PublishedApi
+@Suppress("ClassName")
 internal object _Assertions {
     @JvmField
     val ENABLED: Boolean = fail()

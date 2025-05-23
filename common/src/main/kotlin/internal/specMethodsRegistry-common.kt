@@ -4,7 +4,6 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import java.lang.invoke.MethodHandle
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -22,28 +21,35 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
             .filter { it !in transformedFactories }
             .groupBy { it.className }
             .forEach { (className, elements) ->
-                val clazz = classesByName.computeIfAbsent(className) { _ -> ClassSpec() }
+                val classSpec = getClassSpec(className)
                 elements.groupBy { it.fileName }.forEach { (fileName, elements) ->
-                    val methodsByName = clazz[fileName]
-                    val needRebuild = methodsByName == null || elements.groupBy { it.methodName }.any { (methodName, elements) ->
-                        val method = methodsByName[methodName]
-                        method == null || elements.any {
-                            if (it.lineNumber in method.lineNumbers) {
-                                generatedFactories[it] = method.factory
-                                false
-                            } else {
-                                true
+                    fun isRebuildNeeded(): Boolean {
+                        val methodsByName = classSpec[fileName] ?: return true
+                        var result = false
+                        elements.groupBy { it.methodName }.forEach fr@{ (methodName, elements) ->
+                            val method = methodsByName[methodName]
+                            if (method == null) {
+                                result = true
+                                return@fr
+                            }
+                            elements.forEach {
+                                if (it.lineNumber in method.lineNumbers) {
+                                    generatedFactories[it] = method.factory
+                                } else {
+                                    result = true
+                                }
                             }
                         }
+                        return result
                     }
 
-                    if (needRebuild) {
-                        val factoriesByMethod = synchronized(clazz) {
-                            clazz.revision++
+                    if (isRebuildNeeded()) {
+                        classSpec.updateLock.withLock {
+                            if (!isRebuildNeeded()) return@withLock
                             val lineNumbersByMethod = mutableMapOf<String, Set<Int>>()
-                            clazz[fileName]?.let { methodsByName ->
+                            classSpec[fileName]?.let { methodsByName ->
                                 methodsByName.forEach { (methodName, method) ->
-                                    lineNumbersByMethod[methodName] = method.lineNumbers
+                                    lineNumbersByMethod[methodName] = method.lineNumbers.toSet()
                                 }
                             }
                             elements.groupBy { it.methodName }.forEach { (methodName, elements) ->
@@ -54,25 +60,20 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                     }
                                 }
                             }
+                            classSpec.revision++
                             val factoriesByMethod = generateSpecMethodFactories(
                                 className = className,
-                                classRevision = clazz.revision,
+                                classRevision = classSpec.revision,
                                 fileName = fileName,
                                 lineNumbersByMethod = lineNumbersByMethod
                             )
-                            clazz[fileName] = factoriesByMethod.mapValues { (methodName, factory) ->
+                            classSpec[fileName] = factoriesByMethod.mapValues { (methodName, specMethodsFactory) ->
                                 MethodSpec(
-                                    factory = factory,
-                                    lineNumbers = lineNumbersByMethod[methodName]!!
+                                    factory = specMethodsFactory,
+                                    lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
                                 )
                             }
-                            factoriesByMethod
-                        }
-
-                        elements.forEach { element ->
-                            factoriesByMethod[element.methodName]?.let {
-                                generatedFactories[element] = it
-                            }
+                            isRebuildNeeded()
                         }
                     }
                 }
@@ -88,28 +89,57 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
         lineNumbersByMethod: Map<String, Set<Int>>
     ): Map<String, SpecMethodsFactory>
 
-    private val classesByName: MutableMap<String, ClassSpec> = ConcurrentHashMap()
+    private val classesByName: MutableMap<String, ClassSpec> = HashMap()
+    private val classesByNameUpdateLock = ReentrantLock()
+
+    private fun getClassSpec(specClassName: String): ClassSpec =
+        try {
+            classesByName[specClassName]
+        } catch (_: ConcurrentModificationException) {
+            null
+        } ?: classesByNameUpdateLock.withLock {
+            classesByName[specClassName]?.let { return it }
+            val result = ClassSpec()
+            classesByName[specClassName] = result
+            result
+        }
 
     private class MethodSpec(
         val factory: SpecMethodsFactory,
-        val lineNumbers: Set<Int>
+        val lineNumbers: IntArray
     )
 
     private class ClassSpec {
         var revision: Int = -1
-        private val methodsByFileNameAndMethodName: MutableMap<String, Map<String, MethodSpec>> = ConcurrentHashMap()
-        @Volatile private var methodsByMethodNameForUnknownFileName: Map<String, MethodSpec>? = null
+        val methodsByFileNameAndMethodName: MutableMap<String, Map<String, MethodSpec>> = HashMap()
+        var methodsByMethodNameForUnknownFileName: Map<String, MethodSpec>? = null
+        val updateLock = ReentrantLock()
 
         operator fun get(fileName: String?): Map<String, MethodSpec>? =
-            if (fileName == null) methodsByMethodNameForUnknownFileName else methodsByFileNameAndMethodName[fileName]
+            try {
+                unsafeGet(fileName)
+            } catch (_: ConcurrentModificationException) {
+                updateLock.withLock {
+                    unsafeGet(fileName)
+                }
+            }
 
         operator fun set(fileName: String?, methodsByMethodName: Map<String, MethodSpec>) {
-            if (fileName == null) {
-                methodsByMethodNameForUnknownFileName = methodsByMethodName
-            } else {
-                methodsByFileNameAndMethodName[fileName] = methodsByMethodName
+            updateLock.withLock {
+                if (fileName == null) {
+                    methodsByMethodNameForUnknownFileName = methodsByMethodName
+                } else {
+                    methodsByFileNameAndMethodName[fileName] = methodsByMethodName
+                }
             }
         }
+
+        private fun unsafeGet(fileName: String?): Map<String, MethodSpec>? =
+            if (fileName == null) {
+                methodsByMethodNameForUnknownFileName
+            } else {
+                methodsByFileNameAndMethodName[fileName]
+            }
     }
 }
 

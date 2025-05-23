@@ -120,61 +120,60 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 
-
-    private inner class BaseContinuationClassSpec {
+    private class BaseContinuationClassSpec {
         var labelExtractor: StacktraceElementsFactory.LabelExtractor = ReflectionLabelExtractor()
         var info: BaseContinuationClassSpecInfo? = null
+    }
 
-        fun getInfo(clazz: Class<out BaseContinuation>): BaseContinuationClassSpecInfo? {
-            val localInfo = info ?: run {
-                val meta = try {
-                    clazz.getAnnotation(DebugMetadata::class.java)?.let { debugMetadataAnnotation ->
-                        KotlinDebugMetadata(
-                            sourceFile = debugMetadataAnnotation.f,
-                            className = debugMetadataAnnotation.c,
-                            methodName = debugMetadataAnnotation.m,
-                            lineNumbers = debugMetadataAnnotation.l
-                        )
-                    }
+    private fun BaseContinuationClassSpec.getInfo(clazz: Class<out BaseContinuation>): BaseContinuationClassSpecInfo? {
+        val localInfo = info ?: run {
+            val meta = try {
+                clazz.getAnnotation(DebugMetadata::class.java)?.let { debugMetadataAnnotation ->
+                    KotlinDebugMetadata(
+                        sourceFile = debugMetadataAnnotation.f,
+                        className = debugMetadataAnnotation.c,
+                        methodName = debugMetadataAnnotation.m,
+                        lineNumbers = debugMetadataAnnotation.l
+                    )
+                }
                 // https://youtrack.jetbrains.com/issue/KT-25337
-                } catch (_: GenericSignatureFormatError) {
-                    if (annotationMetadataResolver != null) {
-                        try {
-                            clazz.getBodyStream()?.use { annotationMetadataResolver.getKotlinDebugMetadata(it) }
-                        } catch (_: Exception) {
-                            null
-                        }
-                    } else {
+            } catch (_: GenericSignatureFormatError) {
+                if (annotationMetadataResolver != null) {
+                    try {
+                        clazz.getBodyStream()?.use { annotationMetadataResolver.getKotlinDebugMetadata(it) }
+                    } catch (_: Exception) {
                         null
                     }
-                }
-                val newInfo = if (meta != null) {
-                    val className = meta.className
-                    val elementsByLabel = Array(meta.lineNumbers.size + 1) { index ->
-                        val lineNumber = if (index == 0) UNKNOWN_LINE_NUMBER else meta.lineNumbers[index - 1]
-                        StacktraceElement(
-                            className = className,
-                            fileName = meta.sourceFile.ifEmpty { null },
-                            methodName = meta.methodName,
-                            lineNumber = lineNumber
-                        )
-                    }
-                    val otherPossibleElements = getPossibleElements(className)
-                    BaseContinuationClassSpecInfo(
-                        elementsByLabel = elementsByLabel,
-                        possibleElements = when {
-                            otherPossibleElements == null -> elementsByLabel
-                            else -> elementsByLabel + otherPossibleElements
-                        }
-                    )
                 } else {
-                    BaseContinuationClassSpecInfo.failed
+                    null
                 }
-                info = newInfo
-                newInfo
             }
-            return if (localInfo !== BaseContinuationClassSpecInfo.failed) localInfo else null
+            val newInfo = if (meta != null) {
+                val className = meta.className
+                val elementsByLabel = Array(meta.lineNumbers.size + 1) { index ->
+                    val lineNumber = if (index == 0) UNKNOWN_LINE_NUMBER else meta.lineNumbers[index - 1]
+                    StacktraceElement(
+                        className = className,
+                        fileName = meta.sourceFile.ifEmpty { null },
+                        methodName = meta.methodName,
+                        lineNumber = lineNumber
+                    )
+                }
+                val otherPossibleElements = getPossibleElements(className)
+                BaseContinuationClassSpecInfo(
+                    elementsByLabel = elementsByLabel,
+                    possibleElements = when {
+                        otherPossibleElements == null -> elementsByLabel
+                        else -> elementsByLabel + otherPossibleElements
+                    }
+                )
+            } else {
+                BaseContinuationClassSpecInfo.failed
+            }
+            info = newInfo
+            newInfo
         }
+        return if (localInfo !== BaseContinuationClassSpecInfo.failed) localInfo else null
     }
 
     private open class ReflectionLabelExtractor: StacktraceElementsFactory.LabelExtractor {

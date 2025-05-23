@@ -12,7 +12,6 @@ module dev.reformator.stacktracedecoroutinator.jvm {
     requires kotlin.stdlib;
 
     exports dev.reformator.stacktracedecoroutinator.jvm;
-    exports dev.reformator.stacktracedecoroutinator.runtime;
 
     provides CommonSettingsProvider with CommonSettingsProviderImpl;
     provides JvmAgentCommonSettingsProvider with JvmAgentCommonSettingsProviderImpl;

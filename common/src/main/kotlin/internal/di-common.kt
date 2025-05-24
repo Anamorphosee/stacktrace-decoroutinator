@@ -3,19 +3,22 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 
-internal val settingsProvider = loadService<CommonSettingsProvider>() ?: CommonSettingsProvider
-
-internal val supportsMethodHandle = try {
-    _supportsMethodHandleStub().check()
-    true
-} catch (_: Throwable) {
-    false
-}
-
+internal val supportsMethodHandle =
+    try {
+        _supportsMethodHandleStub().check()
+        true
+    } catch (_: Throwable) { false }
+internal val settingsProvider =
+    if (supportsMethodHandle) {
+        loadService<CommonSettingsProvider>()
+    } else {
+        null
+    } ?: CommonSettingsProvider
 internal val enabled = supportsMethodHandle && settingsProvider.decoroutinatorEnabled
 internal val recoveryExplicitStacktrace = enabled && settingsProvider.recoveryExplicitStacktrace
 internal val tailCallDeoptimize = enabled && settingsProvider.tailCallDeoptimize
-internal val recoveryExplicitStacktraceTimeoutMs = if (tailCallDeoptimize) settingsProvider.recoveryExplicitStacktraceTimeoutMs else 0L
+internal val recoveryExplicitStacktraceTimeoutMs =
+    if (tailCallDeoptimize) settingsProvider.recoveryExplicitStacktraceTimeoutMs else 0L
 
 internal var cookie: Cookie? = null
 
@@ -68,6 +71,7 @@ internal val varHandleInvoker: VarHandleInvoker
 
 @Suppress("ClassName")
 private class _supportsMethodHandleStub {
+    @Suppress("NewApi")
     fun check() {
         val methodHandle = MethodHandles.lookup().findVirtual(
             _supportsMethodHandleStub::class.java,

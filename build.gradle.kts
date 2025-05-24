@@ -9,8 +9,11 @@ buildscript {
         classpath(libs.kotlin.gradle.plugin)
         classpath(libs.android.gradle.plugin)
         classpath(libs.shadow.gradle.plugin)
+        //noinspection UseTomlInstead
         classpath("dev.reformator.bytecodeprocessor:bytecode-processor-plugins")
+        //noinspection UseTomlInstead
         classpath("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+        //noinspection UseTomlInstead
         classpath("dev.reformator.decoroutinatortest:decoroutinatortest")
     }
 }
@@ -21,7 +24,7 @@ plugins {
 
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
-    version = "2.5.2"
+    version = "2.5.3-SNAPSHOT"
 }
 
 nmcp {

@@ -94,6 +94,7 @@ dependencies {
         }
     })
 
+    //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     implementation(project(":stacktrace-decoroutinator-common"))
@@ -111,11 +112,10 @@ bytecodeProcessor {
     )
 }
 
-val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
+val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
     val mhInvokerProject = project(":stacktrace-decoroutinator-mh-invoker")
-    mhInvokerProject.afterEvaluate {
-        dependsOn(mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin"))
-    }
+    val mhInvokerCompileKotlinTask = mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(mhInvokerCompileKotlinTask)
     doLast {
         val tmpDir = temporaryDir
         providers.exec {
@@ -124,7 +124,7 @@ val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
                     "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/d8",
                     "--min-api", "26",
                     "--output", tmpDir.absolutePath
-                ) + mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin").get()
+                ) + mhInvokerCompileKotlinTask.get()
                     .destinationDirectory.get().asFile.walk()
                     .filter { it.isFile && it.name.endsWith(".class") && it.name != "module-info.class" }
                     .map { it.absolutePath }
@@ -151,7 +151,7 @@ afterEvaluate {
     configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(transformedAttribute, true)
 }
 
-val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
+val dokkaJavadocsJar = tasks.register<Jar>("dokkaJavadocsJar") {
     val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
     dependsOn(dokkaJavadocTask)
     archiveClassifier.set("javadoc")

@@ -14,6 +14,7 @@ repositories {
 }
 
 dependencies {
+    //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     implementation(libs.junit5.api)
@@ -34,18 +35,12 @@ bytecodeProcessor {
     )
 }
 
-val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
-    val taskDir = layout.buildDirectory.dir("fillConstantProcessor")
+val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
     val customLoaderProject = project(":test-utils:custom-loader")
-    customLoaderProject.afterEvaluate {
-        val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
-        dependsOn(customLoaderJarTask)
-    }
+    val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
+    dependsOn(customLoaderJarTask)
     doLast {
-        val customLoaderJarUri = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
-            .get().archiveFile.get().asFile.toURI().toString()
-        taskDir.get().asFile.mkdirs()
-        taskDir.get().file("customLoaderJarUri.txt").asFile.writeText(customLoaderJarUri)
+        val customLoaderJarUri = customLoaderJarTask.get().archiveFile.get().asFile.toURI().toString()
         bytecodeProcessor {
             processors += LoadConstantProcessor(mapOf(
                 LoadConstantProcessor.Key(

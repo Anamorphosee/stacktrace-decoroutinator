@@ -49,6 +49,7 @@ dependencies {
         }
     })
 
+    //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     compileOnly(project(":intrinsics"))
 
@@ -125,13 +126,11 @@ private fun File.zipDirectoryToArray(): ByteArray {
     return bufferOutput.toByteArray()
 }
 
-val fillConstantProcessorTask: Task = tasks.create("fillConstantProcessor") {
+val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
     val mhInvokerProject = project(":stacktrace-decoroutinator-mh-invoker")
-    mhInvokerProject.afterEvaluate {
-        dependsOn(mhInvokerProject.tasks.named("compileKotlin"))
-    }
+    val mhInvokerCompileKotlinTask = mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(mhInvokerCompileKotlinTask)
     doLast {
-        val mhInvokerCompileKotlinTask = mhInvokerProject.tasks.named<KotlinJvmCompile>("compileKotlin")
         val tempDir = temporaryDir
         tempDir.clearDir()
         mhInvokerCompileKotlinTask.get().destinationDirectory.get().asFile.copyClassesTo(tempDir)
@@ -223,7 +222,7 @@ sourceSets {
     }
 }
 
-val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
+val dokkaJavadocsJar = tasks.register<Jar>("dokkaJavadocsJar") {
     val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
     dependsOn(dokkaJavadocTask)
     archiveClassifier.set("javadoc")

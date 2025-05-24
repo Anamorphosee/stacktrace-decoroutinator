@@ -25,7 +25,7 @@ tasks.test {
     systemProperty("testReloadBaseConfiguration", false)
 }
 
-val testReloadBaseConfigurationTask = tasks.create<Test>("testReloadBaseConfiguration") {
+val testReloadBaseConfigurationTask = tasks.register<Test>("testReloadBaseConfiguration") {
     useJUnitPlatform()
     classpath = tasks.test.get().classpath
     extensions.configure(JacocoTaskExtension::class) {

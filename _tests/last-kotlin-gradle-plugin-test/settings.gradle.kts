@@ -15,3 +15,5 @@ dependencyResolutionManagement {
         }
     }
 }
+
+include("custom-loader")

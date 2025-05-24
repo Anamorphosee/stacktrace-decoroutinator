@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.tasks.factory.dependsOn
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import java.util.jar.JarFile
@@ -103,5 +104,5 @@ afterEvaluate {
 }
 
 afterEvaluate {
-    tasks.create("legacyAndrolegacyAndroidTestidTest").dependsOn(tasks.named("connectedAndroidTest"))
+    tasks.register("legacyAndrolegacyAndroidTestidTest").dependsOn(tasks.named("connectedAndroidTest"))
 }

@@ -59,7 +59,7 @@ sourceSets {
     }
 }
 
-val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
+val dokkaJavadocsJar = tasks.register<Jar>("dokkaJavadocsJar") {
     val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
     dependsOn(dokkaJavadocTask)
     archiveClassifier.set("javadoc")

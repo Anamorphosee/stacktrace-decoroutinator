@@ -1,4 +1,19 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dev.reformator.bytecodeprocessor.plugins.*
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import kotlin.jvm.java
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+
+    dependencies {
+        classpath(libs.shadow.gradle.plugin)
+    }
+}
 
 plugins {
     alias(libs.plugins.kotlin.jvm.latest)
@@ -39,19 +54,32 @@ dependencies {
 }
 
 bytecodeProcessor {
-    val customLoaderJarFile = file("../../test-utils/build/fillConstantProcessor/customLoaderJarUri.txt")
-    val customLoaderJarUri = if (customLoaderJarFile.exists()) customLoaderJarFile.readText() else ""
     processors = setOf(
         GetCurrentFileNameProcessor,
         GetCurrentLineNumberProcessor,
-        GetOwnerClassProcessor(),
-        LoadConstantProcessor(mapOf(
-            LoadConstantProcessor.Key(
-                "dev.reformator.stacktracedecoroutinator.test.Runtime_testKt",
-                "getCustomLoaderJarUri"
-            ) to LoadConstantProcessor.Value(customLoaderJarUri)
-        ))
+        GetOwnerClassProcessor()
     )
+}
+
+val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
+    val customLoaderProject = project(":custom-loader")
+    val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
+    dependsOn(customLoaderJarTask)
+    doLast {
+        val customLoaderJarUri = customLoaderJarTask.get().archiveFile.get().asFile.toURI().toString()
+        bytecodeProcessor {
+            processors += LoadConstantProcessor(mapOf(
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.test.Runtime_testKt",
+                    "getCustomLoaderJarUri"
+                ) to LoadConstantProcessor.Value(customLoaderJarUri)
+            ))
+        }
+    }
+}
+
+tasks.withType(KotlinJvmCompile::class.java) {
+    dependsOn(fillConstantProcessorTask)
 }
 
 tasks.test {

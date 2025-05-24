@@ -44,7 +44,7 @@ run {
 }
 
 
-val testReloadBaseConfigurationTask = tasks.create<Test>("testReloadBaseConfiguration") {
+val testReloadBaseConfigurationTask = tasks.register<Test>("testReloadBaseConfiguration") {
     useJUnitPlatform()
     classpath = tasks.test.get().classpath
     extensions.configure(JacocoTaskExtension::class) {
@@ -74,7 +74,7 @@ sourceSets {
     }
 }
 
-val dokkaJavadocsJar = task("dokkaJavadocsJar", Jar::class) {
+val dokkaJavadocsJar = tasks.register<Jar>("dokkaJavadocsJar") {
     val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()
     dependsOn(dokkaJavadocTask)
     archiveClassifier.set("javadoc")

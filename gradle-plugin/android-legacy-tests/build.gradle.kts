@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.tasks.factory.dependsOn
+
 plugins {
     alias(libs.plugins.android.library)
     kotlin("android")
@@ -48,5 +50,5 @@ dependencies {
 }
 
 afterEvaluate {
-    tasks.create("legacyAndroidTest").dependsOn(tasks.named("connectedAndroidTest"))
+    tasks.register("legacyAndroidTest").dependsOn(tasks.named("connectedAndroidTest"))
 }

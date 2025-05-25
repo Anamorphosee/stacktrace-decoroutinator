@@ -69,7 +69,13 @@ internal object TransformedClassesRegistry {
             val transformedClassSpec = run {
                 val lineNumbersByMethod = meta.methods.asSequence()
                     .map { it.name to it.lineNumbers }
-                    .toMap()
+                    .toMap(
+                        if (meta.methods.size < methodsNumberThreshold) {
+                            CompactMap()
+                        } else {
+                            newHashMapForSize(meta.methods.size)
+                        }
+                    )
                 TransformedClassSpec(
                     transformedClass = clazz,
                     fileName = meta.fileName,

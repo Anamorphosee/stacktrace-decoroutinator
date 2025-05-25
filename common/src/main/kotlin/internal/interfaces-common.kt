@@ -85,6 +85,10 @@ interface CommonSettingsProvider {
         get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktraceTimeoutMs", "500")
             .toLong()
 
+    val methodsNumberThreshold: Int
+        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.methodsNumberThreshold", "50")
+            .toInt()
+
     companion object: CommonSettingsProvider
 }
 

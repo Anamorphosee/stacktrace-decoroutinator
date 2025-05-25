@@ -160,3 +160,74 @@ internal inline fun <K: Any, V: Any> MutableMap<K, V>.optimisticLockGetOrPut(key
         set(key, newValue)
         newValue
     }
+
+internal class CompactMap<K, V>: AbstractMutableMap<K, V>() {
+    private data class Entry<K, V>(override val key: K, override var value: V): MutableMap.MutableEntry<K, V> {
+        override fun setValue(newValue: V): V {
+            val oldValue = value
+            value = newValue
+            return oldValue
+        }
+    }
+
+    private var _entries = emptyArray<Entry<K, V>>()
+
+    override fun put(key: K, value: V): V? {
+        _entries.forEach { entry ->
+            if (entry.key == key) {
+                val oldValue = entry.value
+                entry.value = value
+                return oldValue
+            }
+        }
+        _entries = _entries + Entry(key, value)
+        return null
+    }
+
+    override fun get(key: K): V? {
+        _entries.forEach { (entryKey, entryValue) ->
+            if (entryKey == key) {
+                return entryValue
+            }
+        }
+        return null
+    }
+
+    override val size: Int
+        get() = _entries.size
+
+    override val entries: MutableSet<MutableMap.MutableEntry<K, V>>
+        get() = object: AbstractMutableSet<MutableMap.MutableEntry<K, V>>() {
+            override fun add(element: MutableMap.MutableEntry<K, V>): Boolean { TODO() }
+
+            override fun iterator(): MutableIterator<MutableMap.MutableEntry<K, V>> =
+                object: MutableIterator<MutableMap.MutableEntry<K, V>> {
+                    private var index = 0
+
+                    override fun hasNext(): Boolean = index < _entries.size
+
+                    override fun next(): MutableMap.MutableEntry<K, V> {
+                        if (!hasNext()) throw NoSuchElementException()
+                        return _entries[index++]
+                    }
+
+                    override fun remove() { TODO() }
+                }
+
+            override val size: Int
+                get() = _entries.size
+        }
+}
+
+internal fun <K, V1, V2> Map<K, V1>.mapValuesCompact(threshold: Int, transform: (Map.Entry<K, V1>) -> V2): Map<K, V2> {
+    val result: MutableMap<K, V2> = if (size < threshold) {
+        CompactMap()
+    } else {
+        newHashMapForSize(size)
+    }
+    mapValuesTo(result, transform)
+    return result
+}
+
+internal fun <K, V> newHashMapForSize(size: Int): MutableMap<K, V> =
+    HashMap(size * 4 / 3 + 1)

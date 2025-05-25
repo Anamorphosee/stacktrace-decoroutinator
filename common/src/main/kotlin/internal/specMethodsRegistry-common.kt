@@ -76,7 +76,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                 fileName = fileName,
                                 lineNumbersByMethod = lineNumbersByMethod
                             )
-                            classSpec[fileName] = factoriesByMethod.mapValues { (methodName, specMethodsFactory) ->
+                            classSpec[fileName] = factoriesByMethod.mapValuesCompact(methodsNumberThreshold) { (methodName, specMethodsFactory) ->
                                 MethodSpec(
                                     factory = specMethodsFactory,
                                     lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
@@ -105,35 +105,23 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
 
     private class ClassSpec {
         var revision: Int = -1
-        val methodsByFileNameAndMethodName: MutableMap<String, Map<String, MethodSpec>> = HashMap()
-        var methodsByMethodNameForUnknownFileName: Map<String, MethodSpec>? = null
+        val methodsByFileNameAndMethodName: MutableMap<String?, Map<String, MethodSpec>> = CompactMap()
         val updateLock = ReentrantLock()
 
         operator fun get(fileName: String?): Map<String, MethodSpec>? =
             try {
-                unsafeGet(fileName)
+                methodsByFileNameAndMethodName[fileName]
             } catch (_: ConcurrentModificationException) {
                 updateLock.withLock {
-                    unsafeGet(fileName)
+                    methodsByFileNameAndMethodName[fileName]
                 }
             }
 
         operator fun set(fileName: String?, methodsByMethodName: Map<String, MethodSpec>) {
             updateLock.withLock {
-                if (fileName == null) {
-                    methodsByMethodNameForUnknownFileName = methodsByMethodName
-                } else {
-                    methodsByFileNameAndMethodName[fileName] = methodsByMethodName
-                }
+                methodsByFileNameAndMethodName[fileName] = methodsByMethodName
             }
         }
-
-        private fun unsafeGet(fileName: String?): Map<String, MethodSpec>? =
-            if (fileName == null) {
-                methodsByMethodNameForUnknownFileName
-            } else {
-                methodsByFileNameAndMethodName[fileName]
-            }
     }
 }
 
@@ -217,7 +205,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
 
     private fun register(spec: TransformedClassesRegistry.TransformedClassSpec) {
         if (spec.skipSpecMethods) return
-        val methodsByName = spec.lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
+        val methodsByName = spec.lineNumbersByMethod.mapValuesCompact(methodsNumberThreshold) { (methodName, lineNumbers) ->
             val specMethod = spec.lookup.findStatic(spec.transformedClass, methodName, specMethodType)
             MethodSpec(
                 lineNumbers = lineNumbers,

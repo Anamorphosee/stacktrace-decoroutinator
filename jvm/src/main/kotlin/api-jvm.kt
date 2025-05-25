@@ -9,6 +9,7 @@ import dev.reformator.stacktracedecoroutinator.common.internal.CommonSettingsPro
 import dev.reformator.stacktracedecoroutinator.common.internal.isTransformed
 import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedIsBaseContinuationRedefinitionAllowed
 import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedIsRedefinitionAllowed
+import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedMethodsNumberThreshold
 import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedRecoveryExplicitStacktrace
 import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedRecoveryExplicitStacktraceTimeoutMs
 import dev.reformator.stacktracedecoroutinator.jvm.internal.cachedTailCallDeoptimize
@@ -25,13 +26,15 @@ object DecoroutinatorJvmApi {
             JvmAgentCommonSettingsProvider.isBaseContinuationRedefinitionAllowed,
         isRedefinitionAllowed: Boolean = JvmAgentCommonSettingsProvider.isRedefinitionAllowed,
         tailCallDeoptimize: Boolean = CommonSettingsProvider.tailCallDeoptimize,
-        recoveryExplicitStacktraceTimeoutMs: Long = CommonSettingsProvider.recoveryExplicitStacktraceTimeoutMs
+        recoveryExplicitStacktraceTimeoutMs: Long = CommonSettingsProvider.recoveryExplicitStacktraceTimeoutMs,
+        methodsNumberThreshold: Int = CommonSettingsProvider.methodsNumberThreshold
     ) {
         cachedRecoveryExplicitStacktrace = recoveryExplicitStacktrace
         cachedTailCallDeoptimize = tailCallDeoptimize
         cachedRecoveryExplicitStacktraceTimeoutMs = recoveryExplicitStacktraceTimeoutMs
         cachedIsBaseContinuationRedefinitionAllowed = isBaseContinuationRedefinitionAllowed
         cachedIsRedefinitionAllowed = isRedefinitionAllowed
+        cachedMethodsNumberThreshold = methodsNumberThreshold
         lock.withLock {
             if (!initialized) {
                 val inst = ByteBuddyAgent.install()

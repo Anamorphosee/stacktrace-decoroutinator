@@ -9,6 +9,7 @@ internal var cachedRecoveryExplicitStacktrace: Boolean = CommonSettingsProvider.
 internal var cachedTailCallDeoptimize: Boolean = CommonSettingsProvider.tailCallDeoptimize
 internal var cachedRecoveryExplicitStacktraceTimeoutMs: Long =
     CommonSettingsProvider.recoveryExplicitStacktraceTimeoutMs
+internal var cachedMethodsNumberThreshold: Int = CommonSettingsProvider.methodsNumberThreshold
 
 internal class CommonSettingsProviderImpl: CommonSettingsProvider {
     override val recoveryExplicitStacktrace: Boolean
@@ -19,6 +20,9 @@ internal class CommonSettingsProviderImpl: CommonSettingsProvider {
 
     override val recoveryExplicitStacktraceTimeoutMs: Long
         get() = cachedRecoveryExplicitStacktraceTimeoutMs
+
+    override val methodsNumberThreshold: Int
+        get() = cachedMethodsNumberThreshold
 }
 
 internal var cachedIsBaseContinuationRedefinitionAllowed: Boolean =

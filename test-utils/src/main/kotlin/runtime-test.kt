@@ -1,4 +1,4 @@
-@file:Suppress("PackageDirectoryMismatch")
+@file:Suppress("PackageDirectoryMismatch", "unused")
 
 package dev.reformator.stacktracedecoroutinator.test
 
@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import java.net.URI
 import java.net.URLClassLoader
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
@@ -190,6 +191,29 @@ open class RuntimeTest {
             yield()
         }
         flow.single()
+    }
+
+    @Junit4Test @Junit5Test
+    fun concurrentTest() {
+        val numThreads = Runtime.getRuntime().availableProcessors() * 2
+        val numMocks = 10
+        val random = Random(123)
+        val tasks = List(numThreads) { index ->
+            val mocks = random.getConcurrentTestMocks(numMocks)
+            Runnable {
+                runBlocking {
+                    callInline(mocks)
+                }
+            }
+        }
+        Executors.newFixedThreadPool(numThreads).let { executor ->
+            try {
+                val futures = tasks.map { executor.submit(it) }
+                futures.forEach { it.get() }
+            } finally {
+                executor.shutdown()
+            }
+        }
     }
 
     private var resumeWithExceptionRecBaseLineNumber: Int = 0
@@ -406,3 +430,84 @@ interface InterfaceWithDefaultImplMethod {
         checkStacktrace(parent)
     }
 }
+
+private interface ConcurrentTestMock {
+    suspend fun call(trace: List<Class<out ConcurrentTestMock>>)
+}
+
+private suspend inline fun callInline(trace: List<Class<out ConcurrentTestMock>>) {
+    yield()
+    if (trace.isNotEmpty()) {
+        trace[0].getDeclaredConstructor().newInstance().call(trace.subList(1, trace.size))
+    }
+}
+
+const val CONCURRENT_TEST_MOCKS_NUMBER = 20
+private class ConcurrentTestMock1: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock2: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock3: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock4: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock5: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock6: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock7: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock8: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock9: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock10: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock11: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock12: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock13: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock14: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock15: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock16: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock17: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock18: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock19: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+private class ConcurrentTestMock20: ConcurrentTestMock {
+    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+}
+
+private fun Random.getConcurrentTestMocks(size: Int): List<Class<out ConcurrentTestMock>> =
+    buildList(size) {
+        val index = nextInt(CONCURRENT_TEST_MOCKS_NUMBER) + 1
+        val className = "dev.reformator.stacktracedecoroutinator.test.ConcurrentTestMock$index"
+        @Suppress("UNCHECKED_CAST")
+        add(Class.forName(className, false, ConcurrentTestMock::class.java.classLoader) as Class<out ConcurrentTestMock>)
+    }

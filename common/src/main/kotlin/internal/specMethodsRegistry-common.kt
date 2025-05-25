@@ -177,7 +177,9 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
 
     init {
         TransformedClassesRegistry.addListener(::register)
-        TransformedClassesRegistry.transformedClasses.forEach(::register)
+        classSpecsByNameUpdateLock.withLock {
+            TransformedClassesRegistry.transformedClasses.forEach(::register)
+        }
     }
 
     private class MethodSpec(
@@ -191,7 +193,9 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             nextSpec: SpecAndItsMethodHandle?
         ): SpecAndItsMethodHandle {
             assert {
-                val clazz = classSpecsByName[element.className]!!
+                val clazz = getClassSpec(element.className) ?: classSpecsByNameUpdateLock.withLock {
+                    getClassSpec(element.className)!!
+                }
                 assert { clazz.fileName == element.fileName }
                 assert { clazz.methodsByName[element.methodName] == this }
                 element.lineNumber in lineNumbers

@@ -8,6 +8,15 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
+    private val classesByName: MutableMap<String, ClassSpec> = HashMap()
+    private val classesByNameUpdateLock = ReentrantLock()
+
+    private fun getClassSpec(specClassName: String): ClassSpec =
+        classesByName.optimisticLockGetOrPut(
+            key = specClassName,
+            lock = classesByNameUpdateLock
+        ) { ClassSpec() }
+
     override fun getSpecMethodFactoriesByStacktraceElement(
         elements: Set<StacktraceElement>
     ): Map<StacktraceElement, SpecMethodsFactory> {
@@ -89,21 +98,6 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
         lineNumbersByMethod: Map<String, Set<Int>>
     ): Map<String, SpecMethodsFactory>
 
-    private val classesByName: MutableMap<String, ClassSpec> = HashMap()
-    private val classesByNameUpdateLock = ReentrantLock()
-
-    private fun getClassSpec(specClassName: String): ClassSpec =
-        try {
-            classesByName[specClassName]
-        } catch (_: ConcurrentModificationException) {
-            null
-        } ?: classesByNameUpdateLock.withLock {
-            classesByName[specClassName]?.let { return it }
-            val result = ClassSpec()
-            classesByName[specClassName] = result
-            result
-        }
-
     private class MethodSpec(
         val factory: SpecMethodsFactory,
         val lineNumbers: IntArray
@@ -150,7 +144,18 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
     private class ClassSpec(
         val fileName: String?,
         val methodsByName: Map<String, MethodSpec>
-    )
+    ) {
+        companion object {
+            val notSet = ClassSpec(null, emptyMap())
+        }
+    }
+
+    private fun getClassSpec(specClassName: String): ClassSpec? =
+        classSpecsByName.optimisticLockGet(
+            key = specClassName,
+            lock = classSpecsByNameUpdateLock,
+            notSetValue = ClassSpec.notSet
+        )
 
     override fun getSpecMethodFactoriesByStacktraceElement(
         elements: Set<StacktraceElement>
@@ -193,9 +198,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             nextSpec: SpecAndItsMethodHandle?
         ): SpecAndItsMethodHandle {
             assert {
-                val clazz = getClassSpec(element.className) ?: classSpecsByNameUpdateLock.withLock {
-                    getClassSpec(element.className)!!
-                }
+                val clazz = getClassSpec(element.className)!!
                 assert { clazz.fileName == element.fileName }
                 assert { clazz.methodsByName[element.methodName] == this }
                 element.lineNumber in lineNumbers
@@ -229,13 +232,4 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             classSpecsByName[spec.transformedClass.name] = classSpec
         }
     }
-
-    private fun getClassSpec(specClassName: String): ClassSpec? =
-        try {
-            classSpecsByName[specClassName]
-        } catch (_: ConcurrentModificationException) {
-            classSpecsByNameUpdateLock.withLock {
-                classSpecsByName[specClassName]
-            }
-        }
 }

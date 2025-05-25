@@ -11,6 +11,9 @@ import java.lang.reflect.GenericSignatureFormatError
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
+private const val LABEL_FIELD_NAME = "label"
+private val notSetPossibleElements = emptyArray<StacktraceElement>()
+
 internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     private val possibleElementsBySpecClassName: MutableMap<String, Array<StacktraceElement>> = HashMap()
     private val specsByBaseContinuationClassName: MutableMap<String, BaseContinuationClassSpec> = HashMap()
@@ -24,25 +27,17 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     }
 
     private fun getBaseContinuationClassSpec(baseContinuationClassName: String): BaseContinuationClassSpec =
-        try {
-            specsByBaseContinuationClassName[baseContinuationClassName]
-        } catch (_: ConcurrentModificationException) {
-            null
-        } ?: updateLock.withLock {
-            specsByBaseContinuationClassName[baseContinuationClassName]?.let { return it }
-            val newBaseContinuationClassSpec = BaseContinuationClassSpec()
-            specsByBaseContinuationClassName[baseContinuationClassName] = newBaseContinuationClassSpec
-            newBaseContinuationClassSpec
-        }
+        specsByBaseContinuationClassName.optimisticLockGetOrPut(
+            key = baseContinuationClassName,
+            lock = updateLock
+        ) { BaseContinuationClassSpec() }
 
     private fun getPossibleElements(specClassName: String): Array<StacktraceElement>? =
-        try {
-            possibleElementsBySpecClassName[specClassName]
-        } catch (_: ConcurrentModificationException) {
-            updateLock.withLock {
-                possibleElementsBySpecClassName[specClassName]
-            }
-        }
+        possibleElementsBySpecClassName.optimisticLockGet(
+            key = specClassName,
+            notSetValue = notSetPossibleElements,
+            lock = updateLock
+        )
 
     private fun registerTransformedClassSpec(spec: TransformedClassesRegistry.TransformedClassSpec) {
         updateLock.withLock {
@@ -67,12 +62,12 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
     override fun getStacktraceElements(continuations: Collection<BaseContinuation>): StacktraceElements {
         val elementsByContinuation = mutableMapOf<BaseContinuation, StacktraceElement>()
         val possibleElements = mutableSetOf<StacktraceElement>()
         continuations.groupBy { it.javaClass }.forEach { (baseContinuationClass, continuations) ->
             if (baseContinuationClass == DecoroutinatorContinuationImpl::class.java) {
+                @Suppress("UNCHECKED_CAST")
                 (continuations as List<DecoroutinatorContinuationImpl>).forEach { continuation ->
                     val element = StacktraceElement(
                         fileName = continuation.fileName,
@@ -250,5 +245,3 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 }
-
-private const val LABEL_FIELD_NAME = "label"

@@ -12,6 +12,8 @@ import java.io.InputStream
 import java.lang.invoke.MethodType
 import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
+import java.util.concurrent.locks.Lock
+import kotlin.concurrent.withLock
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.jvm.internal.CoroutineStackFrame
@@ -137,3 +139,24 @@ internal class DecoroutinatorContinuationImpl(
             lineNumber
         )
 }
+
+internal fun <K: Any, V: Any> MutableMap<K, V>.optimisticLockGet(key: K, notSetValue: V, lock: Lock): V? {
+    val result = try {
+        get(key)
+    } catch (_: ConcurrentModificationException) { null } ?: lock.withLock {
+        get(key)?.let { return@withLock it }
+        set(key, notSetValue)
+        notSetValue
+    }
+    return if (result === notSetValue) null else result
+}
+
+internal inline fun <K: Any, V: Any> MutableMap<K, V>.optimisticLockGetOrPut(key: K, lock: Lock, generator: () -> V): V =
+    try {
+        get(key)
+    } catch (_: ConcurrentModificationException) { null } ?: lock.withLock {
+        get(key)?.let { return@withLock it }
+        val newValue = generator()
+        set(key, newValue)
+        newValue
+    }

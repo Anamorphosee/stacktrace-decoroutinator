@@ -637,7 +637,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
                 outputs.dir(inputArtifact)
             }
         } else {
-            error("artifact [${root.absolutePath}] does not exist")
+            log.debug { "artifact [${root.absolutePath}] does not exist" }
         }
     }
 }

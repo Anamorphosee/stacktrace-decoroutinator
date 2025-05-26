@@ -30,6 +30,7 @@ dependencies {
     //noinspection UseTomlInstead
     androidTestCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
+    implementation(project(":gradle-plugin:empty-module-tests"))
     androidTestRuntimeOnly(libs.androidx.test.runner)
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-common"))
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))

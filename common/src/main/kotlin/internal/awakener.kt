@@ -9,6 +9,7 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics.toResult
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.math.max
 
 internal val awakenerFileClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() = fail()
@@ -98,83 +99,84 @@ private fun callSpecMethods(
     }
 }
 
+private val StacktraceElement?.java: StackTraceElement
+    get() = if (this == null) {
+        unknownStacktraceElement
+    } else {
+        StackTraceElement(
+            this.className,
+            this.methodName,
+            this.fileName,
+            this.lineNumber
+        )
+    }
+
+private fun boundaryStackTraceElement(time: UInt): StackTraceElement =
+    StackTraceElement("", "", boundaryLabel, time.toInt())
+
+private fun currentTime(): UInt =
+    System.currentTimeMillis().toUInt()
+
 private fun recoveryExplicitStacktrace(
     exception: Throwable,
     baseContinuations: List<BaseContinuation>,
     stacktraceElements: StacktraceElements
 ) {
     val trace = exception.stackTrace
-    val traceSize = trace.size
-    var prefixBoundaryIndex = 0
-    var prefixBoundaryTime = NOT_BOUNDARY_FRAME_TIME
-    while (prefixBoundaryIndex < traceSize) {
-        prefixBoundaryTime = trace[prefixBoundaryIndex].boundaryFrameTime
-        if (prefixBoundaryTime != NOT_BOUNDARY_FRAME_TIME) break
-        prefixBoundaryIndex++
-    }
-    val baseContinuationBoundaryIndex = prefixBoundaryIndex + 1 + baseContinuations.size
-    val time = System.currentTimeMillis()
-    val recoveredTraceSize = if (prefixBoundaryTime > time - recoveryExplicitStacktraceTimeoutMs) {
-        traceSize + 1 + baseContinuations.size
-    } else {
-        baseContinuationBoundaryIndex
-    }
-    val recoveredTrace = Array(recoveredTraceSize) {
-        when {
-            it < prefixBoundaryIndex -> trace[it]
-            it == prefixBoundaryIndex -> boundaryFrame(time)
-            it < baseContinuationBoundaryIndex -> {
-                val continuation = baseContinuations[it - prefixBoundaryIndex - 1]
-                val element = stacktraceElements.elementsByContinuation[continuation]
-                if (element == null) {
-                    unknownStacktraceElement
+    exception.stackTrace = run {
+        val boundaryIndex = trace.indexOfFirst { it === boundaryStacktraceElement }
+        if (boundaryIndex == -1) {
+            return@run Array(trace.size + baseContinuations.size + 2) {
+                if (it < trace.size) {
+                    trace[it]
+                } else if (it == trace.size) {
+                    boundaryStacktraceElement
                 } else {
-                    StackTraceElement(
-                        element.className,
-                        element.methodName,
-                        element.fileName,
-                        element.lineNumber
-                    )
+                    val continuationIndex = it - trace.size - 1
+                    if (continuationIndex < baseContinuations.size) {
+                        val continuation = baseContinuations[continuationIndex]
+                        val element = stacktraceElements.elementsByContinuation[continuation]
+                        element.java
+                    } else {
+                        assert { continuationIndex == baseContinuations.size }
+                        boundaryStackTraceElement(currentTime())
+                    }
                 }
             }
-            else -> trace[it - baseContinuationBoundaryIndex + prefixBoundaryIndex]
+        }
+
+        val lastBoundaryIndex = max(
+            trace.indexOfLast { it.className.isEmpty() && it.methodName.isEmpty() && it.fileName === boundaryLabel },
+            boundaryIndex
+        )
+        val time = currentTime()
+        val erasePreviousBoundaries = lastBoundaryIndex > boundaryIndex &&
+            time > recoveryExplicitStacktraceTimeoutMs &&
+            trace[lastBoundaryIndex].lineNumber.toUInt() < time - recoveryExplicitStacktraceTimeoutMs
+        val prefixEndIndex = (if (erasePreviousBoundaries) boundaryIndex else lastBoundaryIndex) + 1
+
+        Array(prefixEndIndex + baseContinuations.size + trace.size - lastBoundaryIndex) {
+            if (it < prefixEndIndex) {
+                trace[it]
+            } else {
+                val baseContinuationIndex = it - prefixEndIndex
+                if (baseContinuationIndex < baseContinuations.size) {
+                    val continuation = baseContinuations[baseContinuationIndex]
+                    val element = stacktraceElements.elementsByContinuation[continuation]
+                    element.java
+                } else if (baseContinuationIndex == baseContinuations.size) {
+                    boundaryStackTraceElement(time)
+                } else {
+                    val suffixIndex = baseContinuationIndex - baseContinuations.size
+                    trace[lastBoundaryIndex + suffixIndex]
+                }
+             }
         }
     }
-    exception.stackTrace = recoveredTrace
 }
 
-private fun artificialFrame(message: String) =
-    StackTraceElement("", "", message, -1)
-
-private const val BOUNDARY_LABEL = "decoroutinator-boundary-"
-private const val BOUNDARY_LABEL_LENGTH = BOUNDARY_LABEL.length
-private const val NOT_BOUNDARY_FRAME_TIME = -1L
-
-private val unknownStacktraceElement = artificialFrame("unknown")
-
-private fun boundaryFrame(time: Long) = artificialFrame(BOUNDARY_LABEL + time)
-
-private val StackTraceElement.boundaryFrameTime: Long
-    get() {
-        if (className.isNotEmpty()) return NOT_BOUNDARY_FRAME_TIME
-        val fileName = fileName
-        if (fileName == null || !fileName.startsWith(BOUNDARY_LABEL)) return NOT_BOUNDARY_FRAME_TIME
-        return try {
-            fileName.substringToLong(BOUNDARY_LABEL_LENGTH)
-        } catch (_: NumberFormatException) {
-            NOT_BOUNDARY_FRAME_TIME
-        }
-    }
-
-private fun String.substringToLong(beginIndex: Int = 0, endIndex: Int = length, radix: Int = 10): Long =
-    if (supportsParseLongSubstring) {
-        java.lang.Long.parseLong(this, beginIndex, endIndex, radix)
-    } else {
-        substring(beginIndex, endIndex).toLong(radix)
-    }
-
-private val supportsParseLongSubstring = try {
-    val str = "123"
-    java.lang.Long.parseLong(str, 0, str.length, 10)
-    true
-} catch (_: Throwable) { false }
+private val boundaryLabel = "decoroutinator-boundary"
+private val unknownStacktraceElement =
+    StackTraceElement("", "", "unknown", -1)
+private val boundaryStacktraceElement =
+    StackTraceElement("", "", boundaryLabel, -1)

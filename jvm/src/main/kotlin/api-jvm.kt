@@ -26,7 +26,7 @@ object DecoroutinatorJvmApi {
             JvmAgentCommonSettingsProvider.isBaseContinuationRedefinitionAllowed,
         isRedefinitionAllowed: Boolean = JvmAgentCommonSettingsProvider.isRedefinitionAllowed,
         tailCallDeoptimize: Boolean = CommonSettingsProvider.tailCallDeoptimize,
-        recoveryExplicitStacktraceTimeoutMs: Long = CommonSettingsProvider.recoveryExplicitStacktraceTimeoutMs,
+        recoveryExplicitStacktraceTimeoutMs: UInt = CommonSettingsProvider.recoveryExplicitStacktraceTimeoutMs,
         methodsNumberThreshold: Int = CommonSettingsProvider.methodsNumberThreshold
     ) {
         cachedRecoveryExplicitStacktrace = recoveryExplicitStacktrace

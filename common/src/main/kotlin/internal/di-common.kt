@@ -18,7 +18,7 @@ internal val enabled = supportsMethodHandle && settingsProvider.decoroutinatorEn
 internal val recoveryExplicitStacktrace = enabled && settingsProvider.recoveryExplicitStacktrace
 internal val tailCallDeoptimize = enabled && settingsProvider.tailCallDeoptimize
 internal val recoveryExplicitStacktraceTimeoutMs =
-    if (tailCallDeoptimize) settingsProvider.recoveryExplicitStacktraceTimeoutMs else 0L
+    if (tailCallDeoptimize) settingsProvider.recoveryExplicitStacktraceTimeoutMs else 0U
 internal val methodsNumberThreshold = if (enabled) settingsProvider.methodsNumberThreshold else 0
 
 internal var cookie: Cookie? = null

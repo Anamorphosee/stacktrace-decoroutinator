@@ -98,23 +98,18 @@ open class RuntimeTest {
                     resumeMethodName = ownerMethodName
                     firstResumeLineNumber = currentLineNumber + 1
                     suspendCoroutineUninterceptedOrReturn { cont ->
-                        //ForkJoinPool.commonPool().execute {
-                            cont.resumeWithException(CustomEx("test"))
-                        //}
+                        cont.resumeWithException(CustomEx("test"))
                         COROUTINE_SUSPENDED
                     }
                 } catch (e: CustomEx) {
                     secondResumeLineNumber = currentLineNumber + 1
                     suspendCoroutineUninterceptedOrReturn { cont ->
-                        //ForkJoinPool.commonPool().execute {
-                            cont.resumeWithException(e)
-                        //}
+                        cont.resumeWithException(e)
                         COROUTINE_SUSPENDED
                     }
                 }
             }
         } catch (e: CustomEx) {
-            e.printStackTrace()
             val trace = e.stackTrace
             val secondResumeTraceStart = trace.getNextBoundaryIndex() + 1
             trace.checkStacktrace(
@@ -122,7 +117,7 @@ open class RuntimeTest {
                     resumeClassName,
                     resumeMethodName,
                     currentFileName,
-                    secondResumeLineNumber
+                    firstResumeLineNumber
                 ),
                 fromIndex = secondResumeTraceStart
             )
@@ -132,7 +127,7 @@ open class RuntimeTest {
                     resumeClassName,
                     resumeMethodName,
                     currentFileName,
-                    firstResumeLineNumber
+                    secondResumeLineNumber
                 ),
                 fromIndex = firstResumeTraceStart
             )

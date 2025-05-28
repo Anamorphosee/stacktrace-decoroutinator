@@ -7,7 +7,7 @@ import dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.JvmAgentC
 
 internal var cachedRecoveryExplicitStacktrace: Boolean = CommonSettingsProvider.recoveryExplicitStacktrace
 internal var cachedTailCallDeoptimize: Boolean = CommonSettingsProvider.tailCallDeoptimize
-internal var cachedRecoveryExplicitStacktraceTimeoutMs: Long =
+internal var cachedRecoveryExplicitStacktraceTimeoutMs: UInt =
     CommonSettingsProvider.recoveryExplicitStacktraceTimeoutMs
 internal var cachedMethodsNumberThreshold: Int = CommonSettingsProvider.methodsNumberThreshold
 
@@ -18,7 +18,7 @@ internal class CommonSettingsProviderImpl: CommonSettingsProvider {
     override val tailCallDeoptimize: Boolean
         get() = cachedTailCallDeoptimize
 
-    override val recoveryExplicitStacktraceTimeoutMs: Long
+    override val recoveryExplicitStacktraceTimeoutMs: UInt
         get() = cachedRecoveryExplicitStacktraceTimeoutMs
 
     override val methodsNumberThreshold: Int

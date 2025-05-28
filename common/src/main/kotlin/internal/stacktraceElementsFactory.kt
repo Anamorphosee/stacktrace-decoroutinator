@@ -91,6 +91,19 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                         elementsByContinuation[continuation] = element
                     }
                     possibleElements.addAll(info.possibleElements)
+                } else {
+                    continuations.forEach { continuation ->
+                        continuation.getStackTraceElement()?.let {
+                            val element = StacktraceElement(
+                                className = it.className,
+                                fileName = it.fileName,
+                                methodName = it.methodName,
+                                lineNumber = it.lineNumber
+                            )
+                            possibleElements.add(element)
+                            elementsByContinuation[continuation] = element
+                        }
+                    }
                 }
             }
         }

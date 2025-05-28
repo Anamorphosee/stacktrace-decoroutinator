@@ -5,9 +5,10 @@ package dev.reformator.stacktracedecoroutinator.intrinsics
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
 import dev.reformator.bytecodeprocessor.intrinsics.fail
 import kotlin.coroutines.Continuation
+import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 
 @ChangeClassName(toName = "kotlin.coroutines.jvm.internal.BaseContinuationImpl", deleteAfterChanging = true)
-abstract class BaseContinuation: Continuation<Any?> {
+abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
     val completion: Continuation<Any?>?
         get() { fail() }
 
@@ -16,6 +17,8 @@ abstract class BaseContinuation: Continuation<Any?> {
     }
 
     init { fail() }
+
+    override fun getStackTraceElement(): StackTraceElement? { fail() }
 }
 
 @ChangeClassName(

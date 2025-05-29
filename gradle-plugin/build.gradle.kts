@@ -1,5 +1,8 @@
 import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
+import org.gradle.kotlin.dsl.named
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import java.util.Base64
 
 plugins {
     kotlin("jvm")
@@ -38,6 +41,7 @@ afterEvaluate {
 dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
+    compileOnly(libs.kotlinx.coroutines.debug.build)
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation(libs.kotlin.logging.jvm)
@@ -48,13 +52,33 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-bytecodeProcessor {
-    processors = setOf(LoadConstantProcessor(mapOf(
-        LoadConstantProcessor.Key(
-            "org.gradle.kotlin.dsl.ApiGradlePluginDecoroutinatorKt",
-            "getProjectVersionIntrinsic"
-        ) to LoadConstantProcessor.Value(project.version)
-    )))
+val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
+    val embeddedDebugProbesProject = project(":gradle-plugin:embedded-debug-probes")
+    val embeddedDebugProbesCompileKotlinTask =
+        embeddedDebugProbesProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(embeddedDebugProbesCompileKotlinTask)
+    doLast {
+        val embeddedDebugProbesClassBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+            .dir("kotlin").dir("coroutines").dir("jvm").dir("internal")
+            .file("DebugProbesKt.class").asFile.readBytes()
+        val embeddedDebugProbesClassBodyBase64 = Base64.getEncoder().encodeToString(embeddedDebugProbesClassBody)
+        bytecodeProcessor {
+            processors += LoadConstantProcessor(mapOf(
+                LoadConstantProcessor.Key(
+                    "org.gradle.kotlin.dsl.ApiGradlePluginDecoroutinatorKt",
+                    "getProjectVersionIntrinsic"
+                ) to LoadConstantProcessor.Value(project.version),
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
+                    "getEmbeddedDebugProbesKtClassBodyBase64"
+                ) to LoadConstantProcessor.Value(embeddedDebugProbesClassBodyBase64)
+            ))
+        }
+    }
+}
+
+tasks.withType(KotlinJvmCompile::class.java) {
+    dependsOn(fillConstantProcessorTask)
 }
 
 java {

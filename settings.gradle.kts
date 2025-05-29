@@ -23,6 +23,7 @@ include(
     "gradle-plugin:duplicate-entity-jar-builder",
     "gradle-plugin:android-legacy-tests",
     "gradle-plugin:empty-module-tests",
+    "gradle-plugin:embedded-debug-probes",
     "jvm-agent:tests-ja",
     "jvm-agent:jdk8-tests-ja",
     "jvm:jdk8-tests-j",

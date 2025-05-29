@@ -90,6 +90,7 @@ internal class StringMatcher(property: StringMatcherProperty) {
 open class DecoroutinatorPluginExtension {
     // high level configurations
     internal val _legacyAndroidCompatibility = ObservableProperty(false)
+    internal val _embedDebugProbesForAndroidTest = ObservableProperty(false)
     var enabled = true
     var addAndroidRuntimeDependency = true
     var addJvmRuntimeDependency = true
@@ -97,6 +98,8 @@ open class DecoroutinatorPluginExtension {
     var jvmTestsOnly = false
     var useTransformedClassesForCompilation = false
     var legacyAndroidCompatibility: Boolean by _legacyAndroidCompatibility
+    var embedDebugProbesForAndroid = false
+    var embedDebugProbesForAndroidTest: Boolean by _embedDebugProbesForAndroidTest
 
     // low level configurations
     internal val _artifactTypes = ObservableProperty(setOf<String>())
@@ -110,6 +113,7 @@ open class DecoroutinatorPluginExtension {
     val tasks = StringMatcherProperty()
     val tasksSkippingSpecMethods = StringMatcherProperty()
     var artifactTypes: Set<String> by _artifactTypes
+    val embeddedDebugProbesConfigurations = StringMatcherProperty()
 }
 
 private val Project.isAndroid: Boolean
@@ -138,6 +142,9 @@ private fun DecoroutinatorPluginExtension.setupHighLevelConfig(project: Project)
         }
         val minSdk = project.androidMinSdk
         minSdk != null && minSdk < 26
+    }
+    _embedDebugProbesForAndroidTest.updateIfNotSet {
+        embedDebugProbesForAndroid
     }
 }
 
@@ -240,6 +247,32 @@ private fun DecoroutinatorPluginExtension.setupLowLevelRuntimeTransformedClasses
             androidConfigurations + jvmConfigurations
         } else {
             emptySet()
+        }
+    }
+}
+
+private fun DecoroutinatorPluginExtension.setupLowLevelEmbeddedDebugProbesConfigurations(project: Project) {
+    val isKmp = project.isKmp
+    val testConfigs = when {
+        isKmp -> setOf(".*AndroidTestRuntimeClasspath", "androidTestRuntimeClasspath")
+        else -> setOf(".*AndroidTestRuntimeClasspath", "androidTestRuntimeClasspath")
+    }
+    val nonTestConfigs = when {
+        isKmp -> {
+            setOf(
+                "androidDebugRuntimeClasspath",
+                "androidReleaseRuntimeClasspath",
+                ".*AndroidTestRuntimeClasspath",
+                "androidTestRuntimeClasspath",
+            )
+        }
+        else -> setOf(".*RuntimeClasspath", "runtimeClasspath")
+    }
+    embeddedDebugProbesConfigurations._include.updateIfNotSet {
+        when {
+            embedDebugProbesForAndroid -> nonTestConfigs
+            embedDebugProbesForAndroidTest -> testConfigs
+            else -> emptySet()
         }
     }
 }
@@ -354,6 +387,7 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfig(project: Project) 
     }
     setupLowLevelTasksConfig(project)
     setupLowLevelArtifactTypesConfig()
+    setupLowLevelEmbeddedDebugProbesConfigurations(project)
 }
 
 @Suppress("unused")
@@ -366,6 +400,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                 DecoroutinatorPluginExtension::class.java
             )
             dependencies.attributesSchema.attribute(decoroutinatorTransformedStateAttribute)
+            dependencies.attributesSchema.attribute(decoroutinatorEmbeddedDebugProbesAttribute)
 
             afterEvaluate { _ ->
                 if (pluginExtension.enabled) {
@@ -402,10 +437,20 @@ class DecoroutinatorPlugin: Plugin<Project> {
                                 it.skipSpecMethods.set(true)
                             }
                         }
+                        dependencies.registerTransform(DecoroutinatorEmbedDebugProbesAction::class.java) { transformation ->
+                            transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                            transformation.from.attribute(decoroutinatorEmbeddedDebugProbesAttribute, false)
+                            transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                            transformation.to.attribute(decoroutinatorEmbeddedDebugProbesAttribute, true)
+                        }
                         dependencies.artifactTypes.maybeCreate(artifactType).attributes
                             .attribute(
                                 decoroutinatorTransformedStateAttribute,
                                 DecoroutinatorTransformedState.UNTRANSFORMED
+                            )
+                            .attribute(
+                                decoroutinatorEmbeddedDebugProbesAttribute,
+                                false
                             )
                     }
 
@@ -473,6 +518,18 @@ class DecoroutinatorPlugin: Plugin<Project> {
                                 config.attributes.attribute(decoroutinatorTransformedStateAttribute, state)
                             } else {
                                 log.debug { "skipping setting decoroutinatorTransformedStateAttribute for configuration [${config.name}]" }
+                            }
+                        }
+                    }
+
+                    run {
+                        val matcher = pluginExtension.embeddedDebugProbesConfigurations.matcher
+                        configurations.all { config ->
+                            if (matcher.matches(config.name)) {
+                                log.debug { "setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
+                                config.attributes.attribute(decoroutinatorEmbeddedDebugProbesAttribute, true)
+                            } else {
+                                log.debug { "skipping setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
                             }
                         }
                     }

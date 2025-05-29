@@ -24,6 +24,7 @@ repositories {
 }
 
 dependencies {
+    //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     implementation(libs.kotlin.gradle.plugin.api)
@@ -45,6 +46,10 @@ bytecodeProcessor {
             LoadConstantProcessor.Key(
                 "org.gradle.kotlin.dsl.ApiGradlePluginDecoroutinatorKt",
                 "getProjectVersionIntrinsic"
+            ) to LoadConstantProcessor.Value("unspecified"),
+            LoadConstantProcessor.Key(
+                "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
+                "getEmbeddedDebugProbesKtClassBodyBase64"
             ) to LoadConstantProcessor.Value("unspecified")
         ))
     )

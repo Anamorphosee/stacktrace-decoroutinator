@@ -27,6 +27,7 @@ stacktraceDecoroutinator {
     jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     useTransformedClassesForCompilation = true
+    embeddedDebugProbesConfigurations.include = setOf("runtimeClasspath", "testRuntimeClasspath")
 }
 
 repositories {
@@ -48,6 +49,7 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.jdk8.latest)
     testImplementation(libs.kotlin.logging.jvm)
+    testImplementation(libs.kotlinx.coroutines.debug.latest)
 
     testRuntimeOnly(libs.ktor.io.jvm)
     testRuntimeOnly(libs.logback.classic)

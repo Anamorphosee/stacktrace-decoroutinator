@@ -22,6 +22,7 @@ junit4 = { group = "junit", name = "junit", version = "4.13.2" }
 kotlinx-coroutines-jdk8-build = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version.ref = "kotlinx-coroutines-build" }
 kotlinx-coroutines-jdk8-latest = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version.ref = "kotlinx-coroutines-latest" }
 kotlinx-coroutines-debug-build = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-debug", version.ref = "kotlinx-coroutines-build" }
+kotlinx-coroutines-debug-latest = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-debug", version.ref = "kotlinx-coroutines-latest" }
 multidex = { group = "androidx.multidex", name = "multidex", version = "2.0.1" }
 
 [plugins]

@@ -1,4 +1,5 @@
 rootProject.name = "decoroutinatortest"
+include("embedded-debug-probes")
 
 includeBuild("../bytecode-processor")
 

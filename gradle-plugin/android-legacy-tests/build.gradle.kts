@@ -18,6 +18,7 @@ stacktraceDecoroutinator {
     addJvmRuntimeDependency = false
     addAndroidRuntimeDependency = false
     useTransformedClassesForCompilation = true
+    embedDebugProbesForAndroid = true
 }
 
 android {
@@ -26,10 +27,13 @@ android {
     defaultConfig {
         minSdk = 14
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
+        multiDexEnabled = true
     }
     packaging {
         resources.pickFirsts.add("META-INF/*")
+        resources.excludes.add("win32-x86-64/attach_hotspot_windows.dll")
+        resources.excludes.add("win32-x86/attach_hotspot_windows.dll")
+        resources.excludes.add("META-INF/licenses/*")
     }
     kotlin {
         jvmToolchain(8)
@@ -37,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.multidex)
     implementation(project(":stacktrace-decoroutinator-common"))
     runtimeOnly(project(":stacktrace-decoroutinator-generator-android"))
     runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
@@ -46,6 +51,7 @@ dependencies {
     androidTestImplementation(libs.junit4)
     androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)
     androidTestImplementation(libs.junit5.api)
+    androidTestImplementation(libs.kotlinx.coroutines.debug.build)
     androidTestRuntimeOnly(libs.androidx.test.runner)
 }
 

@@ -1,3 +1,7 @@
+@file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE")
+
+package dev.reformator.stacktracedecoroutinator.gradleplugintests
+
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import dev.reformator.stacktracedecoroutinator.duplicatejar.*
@@ -6,7 +10,10 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.yield
+import org.junit.jupiter.api.Assertions.*
+import kotlin.coroutines.resume
 import kotlin.test.Test
 
 class PerformanceTest: dev.reformator.stacktracedecoroutinator.test.PerformanceTest()
@@ -85,5 +92,17 @@ class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
     @Test
     fun performClassWithSpaces() {
         `class with spaces`(false)
+    }
+}
+
+class DebugProbesTest {
+    @Test
+    fun performDebugProbes() {
+        runBlocking {
+            suspendCancellableCoroutine { continuation ->
+                assertTrue(DebugProbesAccessor.dumpCoroutinesInfo().isNotEmpty())
+                continuation.resume(Unit)
+            }
+        }
     }
 }

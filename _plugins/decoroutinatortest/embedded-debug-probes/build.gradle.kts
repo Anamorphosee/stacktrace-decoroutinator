@@ -1,3 +1,4 @@
+import dev.reformator.bytecodeprocessor.plugins.AddToStaticInitializerProcessor
 import dev.reformator.bytecodeprocessor.plugins.ChangeClassNameProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -8,7 +9,8 @@ plugins {
 
 bytecodeProcessor {
     processors = setOf(
-        ChangeClassNameProcessor()
+        ChangeClassNameProcessor(),
+        AddToStaticInitializerProcessor
     )
 }
 
@@ -22,8 +24,8 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    targetCompatibility = JavaVersion.VERSION_1_9
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 kotlin {
@@ -40,3 +42,6 @@ sourceSets {
         kotlin.destinationDirectory = java.destinationDirectory
     }
 }
+
+val kotlinSources = sourceSets.main.get().kotlin
+kotlinSources.srcDirs("../../../gradle-plugin/embedded-debug-probes/src/main/kotlin")

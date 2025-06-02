@@ -1,5 +1,9 @@
 import dev.reformator.bytecodeprocessor.plugins.*
+import org.gradle.kotlin.dsl.named
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import java.util.Base64
+import kotlin.jvm.java
 
 buildscript {
     repositories {
@@ -41,18 +45,51 @@ bytecodeProcessor {
         MakeStaticProcessor,
         RemoveKotlinStdlibProcessor(includeClassNames = setOf(
             Regex("dev.reformator.stacktracedecoroutinator.generator.internal.GeneratorSpecImpl")
-        )),
-        LoadConstantProcessor(mapOf(
-            LoadConstantProcessor.Key(
-                "org.gradle.kotlin.dsl.ApiGradlePluginDecoroutinatorKt",
-                "getProjectVersionIntrinsic"
-            ) to LoadConstantProcessor.Value("unspecified"),
-            LoadConstantProcessor.Key(
-                "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
-                "getEmbeddedDebugProbesKtClassBodyBase64"
-            ) to LoadConstantProcessor.Value("unspecified")
         ))
     )
+}
+
+val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
+    val embeddedDebugProbesProject = project(":embedded-debug-probes")
+    val embeddedDebugProbesCompileKotlinTask =
+        embeddedDebugProbesProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(embeddedDebugProbesCompileKotlinTask)
+    doLast {
+        val debugProbesProviderBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+            .dir("kotlin").dir("coroutines").dir("jvm").dir("internal")
+            .file("DecoroutinatorDebugProbesProvider.class").asFile.readBytes()
+        val debugProbesBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+            .dir("kotlin").dir("coroutines").dir("jvm").dir("internal")
+            .file("DebugProbesKt.class").asFile.readBytes()
+        val debugProbesProviderImplBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+            .dir("kotlinx").dir("coroutines").dir("debug").dir("internal")
+            .file("DecoroutinatorDebugProbesProviderImpl.class").asFile.readBytes()
+        val base64Encoder = Base64.getEncoder()
+        bytecodeProcessor {
+            processors += LoadConstantProcessor(mapOf(
+                LoadConstantProcessor.Key(
+                    "org.gradle.kotlin.dsl.ApiGradlePluginDecoroutinatorKt",
+                    "getProjectVersionIntrinsic"
+                ) to LoadConstantProcessor.Value("unspecified"),
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
+                    "getDebugProbesKtClassBodyBase64"
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesBody)),
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
+                    "getDebugProbesProviderClassBodyBase64"
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderBody)),
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
+                    "getDebugProbesProviderImplClassBodyBase64"
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderImplBody))
+            ))
+        }
+    }
+}
+
+tasks.withType(KotlinJvmCompile::class.java) {
+    dependsOn(fillConstantProcessorTask)
 }
 
 java {

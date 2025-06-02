@@ -20,12 +20,15 @@ stacktraceDecoroutinator {
     addJvmRuntimeDependency = false
     addAndroidRuntimeDependency = false
     useTransformedClassesForCompilation = true
+    embedDebugProbesForAndroid = true
 }
 
 dependencies {
     androidTestImplementation(project(":test-utils"))
     androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)
     androidTestImplementation(libs.junit4)
+    androidTestImplementation(libs.kotlinx.coroutines.debug.build)
+    androidTestImplementation(libs.junit5.api)
 
     //noinspection UseTomlInstead
     androidTestCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
@@ -52,6 +55,9 @@ android {
     }
     packaging {
         resources.pickFirsts.add("META-INF/*")
+        resources.excludes.add("win32-x86-64/attach_hotspot_windows.dll")
+        resources.excludes.add("win32-x86/attach_hotspot_windows.dll")
+        resources.excludes.add("META-INF/licenses/*")
     }
     kotlin {
         jvmToolchain(8)

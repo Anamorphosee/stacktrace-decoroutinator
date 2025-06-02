@@ -15,6 +15,7 @@ stacktraceDecoroutinator {
     jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     useTransformedClassesForCompilation = true
+    embeddedDebugProbesConfigurations.include = setOf("runtimeClasspath", "testRuntimeClasspath")
 }
 
 repositories {
@@ -56,5 +57,11 @@ java {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
+    }
+}
+
+sourceSets {
+    test {
+        kotlin.destinationDirectory = java.destinationDirectory
     }
 }

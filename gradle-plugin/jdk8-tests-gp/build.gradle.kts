@@ -13,6 +13,7 @@ stacktraceDecoroutinator {
     jvmDependencyConfigurations.include = emptySet()
     addJvmRuntimeDependency = false
     useTransformedClassesForCompilation = true
+    embeddedDebugProbesConfigurations.include = setOf("runtimeClasspath", "testRuntimeClasspath")
 }
 
 repositories {
@@ -30,6 +31,7 @@ dependencies {
     testImplementation(project(":test-utils-jvm"))
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.jdk8.build)
+    testImplementation(libs.kotlinx.coroutines.debug.build)
 }
 
 bytecodeProcessor {

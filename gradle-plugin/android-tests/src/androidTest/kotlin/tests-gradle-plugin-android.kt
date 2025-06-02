@@ -1,9 +1,14 @@
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import dev.reformator.stacktracedecoroutinator.test.checkStacktrace
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.debug.DebugProbes
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.yield
 import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import kotlin.coroutines.resume
 
 class TestLocalFile {
     @Test
@@ -47,5 +52,18 @@ class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailC
     @Test
     fun performInterfaceWithDefaultMethodImpl() {
         interfaceWithDefaultMethodImpl()
+    }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class DebugProbesTest {
+    @Test
+    fun performDebugProbes() {
+        runBlocking {
+            suspendCancellableCoroutine { continuation ->
+                assertTrue(DebugProbes.dumpCoroutinesInfo().isNotEmpty())
+                continuation.resume(Unit)
+            }
+        }
     }
 }

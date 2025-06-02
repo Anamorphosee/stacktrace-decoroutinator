@@ -193,7 +193,7 @@ open class RuntimeTest {
         val numThreads = Runtime.getRuntime().availableProcessors() * 2
         val numMocks = 10
         val random = Random(123)
-        val tasks = List(numThreads) { index ->
+        val tasks = List(numThreads) {
             val mocks = random.getConcurrentTestMocks(numMocks)
             Runnable {
                 runBlocking {

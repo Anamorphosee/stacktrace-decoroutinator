@@ -88,7 +88,7 @@ fun transformClassBody(
 }
 
 fun addReadProviderModuleToModuleInfo(moduleInfoBody: InputStream): ByteArray? {
-    val node = getClassNode(moduleInfoBody) ?: return null
+    val node = getClassNode(moduleInfoBody, true) ?: return null
     val module = node.module ?: return null
     val requires: MutableList<ModuleRequireNode> = module.requires ?: run {
         val newRequires = mutableListOf<ModuleRequireNode>()

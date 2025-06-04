@@ -1,4 +1,5 @@
 import dev.reformator.bytecodeprocessor.plugins.GetOwnerClassProcessor
+import dev.reformator.bytecodeprocessor.plugins.RemoveModuleRequiresProcessor
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -17,7 +18,11 @@ repositories {
 }
 
 dependencies {
+    //noinspection UseTomlInstead
+    compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+
     implementation(project(":stacktrace-decoroutinator-provider"))
+    implementation(project(":stacktrace-decoroutinator-runtime-settings"))
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation(libs.asm.utils)
@@ -28,10 +33,13 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(GetOwnerClassProcessor(setOf(GetOwnerClassProcessor.MethodKey(
-        className = "dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt",
-        methodName = "getProviderApiClass"
-    ))))
+    processors = setOf(
+        GetOwnerClassProcessor(setOf(GetOwnerClassProcessor.MethodKey(
+            className = "dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt",
+            methodName = "getProviderApiClass"
+        ))),
+        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics")
+    )
 }
 
 tasks.test {

@@ -8,18 +8,14 @@ internal val supportsMethodHandle =
         _supportsMethodHandleStub().check()
         true
     } catch (_: Throwable) { false }
-internal val settingsProvider =
-    if (supportsMethodHandle) {
-        loadService<CommonSettingsProvider>()
-    } else {
-        null
-    } ?: CommonSettingsProvider
-internal val enabled = supportsMethodHandle && settingsProvider.decoroutinatorEnabled
-internal val recoveryExplicitStacktrace = enabled && settingsProvider.recoveryExplicitStacktrace
-internal val tailCallDeoptimize = enabled && settingsProvider.tailCallDeoptimize
+val settingsProvider =
+    if (supportsMethodHandle) loadRuntimeSettingsProvider() else null
+internal val enabled = supportsMethodHandle && settingsProvider!!.enabled
+internal val recoveryExplicitStacktrace = enabled && settingsProvider!!.recoveryExplicitStacktrace
+internal val tailCallDeoptimize = enabled && settingsProvider!!.tailCallDeoptimize
 internal val recoveryExplicitStacktraceTimeoutMs =
-    if (tailCallDeoptimize) settingsProvider.recoveryExplicitStacktraceTimeoutMs else 0U
-internal val methodsNumberThreshold = if (enabled) settingsProvider.methodsNumberThreshold else 0
+    if (tailCallDeoptimize) settingsProvider!!.recoveryExplicitStacktraceTimeoutMs else 0U
+internal val methodsNumberThreshold = if (enabled) settingsProvider!!.methodsNumberThreshold else 0
 
 internal var cookie: Cookie? = null
 

@@ -6,7 +6,7 @@ Library for recovering stack trace in exceptions thrown in Kotlin coroutines.
 Supports JVM 1.8 or higher and Android API 14 or higher.
 
 ### Motivation
-Coroutines is a significant Kotlin feature which allows you to write asynchronous code in synchronous style.
+Coroutines is a significant Kotlin feature that allows you to write asynchronous code in synchronous style.
 
 It's absolutely perfect until you need to investigate problems in your code.
 

@@ -19,6 +19,7 @@ stacktraceDecoroutinator {
     addAndroidRuntimeDependency = false
     useTransformedClassesForCompilation = true
     embedDebugProbesForAndroid = true
+    runtimeSettingsDependencyConfigurations.include = emptySet()
 }
 
 android {
@@ -43,6 +44,7 @@ android {
 dependencies {
     implementation(libs.multidex)
     implementation(project(":stacktrace-decoroutinator-common"))
+    runtimeOnly(project(":stacktrace-decoroutinator-runtime-settings"))
     runtimeOnly(project(":stacktrace-decoroutinator-generator-android"))
     runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
     runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker-jvm"))

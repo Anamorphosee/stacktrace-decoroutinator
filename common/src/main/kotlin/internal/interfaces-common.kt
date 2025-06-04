@@ -69,29 +69,6 @@ interface AnnotationMetadataResolver {
     fun getKotlinDebugMetadata(classBody: InputStream): KotlinDebugMetadata?
 }
 
-interface CommonSettingsProvider {
-    val decoroutinatorEnabled: Boolean
-        get() = System.getProperty(ENABLED_PROPERTY, "true").toBoolean()
-
-    val recoveryExplicitStacktrace: Boolean
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true")
-            .toBoolean()
-
-    val tailCallDeoptimize: Boolean
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.tailCallDeoptimize", "true")
-            .toBoolean()
-
-    val recoveryExplicitStacktraceTimeoutMs: UInt
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktraceTimeoutMs", "500")
-            .toUInt()
-
-    val methodsNumberThreshold: Int
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.methodsNumberThreshold", "50")
-            .toInt()
-
-    companion object: CommonSettingsProvider
-}
-
 @DecoroutinatorTransformed(
     methodNames = [],
     lineNumbersCounts = [],

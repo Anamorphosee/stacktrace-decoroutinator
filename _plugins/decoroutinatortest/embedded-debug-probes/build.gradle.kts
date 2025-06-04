@@ -45,3 +45,4 @@ sourceSets {
 
 val kotlinSources = sourceSets.main.get().kotlin
 kotlinSources.srcDirs("../../../gradle-plugin/embedded-debug-probes/src/main/kotlin")
+kotlinSources.srcDirs("../../../runtime-settings/src/main/kotlin")

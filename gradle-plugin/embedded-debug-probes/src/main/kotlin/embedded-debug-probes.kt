@@ -7,6 +7,13 @@ import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
 import java.util.ServiceLoader
 import kotlin.coroutines.Continuation
 
+@ChangeClassName(toName = "kotlin.coroutines.jvm.internal.DecoroutinatorDebugProbesProvider")
+interface DecoroutinatorDebugProbesProvider {
+    fun <T> probeCoroutineCreated(completion: Continuation<T>): Continuation<T>
+    fun probeCoroutineResumed(frame: Continuation<*>)
+    fun probeCoroutineSuspended(frame: Continuation<*>)
+}
+
 private val provider: DecoroutinatorDebugProbesProvider =
     ServiceLoader.load(DecoroutinatorDebugProbesProvider::class.java).iterator().next()
 

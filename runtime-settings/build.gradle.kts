@@ -1,4 +1,3 @@
-import dev.reformator.bytecodeprocessor.plugins.*
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -8,39 +7,11 @@ plugins {
     alias(libs.plugins.nmcp)
     `maven-publish`
     signing
-    id("dev.reformator.bytecodeprocessor")
     id("dev.reformator.forcevariantjavaversion")
 }
 
 repositories {
     mavenCentral()
-}
-
-dependencies {
-    //noinspection UseTomlInstead
-    compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
-    compileOnly(project(":intrinsics"))
-
-
-    implementation(project(":stacktrace-decoroutinator-provider"))
-    implementation(project(":stacktrace-decoroutinator-runtime-settings"))
-    testImplementation(kotlin("test"))
-}
-
-bytecodeProcessor {
-    processors = setOf(
-        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
-        ChangeClassNameProcessor(mapOf(
-            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl",
-            "dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata" to "kotlin.coroutines.jvm.internal.DebugMetadata"
-        )),
-        SkipInvocationsProcessor,
-        GetOwnerClassProcessor()
-    )
-}
-
-tasks.test {
-    useJUnitPlatform()
 }
 
 java {
@@ -80,7 +51,7 @@ publishing {
             artifact(dokkaJavadocsJar)
             artifact(tasks.named("kotlinSourcesJar"))
             pom {
-                name.set("Stacktrace-decoroutinator common lib.")
+                name.set("Stacktrace-decoroutinator runtime settings provider lib.")
                 description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
                 url.set("https://stacktracedecoroutinator.reformator.dev")
                 licenses {

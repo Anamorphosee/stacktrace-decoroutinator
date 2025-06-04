@@ -99,6 +99,7 @@ open class DecoroutinatorPluginExtension {
     val tasksSkippingSpecMethods = StringMatcherProperty()
     var artifactTypes: Set<String> by _artifactTypes
     val embeddedDebugProbesConfigurations = StringMatcherProperty()
+    val runtimeSettingsDependencyConfigurations = StringMatcherProperty()
 }
 
 private val Project.isAndroid: Boolean
@@ -136,44 +137,73 @@ private fun DecoroutinatorPluginExtension.setupHighLevelConfig(project: Project)
 private fun DecoroutinatorPluginExtension.setupLowLevelDependencyConfig(project: Project) {
     val isAndroid = project.isAndroid
     val isKmp = project.isKmp
-    val androidConfigurations = when {
-        isKmp && androidTestsOnly -> setOf(
-            "androidTestImplementation",
-            "androidInstrumentedTestImplementation"
-        )
-        isKmp -> setOf("androidMainImplementation")
-        isAndroid && androidTestsOnly -> setOf("androidTestImplementation", "testImplementation")
-        isAndroid -> setOf("implementation")
-        else -> setOf()
+    val androidTestConfigs = when {
+        isKmp -> setOf("androidTestImplementation", "androidInstrumentedTestImplementation")
+        isAndroid -> setOf("androidTestImplementation", "testImplementation")
+        else -> emptySet()
     }
-    val jvmConfigurations = when {
-        isKmp && jvmTestsOnly -> setOf("desktopTestImplementation", "androidUnitTestImplementation")
-        isKmp -> setOf("desktopMainImplementation", "androidUnitTestImplementation")
+    val androidMainConfigs = when {
+        isKmp -> setOf("androidMainImplementation")
+        isAndroid -> setOf("implementation")
+        else -> emptySet()
+    }
+    val jvmTestConfigs = when {
+        isKmp -> setOf("desktopTestImplementation", "androidUnitTestImplementation")
         isAndroid -> setOf(".*UnitTestImplementation", "unitTestImplementation")
-        jvmTestsOnly -> setOf("testImplementation")
+        else -> setOf("testImplementation")
+    }
+    val jvmMainConfigs = when {
+        isKmp -> setOf("desktopMainImplementation", "androidUnitTestImplementation")
+        isAndroid -> emptySet()
         else -> setOf("implementation")
     }
+//    val androidConfigurations = when {
+//        isKmp && androidTestsOnly -> setOf(
+//            "androidTestImplementation",
+//            "androidInstrumentedTestImplementation"
+//        )
+//        isKmp -> setOf("androidMainImplementation")
+//        isAndroid && androidTestsOnly -> setOf("androidTestImplementation", "testImplementation")
+//        isAndroid -> setOf("implementation")
+//        else -> setOf()
+//    }
+//    val jvmConfigurations = when {
+//        isKmp && jvmTestsOnly -> setOf("desktopTestImplementation", "androidUnitTestImplementation")
+//        isKmp -> setOf("desktopMainImplementation", "androidUnitTestImplementation")
+//        isAndroid -> setOf(".*UnitTestImplementation", "unitTestImplementation")
+//        jvmTestsOnly -> setOf("testImplementation")
+//        else -> setOf("implementation")
+//    }
+    val androidConfigs = if (androidTestsOnly) androidTestConfigs else androidMainConfigs
+    val jvmConfigs = if (jvmTestsOnly) jvmTestConfigs else jvmMainConfigs
     regularDependencyConfigurations._include.updateIfNotSet {
-        if (legacyAndroidCompatibility) emptySet() else jvmConfigurations + androidConfigurations
+        if (legacyAndroidCompatibility) emptySet() else androidConfigs + jvmConfigs
     }
     androidDependencyConfigurations._include.updateIfNotSet {
-        androidConfigurations
+        androidConfigs
     }
     jvmDependencyConfigurations._include.updateIfNotSet {
-        jvmConfigurations
+        jvmConfigs
     }
-    jvmRuntimeDependencyConfigurations._include.updateIfNotSet {
-        if (addJvmRuntimeDependency) {
-            jvmConfigurations
+    androidRuntimeDependencyConfigurations._include.updateIfNotSet {
+        if (addAndroidRuntimeDependency) {
+            androidConfigs
         } else {
             emptySet()
         }
     }
-    androidRuntimeDependencyConfigurations._include.updateIfNotSet {
-        if (addAndroidRuntimeDependency) {
-            androidConfigurations
+    jvmRuntimeDependencyConfigurations._include.updateIfNotSet {
+        if (addJvmRuntimeDependency) {
+            jvmConfigs
         } else {
             emptySet()
+        }
+    }
+    runtimeSettingsDependencyConfigurations._include.updateIfNotSet {
+        when {
+            embedDebugProbesForAndroid -> androidMainConfigs
+            embedDebugProbesForAndroidTest -> androidTestConfigs
+            else -> emptySet()
         }
     }
 }
@@ -482,6 +512,18 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             if (matcher.matches(config.name)) {
                                 with (dependencies) {
                                     add(config.name, decoroutinatorJvmRuntime())
+                                }
+                            }
+                        }
+                    }
+
+                    //runtime settings dependency
+                    run {
+                        val matcher = pluginExtension.runtimeSettingsDependencyConfigurations.matcher
+                        configurations.all { config ->
+                            if (matcher.matches(config.name)) {
+                                with (dependencies) {
+                                    add(config.name, decoroutinatorRuntimeSettings())
                                 }
                             }
                         }

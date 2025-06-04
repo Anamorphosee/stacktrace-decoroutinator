@@ -64,6 +64,9 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
         val debugProbesProviderImplBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
             .dir("kotlinx").dir("coroutines").dir("debug").dir("internal")
             .file("DecoroutinatorDebugProbesProviderImpl.class").asFile.readBytes()
+        val debugProbesProviderUtilsBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+            .dir("kotlinx").dir("coroutines").dir("debug").dir("internal")
+            .file("DecoroutinatorDebugProbesProviderUtilsKt.class").asFile.readBytes()
         val base64Encoder = Base64.getEncoder()
         bytecodeProcessor {
             processors += LoadConstantProcessor(mapOf(
@@ -82,7 +85,11 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
                 LoadConstantProcessor.Key(
                     "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
                     "getDebugProbesProviderImplClassBodyBase64"
-                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderImplBody))
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderImplBody)),
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
+                    "getDebugProbesProviderUtilsClassBodyBase64"
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderUtilsBody))
             ))
         }
     }
@@ -107,6 +114,7 @@ val kotlinSources = sourceSets.main.get().kotlin
 val resourcesSources = sourceSets.main.get().resources
 kotlinSources.srcDirs("../../provider/src/main/kotlin")
 kotlinSources.srcDirs("../../intrinsics/src/main/kotlin")
+kotlinSources.srcDirs("../../runtime-settings/src/main/kotlin")
 kotlinSources.srcDirs("../../common/src/main/kotlin")
 resourcesSources.srcDirs("../../common/src/main/resources")
 kotlinSources.srcDirs("../../mh-invoker/src/main/kotlin")

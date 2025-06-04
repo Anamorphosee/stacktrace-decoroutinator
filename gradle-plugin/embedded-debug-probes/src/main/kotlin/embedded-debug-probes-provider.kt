@@ -1,28 +1,23 @@
 @file:Suppress("PackageDirectoryMismatch")
+@file:ChangeClassName(toName = "kotlinx.coroutines.debug.internal.DecoroutinatorDebugProbesProviderUtilsKt")
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin.embeddeddebugprobes
 
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
+import java.util.ServiceConfigurationError
+import java.util.ServiceLoader
 import kotlin.coroutines.Continuation
-
-@ChangeClassName(toName = "kotlin.coroutines.jvm.internal.DecoroutinatorDebugProbesProvider")
-interface DecoroutinatorDebugProbesProvider {
-    fun <T> probeCoroutineCreated(completion: Continuation<T>): Continuation<T>
-    fun probeCoroutineResumed(frame: Continuation<*>)
-    fun probeCoroutineSuspended(frame: Continuation<*>)
-}
 
 @Suppress("unused")
 @ChangeClassName(toName = "kotlinx.coroutines.debug.internal.DecoroutinatorDebugProbesProviderImpl")
 class DecoroutinatorDebugProbesProviderImpl: DecoroutinatorDebugProbesProvider {
     init {
+        val settingsProvider = loadRuntimeSettingsProvider()
         AgentInstallationType.isInstalledStatically = true
-        DebugProbesImpl.enableCreationStackTraces =
-            System.getProperty("dev.reformator.stacktracedecoroutinator.enableCreationStackTraces", "false").toBoolean()
-        val installDebugProbes =
-            System.getProperty("dev.reformator.stacktracedecoroutinator.installDebugProbes", "true").toBoolean()
-        if (installDebugProbes) {
+        DebugProbesImpl.enableCreationStackTraces = settingsProvider.enableCreationStackTraces
+        if (settingsProvider.installDebugProbes) {
             DebugProbesImpl.install()
         }
     }
@@ -69,4 +64,36 @@ private object AgentInstallationType {
         get() = fail()
         @JvmName("setInstalledStatically\$kotlinx_coroutines_core")
         set(value) { fail() }
+}
+
+private fun <T: Any> loadServices(type: Class<T>): Pair<List<T>, List<ServiceConfigurationError>> {
+    val services = mutableListOf<T>()
+    val errors = mutableListOf<ServiceConfigurationError>()
+    val iter = ServiceLoader.load(type).iterator()
+    while (true) {
+        try {
+            if (!iter.hasNext()) {
+                break
+            }
+            services.add(iter.next())
+        } catch (e: ServiceConfigurationError) {
+            errors.add(e)
+        }
+    }
+    return Pair(services, errors)
+}
+
+private fun loadRuntimeSettingsProvider(): DecoroutinatorRuntimeSettingsProvider {
+    val services = loadServices(DecoroutinatorRuntimeSettingsProvider::class.java)
+    if (services.first.isEmpty()) {
+        return DecoroutinatorRuntimeSettingsProvider
+    }
+    val maxPriority = services.first.maxOf { it.priority }
+    val providersWithMaxPriority = services.first.filter { it.priority == maxPriority }
+    if (providersWithMaxPriority.size > 1) {
+        throw IllegalStateException(
+            "Multiple DecoroutinatorRuntimeSettingsProvider implementations with max priority found: $providersWithMaxPriority"
+        )
+    }
+    return providersWithMaxPriority.first()
 }

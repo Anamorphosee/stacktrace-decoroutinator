@@ -37,5 +37,9 @@ fun DependencyHandler.decoroutinatorAndroidMethodHandleInvoker(): Any =
 fun DependencyHandler.decoroutinatorJvmMethodHandleInvoker(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-mh-invoker-jvm:$projectVersionIntrinsic"
 
+@Suppress("UnusedReceiverParameter")
+fun DependencyHandler.decoroutinatorRuntimeSettings(): Any =
+    "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-runtime-settings:$projectVersionIntrinsic"
+
 private val projectVersionIntrinsic: String
     @LoadConstant get() { fail() }

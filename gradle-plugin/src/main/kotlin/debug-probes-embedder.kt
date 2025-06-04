@@ -5,6 +5,7 @@ package dev.reformator.stacktracedecoroutinator.gradleplugin
 
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -25,6 +26,7 @@ import java.util.Base64
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import kotlin.reflect.jvm.jvmName
 
 private val log = KotlinLogging.logger { }
 
@@ -32,6 +34,7 @@ private const val DEBUG_PROBES_CLASS_NAME = "kotlin.coroutines.jvm.internal.Debu
 private const val DEBUG_PROBES_PROVIDER_CLASS_NAME = "kotlin.coroutines.jvm.internal.DecoroutinatorDebugProbesProvider"
 private const val DEBUG_PROBES_IMPL_CLASS_NAME = "kotlinx.coroutines.debug.internal.DebugProbesImpl"
 private const val DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME = "kotlinx.coroutines.debug.internal.DecoroutinatorDebugProbesProviderImpl"
+private const val DEBUG_PROBES_PROVIDER_UTILS_CLASS_NAME = "kotlinx.coroutines.debug.internal.DecoroutinatorDebugProbesProviderUtilsKt"
 
 private val String.className2ArtifactPath: ArtifactPath
     get() {
@@ -255,6 +258,22 @@ private inline fun Artifact.processArtifact(
                                 DEBUG_PROBES_PROVIDER_CLASS_NAME.className2InternalName,
                                 listOf(DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME.className2InternalName)
                             ))
+                            val uses: MutableList<String> = moduleInfo.module.uses ?: run {
+                                val uses = mutableListOf<String>()
+                                moduleInfo.module.uses = uses
+                                uses
+                            }
+                            uses.add(DecoroutinatorRuntimeSettingsProvider::class.jvmName.className2InternalName)
+                            val requires: MutableList<ModuleRequireNode> = moduleInfo.module.requires ?: run {
+                                val requires = mutableListOf<ModuleRequireNode>()
+                                moduleInfo.module.requires = requires
+                                requires
+                            }
+                            requires.add(ModuleRequireNode(
+                                "dev.reformator.stacktracedecoroutinator.runtimesettings",
+                                0,
+                                null
+                            ))
                             newArtifact.addFile(path, moduleInfo.classBody.inputStream())
                             return true
                         }
@@ -271,6 +290,10 @@ private inline fun Artifact.processArtifact(
             newArtifact.addFile(
                 path = DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME.className2ArtifactPath,
                 body = getDebugProbesProviderImplClassBodyStream()
+            )
+            newArtifact.addFile(
+                path = DEBUG_PROBES_PROVIDER_UTILS_CLASS_NAME.className2ArtifactPath,
+                body = getDebugProbesProviderUtilsClassBodyStream()
             )
             val metaInfDirPath = listOf("META-INF")
             if (!containsDirectory(metaInfDirPath)) {
@@ -356,6 +379,8 @@ private val debugProbesKtClassBodyBase64: String
     @LoadConstant get() = fail()
 private val debugProbesProviderImplClassBodyBase64: String
     @LoadConstant get() = fail()
+private val debugProbesProviderUtilsClassBodyBase64: String
+    @LoadConstant get() = fail()
 
 private fun getDebugProbesKtClassBodyStream() =
     ByteArrayInputStream(Base64.getDecoder().decode(debugProbesKtClassBodyBase64))
@@ -363,3 +388,5 @@ private fun getDebugProbesProviderClassBodyStream() =
     ByteArrayInputStream(Base64.getDecoder().decode(debugProbesProviderClassBodyBase64))
 private fun getDebugProbesProviderImplClassBodyStream() =
     ByteArrayInputStream(Base64.getDecoder().decode(debugProbesProviderImplClassBodyBase64))
+private fun getDebugProbesProviderUtilsClassBodyStream() =
+    ByteArrayInputStream(Base64.getDecoder().decode(debugProbesProviderUtilsClassBodyBase64))

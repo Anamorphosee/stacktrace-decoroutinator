@@ -21,6 +21,7 @@ stacktraceDecoroutinator {
     addAndroidRuntimeDependency = false
     useTransformedClassesForCompilation = true
     embedDebugProbesForAndroid = true
+    runtimeSettingsDependencyConfigurations.include = emptySet()
 }
 
 dependencies {
@@ -37,6 +38,7 @@ dependencies {
     androidTestRuntimeOnly(libs.androidx.test.runner)
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-common"))
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
+    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-runtime-settings"))
 }
 
 bytecodeProcessor {

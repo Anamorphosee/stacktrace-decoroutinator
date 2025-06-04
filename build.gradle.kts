@@ -40,6 +40,7 @@ nmcp {
         project(":stacktrace-decoroutinator-mh-invoker")
         project(":stacktrace-decoroutinator-mh-invoker-android")
         project(":stacktrace-decoroutinator-mh-invoker-jvm")
+        project(":stacktrace-decoroutinator-runtime-settings")
         username = properties["sonatype.username"] as String?
         password = properties["sonatype.password"] as String?
         publicationType = "USER_MANAGED"

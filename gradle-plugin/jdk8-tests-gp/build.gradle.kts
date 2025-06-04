@@ -32,6 +32,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.jdk8.build)
     testImplementation(libs.kotlinx.coroutines.debug.build)
+    testRuntimeOnly(project(":stacktrace-decoroutinator-runtime-settings"))
 }
 
 bytecodeProcessor {

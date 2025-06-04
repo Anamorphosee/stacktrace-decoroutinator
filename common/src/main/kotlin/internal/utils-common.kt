@@ -8,6 +8,7 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics._Assertions
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
+import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import java.io.InputStream
 import java.lang.invoke.MethodType
 import java.util.ServiceConfigurationError
@@ -64,38 +65,62 @@ fun parseTransformationMetadata(
     )
 }
 
-inline fun <reified T: Any> loadService(): T? {
-    val iter = ServiceLoader.load(T::class.java).iterator()
-    while (true) {
-        try {
-            return if (iter.hasNext()) iter.next() else null
-        } catch (_: ServiceConfigurationError) { }
-    }
-}
-
-inline fun <reified T: Any> loadMandatoryService(): T {
-    val iter = ServiceLoader.load(T::class.java).iterator()
+private fun <T: Any> loadServices(type: Class<T>): Pair<List<T>, List<ServiceConfigurationError>> {
+    val services = mutableListOf<T>()
     val errors = mutableListOf<ServiceConfigurationError>()
+    val iter = ServiceLoader.load(type).iterator()
     while (true) {
         try {
             if (!iter.hasNext()) {
                 break
             }
-            return iter.next()
+            services.add(iter.next())
         } catch (e: ServiceConfigurationError) {
             errors.add(e)
         }
     }
-    val message = "service [${T::class.simpleName}] not found"
-    val exception = if (errors.isNotEmpty()) {
-        IllegalStateException(message, errors[0])
+    return Pair(services, errors)
+}
+
+private fun <T: Any> loadService(type: Class<T>): T? =
+    loadServices(type).first.firstOrNull()
+
+internal inline fun <reified T: Any> loadService(): T? =
+    loadService(T::class.java)
+
+private fun <T: Any> loadMandatoryService(type: Class<T>): T {
+    val services = loadServices(type)
+    if (services.first.isNotEmpty()) {
+        return services.first.first()
+    }
+    val message = "service [${type.simpleName}] not found"
+    val exception = if (services.second.isNotEmpty()) {
+        IllegalStateException(message, services.second[0])
     } else {
         IllegalStateException(message)
     }
-    errors.asSequence().drop (1).forEach {
+    services.second.asSequence().drop (1).forEach {
         exception.addSuppressed(it)
     }
     throw exception
+}
+
+internal inline fun <reified T: Any> loadMandatoryService(): T =
+    loadMandatoryService(T::class.java)
+
+internal fun loadRuntimeSettingsProvider(): DecoroutinatorRuntimeSettingsProvider {
+    val services = loadServices(DecoroutinatorRuntimeSettingsProvider::class.java)
+    if (services.first.isEmpty()) {
+        return DecoroutinatorRuntimeSettingsProvider
+    }
+    val maxPriority = services.first.maxOf { it.priority }
+    val providersWithMaxPriority = services.first.filter { it.priority == maxPriority }
+    if (providersWithMaxPriority.size > 1) {
+        throw IllegalStateException(
+            "Multiple DecoroutinatorRuntimeSettingsProvider implementations with max priority found: $providersWithMaxPriority"
+        )
+    }
+    return providersWithMaxPriority.first()
 }
 
 internal fun Class<*>.getBodyStream(loader: ClassLoader): InputStream? =

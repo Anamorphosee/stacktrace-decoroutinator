@@ -17,11 +17,11 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
     implementation(libs.byte.buddy.agent)
 
+    testImplementation(project(":stacktrace-decoroutinator-provider"))
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))

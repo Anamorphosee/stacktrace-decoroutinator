@@ -11,6 +11,7 @@ include(
     "mh-invoker",
     "mh-invoker-android",
     "mh-invoker-jvm",
+    "runtime-settings",
 
     "intrinsics",
     "test-utils",
@@ -41,6 +42,7 @@ project(":generator-android").name = "stacktrace-decoroutinator-generator-androi
 project(":mh-invoker").name = "stacktrace-decoroutinator-mh-invoker"
 project(":mh-invoker-android").name = "stacktrace-decoroutinator-mh-invoker-android"
 project(":mh-invoker-jvm").name = "stacktrace-decoroutinator-mh-invoker-jvm"
+project(":runtime-settings").name = "stacktrace-decoroutinator-runtime-settings"
 
 includeBuild("_plugins/bytecode-processor")
 includeBuild("_plugins/decoroutinatortest")

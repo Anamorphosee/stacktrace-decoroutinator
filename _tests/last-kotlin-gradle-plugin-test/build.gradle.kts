@@ -39,6 +39,7 @@ dependencies {
     implementation(files("../../common/build/libs/").asFileTree)
     implementation(files("../../mh-invoker/build/libs/").asFileTree)
     implementation(files("../../generator/build/libs/").asFileTree)
+    implementation(files("../../runtime-settings/build/libs/").asFileTree)
     runtimeOnly(libs.asm.utils)
 
     //noinspection UseTomlInstead

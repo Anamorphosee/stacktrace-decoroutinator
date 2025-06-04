@@ -107,6 +107,7 @@ kotlin {
             implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
             implementation(files("../../provider/build/libs/").asFileTree)
             implementation(files("../../common/build/libs/").asFileTree)
+            implementation(files("../../runtime-settings/build/libs/").asFileTree)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)

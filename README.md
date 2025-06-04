@@ -163,7 +163,9 @@ plugins {
 Besides, Decoroutinator uses [MethodHandle API](https://developer.android.com/reference/java/lang/invoke/MethodHandle) which requires Android API level at least 26 (Android 8) so the stack trace recovery machinery doesn't work on Android less than 8.
 
 ### Embedding DebugProbes
-Decoroutinator allows to embed [DebugProbes](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-debug/kotlinx.coroutines.debug/-debug-probes/) into your Android application. DebugProbes is a mechanism for dumping coroutine state and stack traces at runtime. It can be useful for debugging purposes. To embed DebugProbes, you need to add the following line to your `build.gradle.kts`:
+Also, Decoroutinator allows to embed [DebugProbes](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-debug/kotlinx.coroutines.debug/-debug-probes/) into your Android application.
+DebugProbes is a mechanism for dumping coroutine state and stack traces at runtime.
+It can be useful for debugging purposes.
 ```kotlin
 stacktraceDecoroutinator {
     embedDebugProbesForAndroid = true

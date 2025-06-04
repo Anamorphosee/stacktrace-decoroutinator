@@ -121,7 +121,7 @@ fun main() {
 ```
 prints out:
 ```
-jjava.lang.Exception: exception at 1747214819564
+java.lang.Exception: exception at 1749026830412
 	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:11)
 	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test$rec$1.invokeSuspend(example.kt)
 	at dev.reformator.stacktracedecoroutinator.mhinvoker/dev.reformator.stacktracedecoroutinator.mhinvoker.internal.DecoroutinatorSpecImpl.resumeNext(mh-invoker.kt:136)
@@ -137,9 +137,9 @@ jjava.lang.Exception: exception at 1747214819564
 	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
 	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt$main$1.invokeSuspend(example.kt:21)
 	at dev.reformator.stacktracedecoroutinator.mhinvoker/dev.reformator.stacktracedecoroutinator.mhinvoker.internal.RegularMethodHandleInvoker.callSpecMethod(mh-invoker.kt:46)
-	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.callSpecMethods(awakener.kt:90)
-	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.awake(awakener.kt:32)
-	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.Provider.awakeBaseContinuation(provider-impl.kt:43)
+	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.callSpecMethods(awakener.kt:91)
+	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.awake(awakener.kt:33)
+	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.Provider.awakeBaseContinuation(provider-impl.kt:44)
 	at dev.reformator.stacktracedecoroutinator.provider/dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt.awakeBaseContinuation(provider-api.kt:58)
 	at kotlin.stdlib/kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt)
 	at kotlinx.coroutines.core/kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
@@ -160,7 +160,17 @@ plugins {
     id("dev.reformator.stacktracedecoroutinator") version "2.5.3"
 }
 ```
-Besides, Decoroutinator uses [MethodHandle API](https://developer.android.com/reference/java/lang/invoke/MethodHandle) which requires Android API level at least 26 (Android 8). So the stack trace recovery machinery doesn't work on Android less than 8.
+Besides, Decoroutinator uses [MethodHandle API](https://developer.android.com/reference/java/lang/invoke/MethodHandle) which requires Android API level at least 26 (Android 8) so the stack trace recovery machinery doesn't work on Android less than 8.
+
+### Embedding DebugProbes
+Decoroutinator allows to embed [DebugProbes](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-debug/kotlinx.coroutines.debug/-debug-probes/) into your Android application. DebugProbes is a mechanism for dumping coroutine state and stack traces at runtime. It can be useful for debugging purposes. To embed DebugProbes, you need to add the following line to your `build.gradle.kts`:
+```kotlin
+stacktraceDecoroutinator {
+    embedDebugProbesForAndroid = true
+    // or following line if you want to embed DebugProbes only for tests
+    // embedDebugProbesForAndroidTest = true
+}
+```
 
 ### Using Decoroutinator Gradle plugin only for tests
 If you want to use Decoroutinator for test only, it's recommended to separate your tests in a different Gradle subproject and apply Decoroutinator Gradle plugin to it.

@@ -116,7 +116,7 @@ object DecoroutinatorCommonApi {
                     )
                 }
                 val getStatusIndex = trace.indexOfFirst {
-                    it.className == this.javaClass.name && it.methodName == "getStatus"
+                    it.className == this.javaClass.name && it.methodName == ::getStatus.name
                 }
                 if (getStatusIndex == -1 || getStatusIndex >= awakenerIndex) {
                     return DecoroutinatorStatus(

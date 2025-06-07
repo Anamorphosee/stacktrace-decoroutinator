@@ -1,11 +1,10 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
 
 internal val supportsMethodHandle =
     try {
-        _supportsMethodHandleStub().check()
+        supportsMethodHandle()
         true
     } catch (_: Throwable) { false }
 val settingsProvider =
@@ -66,16 +65,13 @@ internal val specMethodsRegistry: SpecMethodsRegistry
 internal val varHandleInvoker: VarHandleInvoker
     get() = _varHandleInvoker!!
 
-@Suppress("ClassName")
-private class _supportsMethodHandleStub {
-    @Suppress("NewApi")
-    fun check() {
-        val methodHandle = MethodHandles.lookup().findVirtual(
-            _supportsMethodHandleStub::class.java,
-            ::met.name,
-            MethodType.methodType(Void.TYPE)
-        )
-        assert { methodHandle != null }
+@Suppress("NewApi")
+private fun supportsMethodHandle(): Boolean {
+    return try {
+        val lookup = MethodHandles.lookup()
+        assert { lookup != null }
+        true
+    } catch (_: Throwable) {
+        false
     }
-    fun met() { }
 }

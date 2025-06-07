@@ -68,8 +68,8 @@ kotlin {
             implementation(compose.preview)
             //noinspection UseTomlInstead
             implementation("androidx.activity:activity-compose:1.10.1")
-            implementation(files("../../generator-android/build/outputs/aar/stacktrace-decoroutinator-generator-android-release.aar"))
-            implementation(files("../../mh-invoker-android/build/outputs/aar/stacktrace-decoroutinator-mh-invoker-android-release.aar"))
+            implementation(files("../../generator-android/build/outputs/aar/stacktrace-decoroutinator-generator-android-release.aar").asFileTree)
+            implementation(files("../../mh-invoker-android/build/outputs/aar/stacktrace-decoroutinator-mh-invoker-android-release.aar").asFileTree)
             implementation(libs.kotlin.logging.jvm)
             runtimeOnly(libs.dalvik.dx)
             runtimeOnly(libs.logback.classic)

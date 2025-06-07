@@ -53,11 +53,6 @@ fun transformClassBody(
 ): ClassBodyTransformationStatus {
     val node = getClassNode(classBody) ?: return noClassBodyTransformationStatus
     node.decoroutinatorTransformedAnnotation?.let { transformedAnnotation ->
-        transformedAnnotation.getField(DecoroutinatorTransformed::marker.name)?.let {
-            if (it as Boolean) {
-                return noClassBodyTransformationStatus
-            }
-        }
         val annotationSkipSpecMethods =
             transformedAnnotation.getField(DecoroutinatorTransformed::skipSpecMethods.name) as Boolean?
         if (skipSpecMethods != (annotationSkipSpecMethods ?: false)) {

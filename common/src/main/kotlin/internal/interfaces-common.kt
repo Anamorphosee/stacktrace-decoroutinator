@@ -3,8 +3,8 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.VarHandle
@@ -22,13 +22,7 @@ fun interface SpecMethodsRegistry {
     ): Map<StacktraceElement, SpecMethodsFactory>
 }
 
-@DecoroutinatorTransformed(
-    methodNames = [],
-    lineNumbersCounts = [],
-    lineNumbers = [],
-    baseContinuationClasses = [],
-    marker = true
-)
+@DecoroutinatorApi
 data class SpecAndItsMethodHandle(
     val specMethodHandle: MethodHandle,
     val spec: DecoroutinatorSpec
@@ -69,13 +63,7 @@ interface AnnotationMetadataResolver {
     fun getKotlinDebugMetadata(classBody: InputStream): KotlinDebugMetadata?
 }
 
-@DecoroutinatorTransformed(
-    methodNames = [],
-    lineNumbersCounts = [],
-    lineNumbers = [],
-    baseContinuationClasses = [],
-    marker = true
-)
+@DecoroutinatorApi
 interface MethodHandleInvoker {
     fun createSpec(
         cookie: Cookie,
@@ -90,24 +78,12 @@ interface MethodHandleInvoker {
     val supportsVarHandle: Boolean
 }
 
-@DecoroutinatorTransformed(
-    methodNames = [],
-    lineNumbersCounts = [],
-    lineNumbers = [],
-    baseContinuationClasses = [],
-    marker = true
-)
+@DecoroutinatorApi
 interface VarHandleInvoker {
     fun getIntVar(handle: VarHandle, owner: BaseContinuation): Int
 }
 
-@DecoroutinatorTransformed(
-    methodNames = [],
-    lineNumbersCounts = [],
-    lineNumbers = [],
-    baseContinuationClasses = [],
-    marker = true
-)
+@DecoroutinatorApi
 class Cookie(
     val invokeSuspendHandle: MethodHandle,
     val releaseInterceptedHandle: MethodHandle

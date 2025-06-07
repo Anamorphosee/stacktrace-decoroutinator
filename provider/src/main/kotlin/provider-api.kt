@@ -1,12 +1,6 @@
 @file:Suppress("PackageDirectoryMismatch")
 @file:JvmName("DecoroutinatorProviderApiKt")
-@file:DecoroutinatorTransformed(
-    methodNames = [],
-    lineNumbersCounts = [],
-    lineNumbers = [],
-    baseContinuationClasses = [],
-    marker = true
-)
+@file:DecoroutinatorApi
 
 package dev.reformator.stacktracedecoroutinator.provider
 
@@ -16,13 +10,7 @@ import dev.reformator.stacktracedecoroutinator.provider.internal.provider
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 
-@DecoroutinatorTransformed(
-    methodNames = [],
-    lineNumbersCounts = [],
-    lineNumbers = [],
-    baseContinuationClasses = [],
-    marker = true
-)
+@DecoroutinatorApi
 interface DecoroutinatorSpec {
     val lineNumber: Int
     val isLastSpec: Boolean
@@ -41,8 +29,7 @@ annotation class DecoroutinatorTransformed(
     val lineNumbersCounts: IntArray,
     val lineNumbers: IntArray,
     val baseContinuationClasses: Array<String>,
-    val skipSpecMethods: Boolean = false,
-    val marker: Boolean = false
+    val skipSpecMethods: Boolean = false
 )
 
 val isDecoroutinatorEnabled: Boolean
@@ -83,3 +70,7 @@ fun getBaseContinuation(
 
 val providerApiClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() { fail() }
+
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
+@Retention
+annotation class DecoroutinatorApi

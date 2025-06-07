@@ -1,18 +1,12 @@
 @file:Suppress("PackageDirectoryMismatch")
-@file:DecoroutinatorTransformed(
-    methodNames = [],
-    lineNumbersCounts = [],
-    lineNumbers = [],
-    baseContinuationClasses = [],
-    marker = true
-)
+@file:DecoroutinatorApi
 
 package dev.reformator.stacktracedecoroutinator.mhinvoker.internal
 
 import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 
 internal val unknownSpecClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() = fail()

@@ -19,6 +19,10 @@ abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
     init { fail() }
 
     override fun getStackTraceElement(): StackTraceElement? { fail() }
+
+    abstract fun invokeSuspend(result: Any?): Any?
+
+    open fun releaseIntercepted() { fail() }
 }
 
 @ChangeClassName(

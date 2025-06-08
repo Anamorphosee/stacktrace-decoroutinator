@@ -1,5 +1,7 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider
 import java.lang.invoke.MethodHandles
 
 internal val supportsMethodHandle =
@@ -7,21 +9,35 @@ internal val supportsMethodHandle =
         supportsMethodHandle()
         true
     } catch (_: Throwable) { false }
+
 val settingsProvider =
     if (supportsMethodHandle) loadRuntimeSettingsProvider() else null
+
 internal val enabled = supportsMethodHandle && settingsProvider!!.enabled
+
 internal val recoveryExplicitStacktrace = enabled && settingsProvider!!.recoveryExplicitStacktrace
+
 internal val tailCallDeoptimize = enabled && settingsProvider!!.tailCallDeoptimize
+
 internal val recoveryExplicitStacktraceTimeoutMs =
     if (tailCallDeoptimize) settingsProvider!!.recoveryExplicitStacktraceTimeoutMs else 0U
+
 internal val methodsNumberThreshold = if (enabled) settingsProvider!!.methodsNumberThreshold else 0
 
-internal var cookie: Cookie? = null
+internal var baseContinuationAccessor: DecoroutinatorBaseContinuationAccessor? = null
 
 @Suppress("ObjectPropertyName")
 private val _methodHandleInvoker: MethodHandleInvoker? =
     if (enabled) {
         loadMandatoryService<MethodHandleInvoker>()
+    } else {
+        null
+    }
+
+@Suppress("ObjectPropertyName")
+private val _baseContinuationAccessorProvider: DecoroutinatorBaseContinuationAccessorProvider? =
+    if (enabled) {
+        loadMandatoryService<DecoroutinatorBaseContinuationAccessorProvider>()
     } else {
         null
     }
@@ -55,6 +71,9 @@ private val _varHandleInvoker: VarHandleInvoker? =
 
 val methodHandleInvoker: MethodHandleInvoker
     get() = _methodHandleInvoker!!
+
+val baseContinuationAccessorProvider: DecoroutinatorBaseContinuationAccessorProvider
+    get() = _baseContinuationAccessorProvider!!
 
 internal val stacktraceElementsFactory: StacktraceElementsFactory
     get() = _stacktraceElementsFactory!!

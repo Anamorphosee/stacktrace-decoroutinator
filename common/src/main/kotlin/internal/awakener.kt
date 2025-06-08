@@ -5,16 +5,26 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.FailureResult
+import dev.reformator.stacktracedecoroutinator.common.intrinsics.createFailure
+import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineResumed
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.toResult
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.math.max
 
+@Suppress("MayBeConstant", "RedundantSuppression")
+private val boundaryLabel = "decoroutinator-boundary"
+private val unknownStacktraceElement =
+    StackTraceElement("", "", "unknown", -1)
+private val boundaryStacktraceElement =
+    StackTraceElement("", "", boundaryLabel, -1)
+
 internal val awakenerFileClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() = fail()
 
-internal fun BaseContinuation.awake(cookie: Cookie, result: Any?) {
+internal fun BaseContinuation.awake(accessor: DecoroutinatorBaseContinuationAccessor, result: Any?) {
     val baseContinuations = buildList {
         var completion: Continuation<Any?> = this@awake
         while (completion is BaseContinuation) {
@@ -31,7 +41,7 @@ internal fun BaseContinuation.awake(cookie: Cookie, result: Any?) {
 
     val specResult = if (baseContinuations.size > 1) {
         callSpecMethods(
-            cookie = cookie,
+            accessor = accessor,
             baseContinuations = baseContinuations,
             stacktraceElements = stacktraceElements,
             result = result
@@ -42,10 +52,9 @@ internal fun BaseContinuation.awake(cookie: Cookie, result: Any?) {
         result
     }
 
-    val lastBaseContinuationResult = methodHandleInvoker.callInvokeSuspend(
-        continuation = baseContinuations.last(),
-        cookie = cookie,
-        specResult = specResult
+    val lastBaseContinuationResult = baseContinuations.last().callInvokeSuspend(
+        accessor = accessor,
+        result = specResult
     )
     if (lastBaseContinuationResult === COROUTINE_SUSPENDED) return
 
@@ -53,7 +62,7 @@ internal fun BaseContinuation.awake(cookie: Cookie, result: Any?) {
 }
 
 private fun callSpecMethods(
-    cookie: Cookie,
+    accessor: DecoroutinatorBaseContinuationAccessor,
     baseContinuations: List<BaseContinuation>,
     stacktraceElements: StacktraceElements,
     result: Any?
@@ -69,7 +78,7 @@ private fun callSpecMethods(
         val nextContinuation = baseContinuations[index - 1]
         specAndItsMethodHandle = if (element != null && factory != null) {
             factory.getSpecAndItsMethodHandle(
-                cookie = cookie,
+                accessor = accessor,
                 element = element,
                 nextSpec = specAndItsMethodHandle,
                 nextContinuation = nextContinuation
@@ -77,8 +86,8 @@ private fun callSpecMethods(
         } else {
             SpecAndItsMethodHandle(
                 specMethodHandle = methodHandleInvoker.unknownSpecMethodHandle,
-                spec = methodHandleInvoker.createSpec(
-                    cookie = cookie,
+                spec = DecoroutinatorSpecImpl(
+                    accessor = accessor,
                     lineNumber = UNKNOWN_LINE_NUMBER,
                     nextSpecAndItsMethod = specAndItsMethodHandle,
                     nextContinuation = nextContinuation
@@ -175,8 +184,20 @@ private fun recoveryExplicitStacktrace(
     }
 }
 
-private val boundaryLabel = "decoroutinator-boundary"
-private val unknownStacktraceElement =
-    StackTraceElement("", "", "unknown", -1)
-private val boundaryStacktraceElement =
-    StackTraceElement("", "", boundaryLabel, -1)
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun BaseContinuation.callInvokeSuspend(
+    accessor: DecoroutinatorBaseContinuationAccessor,
+    result: Any?
+): Any? {
+    probeCoroutineResumed(this)
+    val newResult = try {
+        accessor.invokeSuspend(this, result)
+    } catch (exception: Throwable) {
+        return createFailure(exception)
+    }
+    if (newResult === COROUTINE_SUSPENDED) {
+        return newResult
+    }
+    accessor.releaseIntercepted(this)
+    return newResult
+}

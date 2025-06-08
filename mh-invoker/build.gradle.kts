@@ -33,7 +33,6 @@ bytecodeProcessor {
         ChangeClassNameProcessor(mapOf(
             "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
         )),
-        ChangeInvocationsOwnerProcessor,
         GetOwnerClassProcessor()
     )
 }

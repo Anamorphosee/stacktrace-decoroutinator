@@ -15,7 +15,7 @@ import java.io.InputStream
 import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
-import dev.reformator.stacktracedecoroutinator.provider.cookie as providerCookie
+import dev.reformator.stacktracedecoroutinator.provider.baseContinuationAccessor as providerBaseContinuationAccessor
 
 class ClassBodyTransformationStatus(
     val updatedBody: ByteArray?,
@@ -119,8 +119,8 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
-            getGetterMethodName(::providerCookie.name),
-            "()${Type.getDescriptor(Object::class.java)}"
+            getGetterMethodName(::providerBaseContinuationAccessor.name),
+            "()${Type.getDescriptor(DecoroutinatorBaseContinuationAccessor::class.java)}"
         ))
         add(InsnNode(Opcodes.DUP))
         val decoroutinatorAwakeLabel = LabelNode()
@@ -138,8 +138,8 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
-            ::prepareCookie.name,
-            "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})${Type.getDescriptor(Object::class.java)}"
+            ::prepareBaseContinuationAccessor.name,
+            "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})${Type.getDescriptor(DecoroutinatorBaseContinuationAccessor::class.java)}"
         ))
         add(decoroutinatorAwakeLabel)
         add(FrameNode(Opcodes.F_SAME1, 0, null, 1, arrayOf(Type.getInternalName(Object::class.java))))
@@ -149,7 +149,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
             ::awakeBaseContinuation.name,
-            "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
+            "(${Type.getDescriptor(DecoroutinatorBaseContinuationAccessor::class.java)}${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
         ))
         add(InsnNode(Opcodes.RETURN))
         add(defaultAwakeLabel)

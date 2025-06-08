@@ -65,13 +65,13 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                     } catch (_: IllegalAccessException) {
                         return@repeat
                     }
-                    SpecMethodsFactory { cookie, element, nextContinuation, nextSpec ->
+                    SpecMethodsFactory { accessor, element, nextContinuation, nextSpec ->
                         assert { element.className == className }
                         assert { element.fileName == fileName }
                         assert { element.methodName == methodName }
                         assert { element.lineNumber in lineNumbers }
-                        val spec = methodHandleInvoker.createSpec(
-                            cookie = cookie,
+                        val spec = DecoroutinatorSpecImpl(
+                            accessor = accessor,
                             lineNumber = element.lineNumber,
                             nextSpecAndItsMethod = nextSpec,
                             nextContinuation = nextContinuation

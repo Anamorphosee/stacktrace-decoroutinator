@@ -29,7 +29,8 @@ include(
     "jvm-agent:jdk8-tests-ja",
     "jvm:jdk8-tests-j",
     "mh-invoker-android:legacy-tests",
-    "mh-invoker-jvm:jdk8-tests-mij"
+    "mh-invoker-jvm:jdk8-tests-mij",
+    "base-continuation-accessor"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"

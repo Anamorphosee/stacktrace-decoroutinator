@@ -1,4 +1,8 @@
+import dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.AgentBaseContinuationAccessorProvider;
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider;
+
 module dev.reformator.stacktracedecoroutinator.jvmagentcommon {
+    requires static intrinsics;
     requires static dev.reformator.bytecodeprocessor.intrinsics;
 
     requires kotlin.stdlib;
@@ -12,4 +16,6 @@ module dev.reformator.stacktracedecoroutinator.jvmagentcommon {
     exports dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal to
             dev.reformator.stacktracedecoroutinator.jvmagent,
             dev.reformator.stacktracedecoroutinator.jvm;
+
+    provides DecoroutinatorBaseContinuationAccessorProvider with AgentBaseContinuationAccessorProvider;
 }

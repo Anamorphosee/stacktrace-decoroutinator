@@ -1,5 +1,6 @@
 import dev.reformator.stacktracedecoroutinator.common.internal.*;
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider;
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider;
 import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider;
 
 module dev.reformator.stacktracedecoroutinator.common {
@@ -27,4 +28,5 @@ module dev.reformator.stacktracedecoroutinator.common {
     uses AnnotationMetadataResolver;
     uses MethodHandleInvoker;
     uses VarHandleInvoker;
+    uses DecoroutinatorBaseContinuationAccessorProvider;
 }

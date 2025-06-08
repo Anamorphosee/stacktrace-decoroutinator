@@ -2,14 +2,15 @@
 
 package dev.reformator.stacktracedecoroutinator.provider.internal
 
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import java.lang.invoke.MethodHandles
 import java.util.*
 
 interface DecoroutinatorProvider {
     val isDecoroutinatorEnabled: Boolean
-    val cookie: Any?
-    fun prepareCookie(lookup: MethodHandles.Lookup): Any
-    fun awakeBaseContinuation(cookie: Any, baseContinuation: Any, result: Any?)
+    val baseContinuationAccessor: DecoroutinatorBaseContinuationAccessor?
+    fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): DecoroutinatorBaseContinuationAccessor
+    fun awakeBaseContinuation(accessor: DecoroutinatorBaseContinuationAccessor, baseContinuation: Any, result: Any?)
     fun registerTransformedClass(lookup: MethodHandles.Lookup)
     fun getBaseContinuation(
         completion: Any?,

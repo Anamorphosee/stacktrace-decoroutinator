@@ -35,7 +35,8 @@ bytecodeProcessor {
             "dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata" to "kotlin.coroutines.jvm.internal.DebugMetadata"
         )),
         SkipInvocationsProcessor,
-        GetOwnerClassProcessor()
+        GetOwnerClassProcessor(),
+        ChangeInvocationsOwnerProcessor
     )
 }
 

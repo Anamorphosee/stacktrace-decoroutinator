@@ -4,6 +4,7 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
@@ -30,7 +31,7 @@ data class SpecAndItsMethodHandle(
 
 fun interface SpecMethodsFactory {
     fun getSpecAndItsMethodHandle(
-        cookie: Cookie,
+        accessor: DecoroutinatorBaseContinuationAccessor,
         element: StacktraceElement,
         nextContinuation: BaseContinuation,
         nextSpec: SpecAndItsMethodHandle?
@@ -65,14 +66,7 @@ interface AnnotationMetadataResolver {
 
 @DecoroutinatorApi
 interface MethodHandleInvoker {
-    fun createSpec(
-        cookie: Cookie,
-        lineNumber: Int,
-        nextSpecAndItsMethod: SpecAndItsMethodHandle?,
-        nextContinuation: BaseContinuation
-    ): DecoroutinatorSpec
     val unknownSpecMethodHandle: MethodHandle
-    fun callInvokeSuspend(continuation: BaseContinuation, cookie: Cookie, specResult: Any?): Any?
     fun callSpecMethod(handle: MethodHandle, spec: DecoroutinatorSpec, result: Any?): Any?
     val unknownSpecMethodClass: Class<*>
     val supportsVarHandle: Boolean
@@ -82,12 +76,6 @@ interface MethodHandleInvoker {
 interface VarHandleInvoker {
     fun getIntVar(handle: VarHandle, owner: BaseContinuation): Int
 }
-
-@DecoroutinatorApi
-class Cookie(
-    val invokeSuspendHandle: MethodHandle,
-    val releaseInterceptedHandle: MethodHandle
-)
 
 internal data class StacktraceElements(
     val elementsByContinuation: Map<BaseContinuation, StacktraceElement>,

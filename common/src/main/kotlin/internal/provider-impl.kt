@@ -3,45 +3,37 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider
 import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.coroutines.Continuation
 
 internal class Provider: DecoroutinatorProvider {
+    private val prepareBaseContinuationAccessorLock = ReentrantLock()
+
     override val isDecoroutinatorEnabled: Boolean
         get() = enabled
 
-    override val cookie: Any?
-        get() = dev.reformator.stacktracedecoroutinator.common.internal.cookie
+    override val baseContinuationAccessor: DecoroutinatorBaseContinuationAccessor?
+        get() = dev.reformator.stacktracedecoroutinator.common.internal.baseContinuationAccessor
 
     @Suppress("NewApi")
-    override fun prepareCookie(lookup: MethodHandles.Lookup): Any {
-        prepareCookieLock.withLock {
-            dev.reformator.stacktracedecoroutinator.common.internal.cookie?.let { return it }
-            val invokeSuspendHandle = lookup.findVirtual(
-                BaseContinuation::class.java,
-                "invokeSuspend",
-                MethodType.methodType(Any::class.java, Any::class.java)
-            )
-            val releaseInterceptedHandle = lookup.findVirtual(
-                BaseContinuation::class.java,
-                "releaseIntercepted",
-                MethodType.methodType(Void::class.javaPrimitiveType)
-            )
-            val cookie = Cookie(
-                invokeSuspendHandle = invokeSuspendHandle,
-                releaseInterceptedHandle = releaseInterceptedHandle
-            )
-            dev.reformator.stacktracedecoroutinator.common.internal.cookie = cookie
-            return cookie
+    override fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): DecoroutinatorBaseContinuationAccessor =
+        prepareBaseContinuationAccessorLock.withLock {
+            baseContinuationAccessor?.let { return it }
+            val accessor = baseContinuationAccessorProvider.createAccessor(lookup)
+            dev.reformator.stacktracedecoroutinator.common.internal.baseContinuationAccessor = accessor
+            accessor
         }
-    }
 
-    override fun awakeBaseContinuation(cookie: Any, baseContinuation: Any, result: Any?) {
-        (baseContinuation as BaseContinuation).awake(cookie as Cookie, result)
+    override fun awakeBaseContinuation(
+        accessor: DecoroutinatorBaseContinuationAccessor,
+        baseContinuation: Any,
+        result: Any?
+    ) {
+        (baseContinuation as BaseContinuation).awake(accessor, result)
     }
 
     override fun registerTransformedClass(lookup: MethodHandles.Lookup) {
@@ -73,6 +65,4 @@ internal class Provider: DecoroutinatorProvider {
             lineNumber = lineNumber
         )
     }
-
-    private val prepareCookieLock = ReentrantLock()
 }

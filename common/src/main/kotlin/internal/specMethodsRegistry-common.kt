@@ -3,6 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -180,7 +181,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
         val specMethod: MethodHandle
     ): SpecMethodsFactory {
         override fun getSpecAndItsMethodHandle(
-            cookie: Cookie,
+            accessor: DecoroutinatorBaseContinuationAccessor,
             element: StacktraceElement,
             nextContinuation: BaseContinuation,
             nextSpec: SpecAndItsMethodHandle?
@@ -193,8 +194,8 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             }
             return SpecAndItsMethodHandle(
                 specMethodHandle = specMethod,
-                spec = methodHandleInvoker.createSpec(
-                    cookie = cookie,
+                spec = DecoroutinatorSpecImpl(
+                    accessor = accessor,
                     lineNumber = element.lineNumber,
                     nextSpecAndItsMethod = nextSpec,
                     nextContinuation = nextContinuation

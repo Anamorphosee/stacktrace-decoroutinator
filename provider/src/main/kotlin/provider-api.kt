@@ -35,15 +35,15 @@ annotation class DecoroutinatorTransformed(
 val isDecoroutinatorEnabled: Boolean
     get() = provider.isDecoroutinatorEnabled
 
-val cookie: Any?
-    get() = provider.cookie
+val baseContinuationAccessor: DecoroutinatorBaseContinuationAccessor?
+    get() = provider.baseContinuationAccessor
 
-fun prepareCookie(lookup: MethodHandles.Lookup): Any =
-    provider.prepareCookie(lookup)
+fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): DecoroutinatorBaseContinuationAccessor =
+    provider.prepareBaseContinuationAccessor(lookup)
 
-fun awakeBaseContinuation(cookie: Any, baseContinuation: Any, result: Any?) {
+fun awakeBaseContinuation(accessor: DecoroutinatorBaseContinuationAccessor, baseContinuation: Any, result: Any?) {
     provider.awakeBaseContinuation(
-        cookie = cookie,
+        accessor = accessor,
         baseContinuation = baseContinuation,
         result = result
     )
@@ -70,6 +70,17 @@ fun getBaseContinuation(
 
 val providerApiClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() { fail() }
+
+@DecoroutinatorApi
+interface DecoroutinatorBaseContinuationAccessor {
+    fun invokeSuspend(baseContinuation: Any, result: Any?): Any?
+    fun releaseIntercepted(baseContinuation: Any)
+}
+
+fun interface DecoroutinatorBaseContinuationAccessorProvider {
+    fun createAccessor(lookup: MethodHandles.Lookup): DecoroutinatorBaseContinuationAccessor
+}
+
 
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
 @Retention

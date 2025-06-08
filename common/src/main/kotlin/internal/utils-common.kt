@@ -2,22 +2,22 @@
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
-import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
-import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.common.intrinsics.ContinuationImpl
 import dev.reformator.stacktracedecoroutinator.common.intrinsics._Assertions
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import java.io.InputStream
+import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodType
 import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
 import java.util.concurrent.locks.Lock
 import kotlin.concurrent.withLock
 import kotlin.coroutines.Continuation
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.jvm.internal.CoroutineStackFrame
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
 const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 
@@ -28,6 +28,28 @@ val specMethodType = MethodType.methodType(
     DecoroutinatorSpec::class.java,
     Object::class.java
 )
+
+class DecoroutinatorSpecImpl(
+    private val accessor: DecoroutinatorBaseContinuationAccessor,
+    override val lineNumber: Int,
+    private val nextSpecAndItsMethod: SpecAndItsMethodHandle?,
+    private val nextContinuation: BaseContinuation
+): DecoroutinatorSpec {
+    override val isLastSpec: Boolean
+        get() = nextSpecAndItsMethod == null
+
+    override val nextSpecHandle: MethodHandle
+        get() = nextSpecAndItsMethod!!.specMethodHandle
+
+    override val nextSpec: DecoroutinatorSpec
+        get() = nextSpecAndItsMethod!!.spec
+
+    override val coroutineSuspendedMarker: Any
+        get() = COROUTINE_SUSPENDED
+
+    override fun resumeNext(result: Any?): Any? =
+        nextContinuation.callInvokeSuspend(accessor, result)
+}
 
 inline fun assert(check: () -> Boolean) {
     if (_Assertions.ENABLED && !check()) {
@@ -130,21 +152,6 @@ internal fun Class<*>.getBodyStream(): InputStream? =
     classLoader?.let { getBodyStream(it) }
 
 internal const val ENABLED_PROPERTY = "dev.reformator.stacktracedecoroutinator.enabled"
-
-@ChangeClassName(toName = "kotlin.coroutines.jvm.internal.ContinuationImpl", deleteAfterChanging = true)
-internal abstract class ContinuationImpl(
-    @Suppress("UNUSED_PARAMETER") completion: Continuation<Any?>?
-): BaseContinuation(), CoroutineStackFrame {
-    protected abstract fun invokeSuspend(result: Any?): Any?
-
-    override val context: CoroutineContext
-        get() { fail() }
-
-    override val callerFrame: CoroutineStackFrame?
-        get() { fail() }
-
-    override fun getStackTraceElement(): StackTraceElement? { fail() }
-}
 
 internal class DecoroutinatorContinuationImpl(
     completion: Continuation<Any?>,

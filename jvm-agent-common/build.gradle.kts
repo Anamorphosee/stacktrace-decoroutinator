@@ -1,7 +1,13 @@
+import dev.reformator.bytecodeprocessor.plugins.ChangeClassNameProcessor
 import dev.reformator.bytecodeprocessor.plugins.GetOwnerClassProcessor
+import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
 import dev.reformator.bytecodeprocessor.plugins.RemoveModuleRequiresProcessor
+import org.gradle.kotlin.dsl.named
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import java.util.Base64
+import kotlin.jvm.java
 
 plugins {
     kotlin("jvm")
@@ -20,6 +26,7 @@ repositories {
 dependencies {
     //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+    compileOnly(project(":intrinsics"))
 
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-runtime-settings"))
@@ -38,8 +45,35 @@ bytecodeProcessor {
             className = "dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt",
             methodName = "getProviderApiClass"
         ))),
-        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics")
+        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
+        ChangeClassNameProcessor(mapOf(
+            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
+        )),
     )
+}
+
+val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
+    val accessorProject = project(":base-continuation-accessor")
+    val accessorCompileKotlinTask = accessorProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(accessorCompileKotlinTask)
+    doLast {
+        val regularAccessorClass = accessorCompileKotlinTask.get().destinationDirectory.get().dir("kotlin")
+            .dir("coroutines").dir("jvm").dir("internal")
+            .file("DecoroutinatorBaseContinuationAccessorImpl.class").asFile
+        val regularAccessorClassBodyBase64 = Base64.getEncoder().encodeToString(regularAccessorClass.readBytes())
+        bytecodeProcessor {
+            processors += LoadConstantProcessor(mapOf(
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.Base_continuation_accessor_agent_commonKt",
+                    "getRegularAccessorBodyBase64"
+                ) to LoadConstantProcessor.Value(regularAccessorClassBodyBase64)
+            ))
+        }
+    }
+}
+
+tasks.withType(KotlinJvmCompile::class.java) {
+    dependsOn(fillConstantProcessorTask)
 }
 
 tasks.test {

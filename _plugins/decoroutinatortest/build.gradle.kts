@@ -50,23 +50,25 @@ bytecodeProcessor {
 }
 
 val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
-    val embeddedDebugProbesProject = project(":embedded-debug-probes")
-    val embeddedDebugProbesCompileKotlinTask =
-        embeddedDebugProbesProject.tasks.named<KotlinJvmCompile>("compileKotlin")
-    dependsOn(embeddedDebugProbesCompileKotlinTask)
+    val embeddedProject = project(":embedded")
+    val embeddedCompileKotlinTask = embeddedProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(embeddedCompileKotlinTask)
     doLast {
-        val debugProbesProviderBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+        val debugProbesProviderBody = embeddedCompileKotlinTask.get().destinationDirectory.get()
             .dir("kotlin").dir("coroutines").dir("jvm").dir("internal")
             .file("DecoroutinatorDebugProbesProvider.class").asFile.readBytes()
-        val debugProbesBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+        val debugProbesBody = embeddedCompileKotlinTask.get().destinationDirectory.get()
             .dir("kotlin").dir("coroutines").dir("jvm").dir("internal")
             .file("DebugProbesKt.class").asFile.readBytes()
-        val debugProbesProviderImplBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+        val debugProbesProviderImplBody = embeddedCompileKotlinTask.get().destinationDirectory.get()
             .dir("kotlinx").dir("coroutines").dir("debug").dir("internal")
             .file("DecoroutinatorDebugProbesProviderImpl.class").asFile.readBytes()
-        val debugProbesProviderUtilsBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
+        val debugProbesProviderUtilsBody = embeddedCompileKotlinTask.get().destinationDirectory.get()
             .dir("kotlinx").dir("coroutines").dir("debug").dir("internal")
             .file("DecoroutinatorDebugProbesProviderUtilsKt.class").asFile.readBytes()
+        val regularAccessorBody = embeddedCompileKotlinTask.get().destinationDirectory.get().dir("kotlin")
+            .dir("coroutines").dir("jvm").dir("internal")
+            .file("DecoroutinatorBaseContinuationAccessorImpl.class").asFile.readBytes()
         val base64Encoder = Base64.getEncoder()
         bytecodeProcessor {
             processors += LoadConstantProcessor(mapOf(
@@ -89,7 +91,11 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
                 LoadConstantProcessor.Key(
                     "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
                     "getDebugProbesProviderUtilsClassBodyBase64"
-                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderUtilsBody))
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderUtilsBody)),
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.gradleplugin.GradleClassTransformerKt",
+                    "getBaseContinuationAccessorImplBodyBase64"
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(regularAccessorBody))
             ))
         }
     }

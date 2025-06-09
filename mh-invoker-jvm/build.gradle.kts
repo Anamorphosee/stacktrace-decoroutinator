@@ -61,6 +61,7 @@ dependencies {
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))
     testRuntimeOnly(project(":stacktrace-decoroutinator-generator"))
+    testRuntimeOnly(project(":test-utils:base-continuation-accessor-stub"))
 }
 
 afterEvaluate {

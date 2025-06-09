@@ -1,5 +1,5 @@
 rootProject.name = "decoroutinatortest"
-include("embedded-debug-probes")
+include("embedded")
 
 includeBuild("../bytecode-processor")
 

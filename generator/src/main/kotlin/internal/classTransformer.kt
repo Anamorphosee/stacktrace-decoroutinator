@@ -163,6 +163,10 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         lineNumbersByMethod = emptyMap(),
         baseContinuationInternalClassNames = emptySet()
     ).getTransformedAnnotation(baseContinuation, skipSpecMethods))
+    annotations.add(AnnotationNode(
+        Opcodes.ASM9,
+        Type.getDescriptor(DecoroutinatorApi::class.java)
+    ))
 }
 
 fun getDebugMetadataInfoFromClassBody(body: InputStream): DebugMetadataInfo? =
@@ -203,7 +207,7 @@ private val noNeedTransformationStatus = NeedTransformationStatus(
     needReadProviderModule = false
 )
 
-private const val PROVIDER_MODULE_NAME = "dev.reformator.stacktracedecoroutinator.provider"
+const val PROVIDER_MODULE_NAME = "dev.reformator.stacktracedecoroutinator.provider"
 
 private data class ClassTransformationInfo(
     val lineNumbersByMethod: Map<String, Set<Int>>,

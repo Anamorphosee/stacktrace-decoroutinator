@@ -14,6 +14,7 @@ import org.gradle.api.attributes.Attribute
 import org.gradle.api.tasks.compile.AbstractCompile
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import java.io.File
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -157,23 +158,6 @@ private fun DecoroutinatorPluginExtension.setupLowLevelDependencyConfig(project:
         isAndroid -> emptySet()
         else -> setOf("implementation")
     }
-//    val androidConfigurations = when {
-//        isKmp && androidTestsOnly -> setOf(
-//            "androidTestImplementation",
-//            "androidInstrumentedTestImplementation"
-//        )
-//        isKmp -> setOf("androidMainImplementation")
-//        isAndroid && androidTestsOnly -> setOf("androidTestImplementation", "testImplementation")
-//        isAndroid -> setOf("implementation")
-//        else -> setOf()
-//    }
-//    val jvmConfigurations = when {
-//        isKmp && jvmTestsOnly -> setOf("desktopTestImplementation", "androidUnitTestImplementation")
-//        isKmp -> setOf("desktopMainImplementation", "androidUnitTestImplementation")
-//        isAndroid -> setOf(".*UnitTestImplementation", "unitTestImplementation")
-//        jvmTestsOnly -> setOf("testImplementation")
-//        else -> setOf("implementation")
-//    }
     val androidConfigs = if (androidTestsOnly) androidTestConfigs else androidMainConfigs
     val jvmConfigs = if (jvmTestsOnly) jvmTestConfigs else jvmMainConfigs
     regularDependencyConfigurations._include.updateIfNotSet {
@@ -575,19 +559,17 @@ class DecoroutinatorPlugin: Plugin<Project> {
                                 task.doLast { _ ->
                                     val dir = task.destinationDirectory.get().asFile
                                     log.debug { "performing in-place transformation of a classes directory [${dir.absolutePath}], skipSpecMethods = [$skipSpecMethods]" }
-                                    transformClassesDir(
-                                        root = dir,
+                                    val artifact = DirectoryArtifact(dir)
+                                    artifact.transform(
                                         skipSpecMethods = skipSpecMethods,
-                                        onDirectory = { },
-                                        onFile = { relativePath, content, modified ->
+                                        onFile = { modified, path, body ->
                                             if (modified) {
-                                                val file = dir.resolve(relativePath)
-                                                log.debug { "class file [${file.absolutePath}] was transformed, skipSpecMethods = [$skipSpecMethods]" }
-                                                file.outputStream().use { output ->
-                                                    content.copyTo(output)
-                                                }
+                                                log.debug { "class file [$path] was transformed, skipSpecMethods = [$skipSpecMethods]" }
+                                                artifact.addFile(path, body)
                                             }
-                                        }
+                                            true
+                                        },
+                                        onDirectory = { _ -> }
                                     )
                                 }
                             } else {
@@ -639,3 +621,15 @@ class DecoroutinatorPlugin: Plugin<Project> {
         }
     }
 }
+
+private inline fun visitModuleInfoFiles(root: File, onModuleInfoFile: (path: File, relativePath: File) -> Unit) {
+    root.walk().forEach { file ->
+        if (file.isFile && file.isModuleInfo) {
+            val relativePath = file.relativeTo(root)
+            onModuleInfoFile(file, relativePath)
+        }
+    }
+}
+
+private val File.isModuleInfo: Boolean
+    get() = name == MODULE_INFO_CLASS_NAME

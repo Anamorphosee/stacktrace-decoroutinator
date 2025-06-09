@@ -92,6 +92,7 @@ dependencies {
     testImplementation(project(":test-utils-jvm"))
 
     testRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
+    testRuntimeOnly(project(":test-utils:base-continuation-accessor-stub"))
 }
 
 bytecodeProcessor {

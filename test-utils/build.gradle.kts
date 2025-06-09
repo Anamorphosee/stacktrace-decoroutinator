@@ -17,6 +17,7 @@ dependencies {
     //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
+
     implementation(libs.junit5.api)
     implementation(libs.junit4)
     implementation(libs.kotlinx.coroutines.jdk8.build)

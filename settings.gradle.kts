@@ -15,6 +15,7 @@ include(
 
     "intrinsics",
     "test-utils",
+    "test-utils:base-continuation-accessor-stub",
     "test-utils-jvm",
     "test-utils:custom-loader",
     "generator:jdk8-tests-g",

@@ -23,13 +23,14 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":gradle-plugin:empty-module-tests"))
+
     //noinspection UseTomlInstead
     testCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     testRuntimeOnly(project(":stacktrace-decoroutinator-common"))
     testRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
 
-    implementation(project(":gradle-plugin:empty-module-tests"))
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))
     testImplementation(kotlin("test"))

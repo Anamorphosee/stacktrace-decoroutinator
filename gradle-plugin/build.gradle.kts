@@ -42,13 +42,13 @@ dependencies {
     //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
-    compileOnly(libs.kotlinx.coroutines.debug.build)
     implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-generator"))
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.kotlin.gradle.plugin.api)
     implementation(libs.asm.utils)
     implementation(project(":stacktrace-decoroutinator-runtime-settings"))
+    implementation(project(":stacktrace-decoroutinator-provider"))
 
     runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
 
@@ -60,6 +60,9 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
     val embeddedDebugProbesCompileKotlinTask =
         embeddedDebugProbesProject.tasks.named<KotlinJvmCompile>("compileKotlin")
     dependsOn(embeddedDebugProbesCompileKotlinTask)
+    val accessorProject = project(":base-continuation-accessor")
+    val accessorCompileKotlinTask = accessorProject.tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(accessorCompileKotlinTask)
     doLast {
         val debugProbesProviderBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
             .dir("kotlin").dir("coroutines").dir("jvm").dir("internal")
@@ -73,6 +76,9 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
         val debugProbesProviderUtilsBody = embeddedDebugProbesCompileKotlinTask.get().destinationDirectory.get()
             .dir("kotlinx").dir("coroutines").dir("debug").dir("internal")
             .file("DecoroutinatorDebugProbesProviderUtilsKt.class").asFile.readBytes()
+        val regularAccessorBody = accessorCompileKotlinTask.get().destinationDirectory.get().dir("kotlin")
+            .dir("coroutines").dir("jvm").dir("internal")
+            .file("DecoroutinatorBaseContinuationAccessorImpl.class").asFile.readBytes()
         val base64Encoder = Base64.getEncoder()
         bytecodeProcessor {
             processors += LoadConstantProcessor(mapOf(
@@ -95,7 +101,11 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
                 LoadConstantProcessor.Key(
                     "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
                     "getDebugProbesProviderUtilsClassBodyBase64"
-                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderUtilsBody))
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderUtilsBody)),
+                LoadConstantProcessor.Key(
+                    "dev.reformator.stacktracedecoroutinator.gradleplugin.GradleClassTransformerKt",
+                    "getBaseContinuationAccessorImplBodyBase64"
+                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(regularAccessorBody))
             ))
         }
     }

@@ -3,9 +3,13 @@
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
-import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
+import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
+import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.generator.internal.PROVIDER_MODULE_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
@@ -15,17 +19,19 @@ import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
-import java.io.ByteArrayInputStream
-import java.io.File
+import org.objectweb.asm.Type
+import org.objectweb.asm.tree.ModuleProvideNode
 import java.io.IOException
 import java.io.InputStream
-import java.util.zip.ZipEntry
+import java.util.Base64
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
-import kotlin.sequences.forEach
+import kotlin.reflect.jvm.jvmName
 
 private const val CLASS_EXTENSION = ".class"
-private const val MODULE_INFO_CLASS_NAME = "module-info.class"
+internal const val MODULE_INFO_CLASS_NAME = "module-info.class"
+private const val BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME =
+    "kotlin.coroutines.jvm.internal.DecoroutinatorBaseContinuationAccessorImpl"
 private val log = KotlinLogging.logger { }
 
 abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTransformAction.Parameters> {
@@ -42,21 +48,36 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
         log.debug { "trying transform artifact [${root.absolutePath}]" }
         if (root.isFile) {
             log.debug { "artifact [${root.absolutePath}] is a file" }
+            val artifact = try {
+                ZipArtifact(ZipFile(root))
+            } catch (e: IOException) {
+                log.warn(e) { "Failed to read artifact [${root.absolutePath}]. It will be skipped." }
+                null
+            }
             val needModification = run {
+                if (artifact == null) {
+                    log.warn { "Artifact [${root.absolutePath}] is not a valid zip file. It will be skipped." }
+                    return@run false
+                }
                 try {
-                    transformZip(
-                        zip = root,
+                    var needModification = false
+                    artifact.transform(
                         skipSpecMethods = parameters.skipSpecMethods.get(),
-                        putNextEntry = { },
-                        putFileBody = { modified, _ ->
+                        onFile = { modified, _, _ ->
                             if (modified) {
-                                return@run true
+                                needModification = true
+                                false
+                            } else {
+                                true
                             }
                         },
-                        closeEntry = { }
+                        onDirectory = { _ -> }
                     )
-                } catch (_: IOException) { }
-                false
+                    needModification
+                } catch (e: IOException) {
+                    log.warn(e) { "Failed to read artifact [${root.absolutePath}]. It will be skipped." }
+                    false
+                }
             }
             if (needModification) {
                 val suffix = root.name.lastIndexOf('.').let { index ->
@@ -65,12 +86,9 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
                 val newName = root.name.removeSuffix(suffix) + "-decoroutinator" + suffix
                 val newFile = outputs.file(newName)
                 ZipOutputStream(newFile.outputStream()).use { output ->
-                    transformZip(
-                        zip = root,
+                    artifact!!.transformTo(
                         skipSpecMethods = parameters.skipSpecMethods.get(),
-                        putNextEntry = { output.putNextEntry(it) },
-                        putFileBody = { _, body -> body.copyTo(output) },
-                        closeEntry = { output.closeEntry() }
+                        builder = ZipArtifactBuilder(output)
                     )
                 }
                 log.debug { "file artifact [${root.absolutePath}] was transformed to [${newFile.absolutePath}]" }
@@ -80,28 +98,28 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
             }
         } else if (root.isDirectory) {
             log.debug { "artifact [${root.absolutePath}] is a directory" }
+            val artifact = DirectoryArtifact(root)
             val needModification = run {
-                transformClassesDir(
-                    root = root,
+                var needModification = false
+                artifact.transform(
                     skipSpecMethods = parameters.skipSpecMethods.get(),
-                    onDirectory = { },
-                    onFile = { _, _, modified ->
-                        if (modified) return@run true
-                    }
+                    onFile = { modified, _, _ ->
+                        if (modified) {
+                            needModification = true
+                            false
+                        } else {
+                            true
+                        }
+                    },
+                    onDirectory = { _ -> }
                 )
-                false
+                needModification
             }
             if (needModification) {
                 val newRoot = outputs.dir(root.name + "-decoroutinator")
-                transformClassesDir(
-                    root = root,
+                artifact.transformTo(
                     skipSpecMethods = parameters.skipSpecMethods.get(),
-                    onDirectory = { newRoot.resolve(it).mkdir() },
-                    onFile = { relativePath, content, _ ->
-                        newRoot.resolve(relativePath).outputStream().use { output ->
-                            content.copyTo(output)
-                        }
-                    }
+                    builder = DirectoryArtifact(newRoot)
                 )
                 log.debug { "directory artifact [${root.absolutePath}] was transformed to [${newRoot.absolutePath}]" }
             } else {
@@ -114,159 +132,146 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
     }
 }
 
-private inline fun transformZip(
-    zip: File,
-    skipSpecMethods: Boolean,
-    putNextEntry: (ZipEntry) -> Unit,
-    putFileBody: (modified: Boolean, body: InputStream) -> Unit,
-    closeEntry: () -> Unit
-) {
-    val names = mutableSetOf<String>()
-    ZipFile(zip).use { input ->
-        var readProviderModule = false
+private fun Artifact.transformTo(skipSpecMethods: Boolean, builder: ArtifactBuilder) {
+    transform(
+        skipSpecMethods = skipSpecMethods,
+        onFile = { _, path, body ->
+            builder.addFile(path, body)
+            true
+        },
+        onDirectory = { path ->
+            builder.addDirectory(path)
+        }
+    )
+}
 
-        input.entries().asSequence().forEach { entry: ZipEntry ->
-            if (entry.isDirectory || !entry.name.isModuleInfo) {
-                if (!names.add(entry.name)) {
-                    log.warn { "Duplicate zip entry '${entry.name}' in file '$zip'. Ignoring it" }
-                    return@forEach
-                }
-                putNextEntry(ZipEntry(entry.name).apply {
-                    entry.lastModifiedTime?.let { lastModifiedTime = it }
-                    entry.lastAccessTime?.let { lastAccessTime = it }
-                    entry.creationTime?.let { creationTime = it }
-                    method = ZipEntry.DEFLATED
-                    comment = entry.comment
-                })
-                if (!entry.isDirectory) {
-                    var newBody: ByteArray? = null
-                    if (entry.name.isClass) {
-                        val transformationStatus = input.getInputStream(entry).use { classBody ->
-                            transformClassBody(
-                                classBody = classBody,
-                                metadataResolver = metadataResolver@{ metadataClassName ->
-                                    val entryName = metadataClassName.replace('.', '/') + CLASS_EXTENSION
-                                    val classEntry = input.getEntry(entryName) ?: return@metadataResolver null
-                                    input.getInputStream(classEntry).use {
+internal fun Artifact.transform(
+    skipSpecMethods: Boolean,
+    onFile: (modified: Boolean, path: ArtifactPath, body: InputStream) -> Boolean,
+    onDirectory: (path: ArtifactPath) -> Unit
+) {
+    val baseContinuationPath = BASE_CONTINUATION_CLASS_NAME.className2ArtifactPath
+    var readProviderModule = false
+    var containsBaseContinuation = false
+    var stop = false
+
+    walk(object: ArtifactWalker {
+        override fun onFile(path: ArtifactPath, reader: () -> InputStream): Boolean {
+            if (!path.isModuleInfo) {
+                var newBody: ByteArray? = null
+                if (path.isClass) {
+                    containsBaseContinuation = containsBaseContinuation || path == baseContinuationPath
+                    val transformationStatus = reader().use { classBody ->
+                        transformClassBody(
+                            classBody = classBody,
+                            metadataResolver = { metadataClassName ->
+                                val packageDepth = metadataClassName.count { it == '.' }
+                                val metadataClassPath = metadataClassName
+                                    .splitToSequence('.')
+                                    .mapIndexed { index, component ->
+                                        if (index < packageDepth) {
+                                            component
+                                        } else {
+                                            "$component$CLASS_EXTENSION"
+                                        }
+                                    }
+                                    .toList()
+                                getFileReader(metadataClassPath)?.let { reader ->
+                                    reader().use {
                                         getDebugMetadataInfoFromClassBody(it)
                                     }
-                                },
-                                skipSpecMethods = skipSpecMethods
-                            )
-                        }
-                        readProviderModule = readProviderModule || transformationStatus.needReadProviderModule
-                        newBody = transformationStatus.updatedBody
+                                }
+                            },
+                            skipSpecMethods = skipSpecMethods
+                        )
                     }
-                    val modified = newBody != null
-                    (if (modified) ByteArrayInputStream(newBody) else input.getInputStream(entry)).use { body ->
-                        putFileBody(modified, body)
+                    readProviderModule = readProviderModule || transformationStatus.needReadProviderModule
+                    newBody = transformationStatus.updatedBody
+                }
+                (newBody?.inputStream() ?: reader()).use { input ->
+                    if (!onFile(newBody != null, path, input)) {
+                        stop = true
+                        return false
                     }
                 }
-                closeEntry()
             }
+            return true
         }
 
-        input.entries().asSequence().forEach { entry: ZipEntry ->
-            if (!entry.isDirectory && entry.name.isModuleInfo) {
-                if (!names.add(entry.name)) {
-                    log.warn { "Duplicate module-info entry '${entry.name}' in file '$zip'. Ignoring it" }
-                    return@forEach
-                }
-                putNextEntry(ZipEntry(entry.name).apply {
-                    entry.lastModifiedTime?.let { lastModifiedTime = it }
-                    entry.lastAccessTime?.let { lastAccessTime = it }
-                    entry.creationTime?.let { creationTime = it }
-                    method = ZipEntry.DEFLATED
-                    comment = entry.comment
-                })
+        override fun onDirectory(path: ArtifactPath): Boolean {
+            onDirectory(path)
+            return true
+        }
+    })
+    if (stop) return
+
+    if (containsBaseContinuation) {
+        assert(readProviderModule)
+    }
+
+    walk(object: ArtifactWalker {
+        override fun onFile(path: ArtifactPath, reader: () -> InputStream): Boolean {
+            if (path.isModuleInfo) {
                 var newBody: ByteArray? = null
                 if (readProviderModule) {
-                    newBody = input.getInputStream(entry).use { moduleInfoBody ->
-                        addReadProviderModuleToModuleInfo(moduleInfoBody)
+                    newBody = reader().use { moduleInfoBody ->
+                        val node = tryReadModuleInfo(moduleInfoBody) ?: return@use null
+                        node.module.addRequiresModule(PROVIDER_MODULE_NAME)
+                        if (containsBaseContinuation) {
+                            val provides: MutableList<ModuleProvideNode> = node.module.provides ?: run {
+                                val provides = mutableListOf<ModuleProvideNode>()
+                                node.module.provides = provides
+                                provides
+                            }
+                            provides.add(ModuleProvideNode(
+                                Type.getInternalName(DecoroutinatorBaseContinuationAccessorProvider::class.java),
+                                listOf(BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME.className2InternalName)
+                            ))
+                        }
+                        node.classBody
                     }
                 }
-                val modified = newBody != null
-                (if (modified) newBody!!.inputStream() else input.getInputStream(entry)).use { body ->
-                    putFileBody(modified, body)
+                (newBody?.inputStream() ?: reader()).use { input ->
+                    if (!onFile(newBody != null, path, input)) {
+                        stop = true
+                        return false
+                    }
                 }
-                closeEntry()
+            }
+            return true
+        }
+
+        override fun onDirectory(path: ArtifactPath): Boolean = true
+    })
+    if (stop) return
+
+    if (containsBaseContinuation) {
+        Base64.getDecoder().decode(baseContinuationAccessorImplBodyBase64).inputStream().use { input ->
+            if (!onFile(true, BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME.className2ArtifactPath, input)) {
+                return
+            }
+        }
+        val metaInfDirPath = listOf("META-INF")
+        if (!containsDirectory(metaInfDirPath)) {
+            onDirectory(metaInfDirPath)
+        }
+        val servicesDirPath = metaInfDirPath + "services"
+        if (!containsDirectory(servicesDirPath)) {
+            onDirectory(servicesDirPath)
+        }
+        BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME.toByteArray().inputStream().use { input ->
+            if (!onFile(true, servicesDirPath + DecoroutinatorBaseContinuationAccessorProvider::class.jvmName, input)) {
+                return
             }
         }
     }
 }
 
-internal inline fun transformClassesDir(
-    root: File,
-    skipSpecMethods: Boolean,
-    onDirectory: (relativePath: File) -> Unit,
-    onFile: (relativePath: File, content: InputStream, modified: Boolean) -> Unit
-) {
-    var readProviderModule = false
+private val ArtifactPath.isModuleInfo: Boolean
+    get() = last() == MODULE_INFO_CLASS_NAME
 
-    root.walk().forEach { file ->
-        val relativePath = file.relativeTo(root)
-        if (file.isFile && file.isClass) {
-            val transformationStatus = file.inputStream().use { classBody ->
-                transformClassBody(
-                    classBody = classBody,
-                    metadataResolver = { metadataClassName ->
-                        val metadataClassRelativePath = metadataClassName.replace('.', File.separatorChar) + CLASS_EXTENSION
-                        val classPath = root.resolve(metadataClassRelativePath)
-                        if (classPath.isFile) {
-                            classPath.inputStream().use {
-                                getDebugMetadataInfoFromClassBody(it)
-                            }
-                        } else {
-                            null
-                        }
-                    },
-                    skipSpecMethods = skipSpecMethods
-                )
-            }
-            readProviderModule = readProviderModule || transformationStatus.needReadProviderModule
-            transformationStatus.updatedBody?.let {
-                onFile(relativePath, it.inputStream(), true)
-                return@forEach
-            }
-        }
-        if (file.isDirectory) {
-            onDirectory(relativePath)
-            return@forEach
-        }
-        if (!file.isModuleInfo) {
-            file.inputStream().use { input ->
-                onFile(relativePath, input, false)
-            }
-        }
-    }
+private val ArtifactPath.isClass: Boolean
+    get() = last().endsWith(CLASS_EXTENSION) && !isModuleInfo
 
-    visitModuleInfoFiles(root) { path, relativePath ->
-        var newBody: ByteArray? = null
-        if (readProviderModule) {
-            newBody = path.inputStream().use { addReadProviderModuleToModuleInfo(it) }
-        }
-        val modified = newBody != null
-        onFile(relativePath, if (modified) newBody!!.inputStream() else path.inputStream(), modified)
-    }
-}
-
-internal inline fun visitModuleInfoFiles(root: File, onModuleInfoFile: (path: File, relativePath: File) -> Unit) {
-    root.walk().forEach { file ->
-        if (file.isFile && file.isModuleInfo) {
-            val relativePath = file.relativeTo(root)
-            onModuleInfoFile(file, relativePath)
-        }
-    }
-}
-
-private val String.isModuleInfo: Boolean
-    get() = substringAfterLast('/') == MODULE_INFO_CLASS_NAME
-
-private val String.isClass: Boolean
-    get() = endsWith(CLASS_EXTENSION) && !isModuleInfo
-
-private val File.isModuleInfo: Boolean
-    get() = name == MODULE_INFO_CLASS_NAME
-
-private val File.isClass: Boolean
-    get() = name.endsWith(CLASS_EXTENSION) && !isModuleInfo
+private val baseContinuationAccessorImplBodyBase64: String
+    @LoadConstant get() { fail() }

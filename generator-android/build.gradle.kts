@@ -103,6 +103,7 @@ dependencies {
     androidTestRuntimeOnly(project(":test-utils"))
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
     androidTestRuntimeOnly(libs.androidx.test.runner)
+    androidTestRuntimeOnly(project(":test-utils:base-continuation-accessor-reflect-stub"))
 }
 
 bytecodeProcessor {

@@ -224,7 +224,7 @@ internal fun ModuleNode.addRequiresModule(moduleName: String) {
         requires = mutableListOf()
     }
     if (requires.any { it.module == moduleName }) {
-        log.warn { "Module '$moduleName' is already required by module '$name'" }
+        log.debug { "Module '$moduleName' is already required by module '$name'" }
         return
     }
     requires.add(ModuleRequireNode(moduleName, Opcodes.ACC_SYNTHETIC, null))

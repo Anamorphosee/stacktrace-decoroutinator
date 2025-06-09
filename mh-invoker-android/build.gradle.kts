@@ -102,6 +102,7 @@ dependencies {
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-generator-android"))
     androidTestRuntimeOnly(project(":test-utils"))
     androidTestRuntimeOnly(libs.androidx.test.runner)
+    androidTestRuntimeOnly(project(":test-utils:base-continuation-accessor-reflect-stub"))
 }
 
 bytecodeProcessor {

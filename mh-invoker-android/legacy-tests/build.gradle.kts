@@ -95,6 +95,7 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)
     androidTestImplementation(libs.junit5.api)
     androidTestRuntimeOnly(libs.androidx.test.runner)
+    androidTestRuntimeOnly(project(":test-utils:base-continuation-accessor-reflect-stub"))
 }
 
 afterEvaluate {

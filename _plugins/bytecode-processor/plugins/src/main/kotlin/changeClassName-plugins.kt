@@ -243,10 +243,15 @@ private const val FROM_INTERNAL_NAME = "fromInternalName"
 
 private fun deleteAfterModification(module: ProcessingDirectory): Boolean {
     var modified = false
-    module.classes.forEach {
-        val changeClassName = it.node.invisibleAnnotations.find(ChangeClassName::class.java)
-        if (changeClassName != null && changeClassName.getParameter(ChangeClassName::deleteAfterChanging.name) as Boolean? == true) {
-            it.delete()
+    module.classes.forEach { clazz ->
+        val changeClassName = clazz.node.invisibleAnnotations.find(ChangeClassName::class.java)
+        if (changeClassName != null) {
+            if (changeClassName.getParameter(ChangeClassName::deleteAfterChanging.name) as Boolean? == true) {
+                clazz.delete()
+            } else {
+                clazz.node.invisibleAnnotations.remove(changeClassName)
+                clazz.markModified()
+            }
             modified = true
         }
     }

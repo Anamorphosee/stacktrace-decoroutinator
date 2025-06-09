@@ -6,6 +6,7 @@ import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.FieldInsnNode
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.MethodInsnNode
 import kotlin.jvm.internal.Intrinsics
@@ -51,6 +52,17 @@ class RemoveKotlinStdlibProcessor(
                             && instruction.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
                         ) {
                             method.instructions.insert(instruction, InsnNode(Opcodes.POP))
+                            method.instructions.remove(instruction)
+                            clazz.markModified()
+                        }
+                    } else if (instruction is FieldInsnNode) {
+                        if (
+                            instruction.opcode == Opcodes.GETSTATIC
+                            && instruction.owner == "kotlin/_Assertions"
+                            && instruction.name == "ENABLED"
+                            && instruction.desc == Type.BOOLEAN_TYPE.descriptor
+                        ) {
+                            method.instructions.insert(instruction, InsnNode(Opcodes.ICONST_1))
                             method.instructions.remove(instruction)
                             clazz.markModified()
                         }

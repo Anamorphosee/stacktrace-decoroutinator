@@ -6,10 +6,8 @@ import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
-import org.objectweb.asm.tree.InsnList
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.MethodInsnNode
-import java.util.*
 import kotlin.jvm.internal.Intrinsics
 import kotlin.reflect.KFunction
 
@@ -34,10 +32,8 @@ class RemoveKotlinStdlibProcessor(
                             && instruction.name in intrinsicCheckNotNullWithMessageMethodNames
                             && instruction.desc == "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(String::class.java)})V"
                         ) {
-                            instruction.owner = Type.getInternalName(Objects::class.java)
-                            instruction.name = run { val x: (Any, String) -> Any = Objects::requireNonNull; x as KFunction<*> }.name
-                            instruction.desc = "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(String::class.java)})${Type.getDescriptor(Object::class.java)}"
-                            method.instructions.insert(instruction, InsnNode(Opcodes.POP))
+                            method.instructions.insert(instruction, InsnNode(Opcodes.POP2))
+                            method.instructions.remove(instruction)
                             clazz.markModified()
                         } else if (
                             instruction.opcode == Opcodes.INVOKESTATIC
@@ -45,14 +41,8 @@ class RemoveKotlinStdlibProcessor(
                             && instruction.name in intrinsicThrowWithMessageMethodNames
                             && instruction.desc == "(${Type.getDescriptor(String::class.java)})V"
                         ) {
-                            method.instructions.insertBefore(instruction, InsnList().apply {
-                                add(InsnNode(Opcodes.ACONST_NULL))
-                                add(InsnNode(Opcodes.SWAP))
-                            })
-                            instruction.owner = Type.getInternalName(Objects::class.java)
-                            instruction.name = run { val x: (Any, String) -> Any = Objects::requireNonNull; x as KFunction<*> }.name
-                            instruction.desc = "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(String::class.java)})${Type.getDescriptor(Object::class.java)}"
                             method.instructions.insert(instruction, InsnNode(Opcodes.POP))
+                            method.instructions.remove(instruction)
                             clazz.markModified()
                         } else if (
                             instruction.opcode == Opcodes.INVOKESTATIC
@@ -60,10 +50,8 @@ class RemoveKotlinStdlibProcessor(
                             && instruction.name == run { val x: (Any) -> Unit = Intrinsics::checkNotNull; x as KFunction<*> }.name
                             && instruction.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
                         ) {
-                            instruction.owner = Type.getInternalName(Objects::class.java)
-                            instruction.name = run { val x: (Any) -> Any = Objects::requireNonNull; x as KFunction<*> }.name
-                            instruction.desc = "(${Type.getDescriptor(Object::class.java)})${Type.getDescriptor(Object::class.java)}"
                             method.instructions.insert(instruction, InsnNode(Opcodes.POP))
+                            method.instructions.remove(instruction)
                             clazz.markModified()
                         }
                     }

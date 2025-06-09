@@ -8,6 +8,8 @@ import dev.reformator.stacktracedecoroutinator.common.internal.ENABLED_PROPERTY
 import dev.reformator.stacktracedecoroutinator.common.internal.awakenerFileClass
 import dev.reformator.stacktracedecoroutinator.common.internal.enabled
 import dev.reformator.stacktracedecoroutinator.commonother.SelfCalledSuspendLambda
+import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -40,7 +42,7 @@ object DecoroutinatorCommonApi {
             )
         }
 
-        val contunuation = object: Continuation<DecoroutinatorStatus> {
+        val contunuation = @DecoroutinatorApi object: Continuation<DecoroutinatorStatus> {
             var continuation: Continuation<Unit>? = null
             var wasSuspended = false
             var status: DecoroutinatorStatus? = null
@@ -88,7 +90,7 @@ object DecoroutinatorCommonApi {
                     - resumeWith()
                 */
                 val baseContinuationResumeIndex = trace.indexOfFirst {
-                    it.className == BASE_CONTINUATION_CLASS_NAME && it.methodName == "resumeWith"
+                    it.className == BASE_CONTINUATION_CLASS_NAME && it.methodName == BaseContinuation::resumeWith.name
                 }
                 if (baseContinuationResumeIndex == -1) {
                     return DecoroutinatorStatus(
@@ -153,7 +155,7 @@ object DecoroutinatorCommonApi {
             }
 
             fun callGetStatus() {
-                javaClass.getDeclaredMethod("getStatus", Continuation::class.java).invoke(this, this)
+                javaClass.getDeclaredMethod(::getStatus.name, Continuation::class.java).invoke(this, this)
             }
         }
 

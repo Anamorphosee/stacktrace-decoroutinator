@@ -9,7 +9,6 @@ module dev.reformator.stacktracedecoroutinator.mhinvoker {
 
     requires dev.reformator.stacktracedecoroutinator.provider;
     requires dev.reformator.stacktracedecoroutinator.common;
-    requires kotlin.stdlib;
 
     provides MethodHandleInvoker with RegularMethodHandleInvoker;
     provides VarHandleInvoker with RegularVarHandleInvoker;

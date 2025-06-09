@@ -82,23 +82,6 @@ fun transformClassBody(
     )
 }
 
-fun addReadProviderModuleToModuleInfo(moduleInfoBody: InputStream): ByteArray? {
-    val node = getClassNode(moduleInfoBody, true) ?: return null
-    val module = node.module ?: return null
-    val requires: MutableList<ModuleRequireNode> = module.requires ?: run {
-        val newRequires = mutableListOf<ModuleRequireNode>()
-        module.requires = newRequires
-        newRequires
-    }
-    if (requires.any { it.module == PROVIDER_MODULE_NAME }) return null
-    requires.add(ModuleRequireNode(
-        PROVIDER_MODULE_NAME,
-        Opcodes.ACC_SYNTHETIC,
-        null
-    ))
-    return node.classBody
-}
-
 private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMethods: Boolean) {
     val resumeWithMethod = baseContinuation.methods?.find {
         it.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}" && !it.isStatic

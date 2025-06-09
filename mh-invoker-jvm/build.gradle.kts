@@ -1,7 +1,6 @@
 import dev.reformator.bytecodeprocessor.impl.applyBytecodeProcessors
 import dev.reformator.bytecodeprocessor.plugins.*
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.gradle.kotlin.dsl.named

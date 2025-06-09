@@ -3,7 +3,7 @@
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
-import dev.reformator.stacktracedecoroutinator.generator.internal.addReadProviderModuleToModuleInfo
+import dev.reformator.stacktracedecoroutinator.generator.internal.PROVIDER_MODULE_NAME
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.Action
 import org.gradle.api.Plugin
@@ -581,10 +581,11 @@ class DecoroutinatorPlugin: Plugin<Project> {
                                 log.debug { "setting 'addReadProviderModule' action for task [${task.name}]" }
                                 task.doLast { _ ->
                                     visitModuleInfoFiles(task.destinationDirectory.get().asFile) { path, _ ->
-                                        val newModuleInfo =
-                                            path.inputStream().use { addReadProviderModuleToModuleInfo(it) }
-                                        if (newModuleInfo != null) {
-                                            path.outputStream().use { it.write(newModuleInfo) }
+                                        val moduleNode = path.inputStream().use { tryReadModuleInfo(it) }
+                                        if (moduleNode != null) {
+                                            log.debug { "adding read provider module for file [${path.absolutePath}]" }
+                                            moduleNode.module.addRequiresModule(PROVIDER_MODULE_NAME)
+                                            path.outputStream().use { it.write(moduleNode.classBody) }
                                         }
                                     }
                                 }

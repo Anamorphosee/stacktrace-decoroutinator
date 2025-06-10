@@ -158,6 +158,16 @@ afterEvaluate {
                 }
             }
         }
+        repositories {
+            maven {
+                name = "snapshot"
+                url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+                credentials {
+                    username = properties["sonatype.username"] as String?
+                    password = properties["sonatype.password"] as String?
+                }
+            }
+        }
     }
 
     signing {

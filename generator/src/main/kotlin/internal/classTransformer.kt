@@ -139,16 +139,20 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
     })
 
-    val annotations = baseContinuation.visibleAnnotations ?: (mutableListOf<AnnotationNode>().also {
+    val visibleAnnotations: MutableList<AnnotationNode> = baseContinuation.visibleAnnotations ?: (mutableListOf<AnnotationNode>().also {
         baseContinuation.visibleAnnotations = it
     })
-    annotations.add(ClassTransformationInfo(
+    visibleAnnotations.add(ClassTransformationInfo(
         lineNumbersByMethod = emptyMap(),
         baseContinuationInternalClassNames = emptySet()
     ).getTransformedAnnotation(baseContinuation, skipSpecMethods))
-    annotations.add(AnnotationNode(
+
+    val invisibleAnnotations: MutableList<AnnotationNode> = baseContinuation.invisibleAnnotations ?: (mutableListOf<AnnotationNode>().also {
+        baseContinuation.invisibleAnnotations = it
+    })
+    invisibleAnnotations.add(AnnotationNode(
         Opcodes.ASM9,
-        Type.getDescriptor(DecoroutinatorApi::class.java)
+        Type.getDescriptor(DecoroutinatorAndroidKeep::class.java)
     ))
 }
 

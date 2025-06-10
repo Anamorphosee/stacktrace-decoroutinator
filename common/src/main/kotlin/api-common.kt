@@ -9,7 +9,7 @@ import dev.reformator.stacktracedecoroutinator.common.internal.awakenerFileClass
 import dev.reformator.stacktracedecoroutinator.common.internal.enabled
 import dev.reformator.stacktracedecoroutinator.commonother.SelfCalledSuspendLambda
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -42,7 +42,7 @@ object DecoroutinatorCommonApi {
             )
         }
 
-        val contunuation = @DecoroutinatorApi object: Continuation<DecoroutinatorStatus> {
+        val contunuation = @DecoroutinatorAndroidKeep object: Continuation<DecoroutinatorStatus> {
             var continuation: Continuation<Unit>? = null
             var wasSuspended = false
             var status: DecoroutinatorStatus? = null
@@ -90,7 +90,7 @@ object DecoroutinatorCommonApi {
                     - resumeWith()
                 */
                 val baseContinuationResumeIndex = trace.indexOfFirst {
-                    it.className == BASE_CONTINUATION_CLASS_NAME && it.methodName == BaseContinuation::resumeWith.name
+                    it.className == BaseContinuation::class.java.name && it.methodName == BaseContinuation::resumeWith.name
                 }
                 if (baseContinuationResumeIndex == -1) {
                     return DecoroutinatorStatus(
@@ -104,13 +104,15 @@ object DecoroutinatorCommonApi {
                         description = "Something wrong. [$BASE_CONTINUATION_CLASS_NAME.resumeWith()] method is on the top"
                     )
                 }
-                if (trace[0].methodName != "suspendResumeAndGetStacktrace") {
+                if (trace[0].methodName != ::suspendResumeAndGetStacktrace.name) {
                     return DecoroutinatorStatus(
                         successful = false,
                         description = "Something wrong. The top call is [${trace[0].methodName}]"
                     )
                 }
-                val awakenerIndex = trace.indexOfFirst { it.className == awakenerFileClass.name }
+                val awakenerIndex = trace.indexOfFirst {
+                    it.className == awakenerFileClass.name && it.methodName == BaseContinuation::awake.name
+                }
                 if (awakenerIndex == -1 || awakenerIndex >= baseContinuationResumeIndex) {
                     return DecoroutinatorStatus(
                         successful = false,

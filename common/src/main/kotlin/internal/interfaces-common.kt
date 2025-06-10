@@ -3,7 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorLegacyAndroidKeep
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.io.InputStream
@@ -23,7 +23,7 @@ fun interface SpecMethodsRegistry {
     ): Map<StacktraceElement, SpecMethodsFactory>
 }
 
-@DecoroutinatorApi
+@DecoroutinatorLegacyAndroidKeep
 data class SpecAndItsMethodHandle(
     val specMethodHandle: MethodHandle,
     val spec: DecoroutinatorSpec
@@ -64,7 +64,7 @@ interface AnnotationMetadataResolver {
     fun getKotlinDebugMetadata(classBody: InputStream): KotlinDebugMetadata?
 }
 
-@DecoroutinatorApi
+@DecoroutinatorLegacyAndroidKeep
 interface MethodHandleInvoker {
     val unknownSpecMethodHandle: MethodHandle
     fun callSpecMethod(handle: MethodHandle, spec: DecoroutinatorSpec, result: Any?): Any?
@@ -72,7 +72,7 @@ interface MethodHandleInvoker {
     val supportsVarHandle: Boolean
 }
 
-@DecoroutinatorApi
+@DecoroutinatorLegacyAndroidKeep
 interface VarHandleInvoker {
     fun getIntVar(handle: VarHandle, owner: BaseContinuation): Int
 }

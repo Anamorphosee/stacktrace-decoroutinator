@@ -615,6 +615,27 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             project.afterEvaluate(setTransformedAttributeAction)
                         }
                     }
+
+                    if (isAndroid) {
+                        val extractProguardFilesTaskName = "extractProguardFiles"
+                        val extractProguardFilesTask = tasks.findByName(extractProguardFilesTaskName)
+                        if (extractProguardFilesTask == null) {
+                            log.error { "Task [extractProguardFiles] was not found" }
+                        } else {
+                            extractProguardFilesTask.doLast { _ ->
+                                val dir = decoroutinatorDir
+                                dir.mkdirs()
+                                dir.resolve(ANDROID_PROGUARD_RULES_FILE_NAME).writeText(ANDROID_PROGUARD_RULES)
+                                dir.resolve(ANDROID_LEGACY_PROGUARD_RULES_FILE_NAME).writeText(ANDROID_LEGACY_PROGUARD_RULES)
+                                val androidCurrentProguardRules = if (pluginExtension.legacyAndroidCompatibility) {
+                                    ANDROID_LEGACY_PROGUARD_RULES
+                                } else {
+                                    ANDROID_PROGUARD_RULES
+                                }
+                                dir.resolve(ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME).writeText(androidCurrentProguardRules)
+                            }
+                        }
+                    }
                 } else {
                     log.debug { "Decoroutinator plugin is disabled" }
                 }
@@ -634,3 +655,37 @@ private inline fun visitModuleInfoFiles(root: File, onModuleInfoFile: (path: Fil
 
 private val File.isModuleInfo: Boolean
     get() = name == MODULE_INFO_CLASS_NAME
+
+internal val Project.decoroutinatorDir: File
+    get() = layout.buildDirectory.dir("decoroutinator").get().asFile
+
+private const val ANDROID_PROGUARD_RULES_FILE_NAME = "android.pro"
+private const val ANDROID_LEGACY_PROGUARD_RULES_FILE_NAME = "android-legacy.pro"
+internal const val ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME = "android-current.pro"
+
+private val ANDROID_PROGUARD_RULES = """
+    # Decoroutinator ProGuard rules
+    -keep @kotlin.coroutines.jvm.internal.DebugMetadata class * { int label; }
+    -keep @kotlin.coroutines.jvm.internal.DebugMetadata interface * { int label; }
+    -keep @kotlin.coroutines.jvm.internal.DebugMetadata enum * { int label; }
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed class * {
+        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
+    }
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed interface * {
+        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
+    }
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed enum * {
+        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
+    }
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep class * { *; }
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep interface * { *; }
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep enum * { *; }
+    
+""".trimIndent()
+
+private val ANDROID_LEGACY_PROGUARD_RULES = ANDROID_PROGUARD_RULES + """
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorLegacyAndroidKeep class * { *; }
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorLegacyAndroidKeep interface * { *; }
+    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorLegacyAndroidKeep enum * { *; }
+    
+""".trimIndent()

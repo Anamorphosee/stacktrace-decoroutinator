@@ -1,11 +1,11 @@
 @file:Suppress("PackageDirectoryMismatch")
-@file:DecoroutinatorApi
+@file:DecoroutinatorAndroidKeep
 
 package dev.reformator.stacktracedecoroutinator.mhinvoker.internal
 
 import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 
 internal val unknownSpecClass: Class<*>

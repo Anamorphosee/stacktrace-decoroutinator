@@ -5,7 +5,9 @@ package org.gradle.kotlin.dsl
 
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.gradleplugin.ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME
 import dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPluginExtension
+import dev.reformator.stacktracedecoroutinator.gradleplugin.decoroutinatorDir
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import java.io.File
@@ -43,36 +45,8 @@ fun DependencyHandler.decoroutinatorRuntimeSettings(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-runtime-settings:$projectVersionIntrinsic"
 
 @Suppress("unused")
-val Project.decoroutinatorProGuardRules: File
-    get() {
-        val result = layout.buildDirectory.dir("decoroutinator").get().file("rules.pro").asFile
-        if (result.isFile) {
-            return result
-        }
-        result.parentFile.mkdirs()
-        result.writeText(PROGUARD_RULES)
-        return result
-    }
+val Project.decoroutinatorAndroidProGuardRules: File
+    get() = decoroutinatorDir.resolve(ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME)
 
 private val projectVersionIntrinsic: String
     @LoadConstant get() { fail() }
-
-private val PROGUARD_RULES = """
-    # Decoroutinator ProGuard rules
-    -keep @kotlin.coroutines.jvm.internal.DebugMetadata class * { int label; }
-    -keep @kotlin.coroutines.jvm.internal.DebugMetadata interface * { int label; }
-    -keep @kotlin.coroutines.jvm.internal.DebugMetadata enum * { int label; }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed class * {
-        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
-    }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed interface * {
-        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
-    }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed enum * {
-        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
-    }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi class * { *; }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi interface * { *; }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi enum * { *; }
-    
-""".trimIndent()

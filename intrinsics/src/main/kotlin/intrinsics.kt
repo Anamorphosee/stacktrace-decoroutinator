@@ -12,9 +12,7 @@ abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
     val completion: Continuation<Any?>?
         get() { fail() }
 
-    final override fun resumeWith(result: Result<Any?>) {
-        fail()
-    }
+    final override fun resumeWith(result: Result<Any?>) { fail() }
 
     init { fail() }
 

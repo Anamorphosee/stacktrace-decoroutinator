@@ -1,20 +1,16 @@
-@file:Suppress("NewApi", "PackageDirectoryMismatch")
-@file:DecoroutinatorApi
+@file:Suppress("PackageDirectoryMismatch")
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.ContinuationImpl
 import dev.reformator.stacktracedecoroutinator.common.intrinsics._Assertions
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorApi
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
-import java.lang.invoke.MethodType
-import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
 import java.util.concurrent.locks.Lock
 import kotlin.concurrent.withLock
@@ -24,12 +20,6 @@ import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 
 const val UNKNOWN_LINE_NUMBER = 0
-
-val specMethodType = MethodType.methodType(
-    Object::class.java,
-    DecoroutinatorSpec::class.java,
-    Object::class.java
-)
 
 class DecoroutinatorSpecImpl(
     private val accessor: DecoroutinatorBaseContinuationAccessor,
@@ -60,7 +50,7 @@ inline fun assert(check: () -> Boolean) {
 }
 
 val Class<*>.isTransformed: Boolean
-    get() = getDeclaredAnnotation(DecoroutinatorTransformed::class.java) != null
+    get() = @Suppress("NewApi") getDeclaredAnnotation(DecoroutinatorTransformed::class.java) != null
 
 fun parseTransformationMetadata(
     fileNamePresent: Boolean?,
@@ -89,9 +79,9 @@ fun parseTransformationMetadata(
     )
 }
 
-private fun <T: Any> loadServices(type: Class<T>): Pair<List<T>, List<ServiceConfigurationError>> {
+private fun <T: Any> loadServices(type: Class<T>): Pair<List<T>, List<Throwable>> {
     val services = mutableListOf<T>()
-    val errors = mutableListOf<ServiceConfigurationError>()
+    val errors = mutableListOf<Throwable>()
     val iter = ServiceLoader.load(type).iterator()
     while (true) {
         try {
@@ -99,7 +89,7 @@ private fun <T: Any> loadServices(type: Class<T>): Pair<List<T>, List<ServiceCon
                 break
             }
             services.add(iter.next())
-        } catch (e: ServiceConfigurationError) {
+        } catch (e: Throwable) {
             errors.add(e)
         }
     }

@@ -1,6 +1,6 @@
 @file:Suppress("PackageDirectoryMismatch")
 @file:JvmName("DecoroutinatorProviderApiKt")
-@file:DecoroutinatorApi
+@file:DecoroutinatorLegacyAndroidKeep
 
 package dev.reformator.stacktracedecoroutinator.provider
 
@@ -10,7 +10,7 @@ import dev.reformator.stacktracedecoroutinator.provider.internal.provider
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 
-@DecoroutinatorApi
+@DecoroutinatorLegacyAndroidKeep
 interface DecoroutinatorSpec {
     val lineNumber: Int
     val isLastSpec: Boolean
@@ -71,7 +71,7 @@ fun getBaseContinuation(
 val providerApiClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() { fail() }
 
-@DecoroutinatorApi
+@DecoroutinatorLegacyAndroidKeep
 interface DecoroutinatorBaseContinuationAccessor {
     fun invokeSuspend(baseContinuation: Any, result: Any?): Any?
     fun releaseIntercepted(baseContinuation: Any)
@@ -83,5 +83,9 @@ fun interface DecoroutinatorBaseContinuationAccessorProvider {
 
 
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
-@Retention
-annotation class DecoroutinatorApi
+@Retention(AnnotationRetention.BINARY)
+annotation class DecoroutinatorLegacyAndroidKeep
+
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
+@Retention(AnnotationRetention.BINARY)
+annotation class DecoroutinatorAndroidKeep

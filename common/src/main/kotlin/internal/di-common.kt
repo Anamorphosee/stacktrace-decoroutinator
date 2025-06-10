@@ -1,14 +1,12 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider
 import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType
 
-internal val supportsMethodHandle =
-    try {
-        supportsMethodHandle()
-        true
-    } catch (_: Throwable) { false }
+internal val supportsMethodHandle = supportsMethodHandle()
 
 val settingsProvider =
     if (supportsMethodHandle) loadRuntimeSettingsProvider() else null
@@ -84,13 +82,26 @@ internal val specMethodsRegistry: SpecMethodsRegistry
 internal val varHandleInvoker: VarHandleInvoker
     get() = _varHandleInvoker!!
 
-@Suppress("NewApi")
 private fun supportsMethodHandle(): Boolean {
     return try {
-        val lookup = MethodHandles.lookup()
-        assert { lookup != null }
+        _supportsMethodHandle().verify()
         true
     } catch (_: Throwable) {
         false
+    }
+}
+
+@Suppress("ClassName")
+@DecoroutinatorAndroidKeep
+internal class _supportsMethodHandle {
+    @Suppress("NewApi")
+    fun verify() {
+        val lookup = MethodHandles.lookup()
+        val handle = lookup.findVirtual(
+            _supportsMethodHandle::class.java,
+            ::verify.name,
+            MethodType.methodType(Void.TYPE)
+        )
+        assert { handle != null }
     }
 }

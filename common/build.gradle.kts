@@ -21,9 +21,10 @@ dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     compileOnly(project(":intrinsics"))
 
+    api(project(":stacktrace-decoroutinator-runtime-settings"))
 
     implementation(project(":stacktrace-decoroutinator-provider"))
-    implementation(project(":stacktrace-decoroutinator-runtime-settings"))
+
     testImplementation(kotlin("test"))
 }
 

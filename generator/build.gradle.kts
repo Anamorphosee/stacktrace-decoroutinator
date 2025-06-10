@@ -82,8 +82,10 @@ dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     compileOnly(project(":intrinsics"))
 
+    api(project(":stacktrace-decoroutinator-common"))
+
     implementation(project(":stacktrace-decoroutinator-provider"))
-    implementation(project(":stacktrace-decoroutinator-common"))
+
     implementation(libs.asm.utils)
 
     testImplementation(kotlin("test"))

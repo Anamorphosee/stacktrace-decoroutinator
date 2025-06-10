@@ -15,6 +15,7 @@ dependencies {
     testImplementation(project(":test-utils-jvm"))
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.jdk8.build)
+    testImplementation(project(":stacktrace-decoroutinator-jvm-agent", configuration = "shadow"))
 }
 
 tasks.test {

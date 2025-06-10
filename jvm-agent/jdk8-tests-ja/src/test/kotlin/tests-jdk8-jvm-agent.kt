@@ -1,6 +1,8 @@
+import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import kotlin.test.Test
+import kotlin.test.assertTrue
 
 class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
 
@@ -39,5 +41,10 @@ class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
     @Test
     fun performClassWithSpaces() {
         `class with spaces`(false)
+    }
+
+    @Test
+    fun checkStatus() {
+        assertTrue(DecoroutinatorCommonApi.getStatus { it() }.successful)
     }
 }

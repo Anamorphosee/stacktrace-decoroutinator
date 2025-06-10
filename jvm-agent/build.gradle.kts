@@ -1,5 +1,4 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import dev.reformator.bytecodeprocessor.plugins.RemoveKotlinStdlibProcessor
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -10,7 +9,6 @@ plugins {
     alias(libs.plugins.shadow)
     `maven-publish`
     signing
-    id("dev.reformator.bytecodeprocessor")
     id("dev.reformator.forcevariantjavaversion")
 }
 
@@ -28,10 +26,6 @@ dependencies {
     testImplementation(project(":test-utils"))
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.jdk8.build)
-}
-
-bytecodeProcessor {
-    processors = setOf(RemoveKotlinStdlibProcessor())
 }
 
 tasks.named<ShadowJar>("shadowJar") {

@@ -32,6 +32,13 @@ object DecoroutinatorJvmApi {
     }
 
     @Suppress("unused")
+    @Deprecated(
+        message = "please use the common API",
+        replaceWith = ReplaceWith(
+            expression = "DecoroutinatorCommonApi.getStatus { it() }",
+            imports = ["dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi"]
+        )
+    )
     fun getStatus(
         sourceCall: suspend (callThisAndReturnItsResult: suspend () -> Any?) -> Any? = { it() },
         allowTailCallOptimization: Boolean = false,

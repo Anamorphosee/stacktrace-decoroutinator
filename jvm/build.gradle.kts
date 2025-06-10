@@ -17,7 +17,8 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":stacktrace-decoroutinator-common"))
+    api(project(":stacktrace-decoroutinator-common"))
+
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
     implementation(libs.byte.buddy.agent)
 

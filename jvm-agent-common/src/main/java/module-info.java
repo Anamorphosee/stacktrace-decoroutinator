@@ -1,5 +1,5 @@
 import dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal.AgentBaseContinuationAccessorProvider;
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider;
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider;
 
 module dev.reformator.stacktracedecoroutinator.jvmagentcommon {
     requires static intrinsics;
@@ -14,8 +14,7 @@ module dev.reformator.stacktracedecoroutinator.jvmagentcommon {
     requires org.objectweb.asm;
 
     exports dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal to
-            dev.reformator.stacktracedecoroutinator.jvmagent,
             dev.reformator.stacktracedecoroutinator.jvm;
 
-    provides DecoroutinatorBaseContinuationAccessorProvider with AgentBaseContinuationAccessorProvider;
+    provides BaseContinuationAccessorProvider with AgentBaseContinuationAccessorProvider;
 }

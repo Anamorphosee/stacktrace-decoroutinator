@@ -1,16 +1,17 @@
 @file:Suppress("PackageDirectoryMismatch")
 @file:JvmName("DecoroutinatorProviderApiKt")
-@file:DecoroutinatorLegacyAndroidKeep
 
 package dev.reformator.stacktracedecoroutinator.provider
 
 import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import dev.reformator.stacktracedecoroutinator.provider.internal.provider
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 
-@DecoroutinatorLegacyAndroidKeep
+@AndroidLegacyKeep
 interface DecoroutinatorSpec {
     val lineNumber: Int
     val isLastSpec: Boolean
@@ -35,13 +36,13 @@ annotation class DecoroutinatorTransformed(
 val isDecoroutinatorEnabled: Boolean
     get() = provider.isDecoroutinatorEnabled
 
-val baseContinuationAccessor: DecoroutinatorBaseContinuationAccessor?
+val baseContinuationAccessor: BaseContinuationAccessor?
     get() = provider.baseContinuationAccessor
 
-fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): DecoroutinatorBaseContinuationAccessor =
+fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor =
     provider.prepareBaseContinuationAccessor(lookup)
 
-fun awakeBaseContinuation(accessor: DecoroutinatorBaseContinuationAccessor, baseContinuation: Any, result: Any?) {
+fun awakeBaseContinuation(accessor: BaseContinuationAccessor, baseContinuation: Any, result: Any?) {
     provider.awakeBaseContinuation(
         accessor = accessor,
         baseContinuation = baseContinuation,
@@ -70,22 +71,3 @@ fun getBaseContinuation(
 
 val providerApiClass: Class<*>
     @GetOwnerClass(deleteAfterModification = true) get() { fail() }
-
-@DecoroutinatorLegacyAndroidKeep
-interface DecoroutinatorBaseContinuationAccessor {
-    fun invokeSuspend(baseContinuation: Any, result: Any?): Any?
-    fun releaseIntercepted(baseContinuation: Any)
-}
-
-fun interface DecoroutinatorBaseContinuationAccessorProvider {
-    fun createAccessor(lookup: MethodHandles.Lookup): DecoroutinatorBaseContinuationAccessor
-}
-
-
-@Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
-@Retention(AnnotationRetention.BINARY)
-annotation class DecoroutinatorLegacyAndroidKeep
-
-@Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
-@Retention(AnnotationRetention.BINARY)
-annotation class DecoroutinatorAndroidKeep

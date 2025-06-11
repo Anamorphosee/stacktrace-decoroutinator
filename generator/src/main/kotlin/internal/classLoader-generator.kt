@@ -51,7 +51,7 @@ private fun getClassBody(
         version = Opcodes.V1_8
         access = Opcodes.ACC_PUBLIC or Opcodes.ACC_FINAL or Opcodes.ACC_SUPER
         name = className.replace('.', '/')
-        superName = Type.getInternalName(Any::class.java)
+        superName = Type.getInternalName(Object::class.java)
         sourceFile = fileName
         methods = lineNumbersByMethod.asSequence()
             .map { (methodName, lineNumbers) ->

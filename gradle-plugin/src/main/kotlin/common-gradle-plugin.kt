@@ -4,6 +4,10 @@
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
 import dev.reformator.stacktracedecoroutinator.generator.internal.PROVIDER_MODULE_NAME
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
+import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
+import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.Action
 import org.gradle.api.Plugin
@@ -665,27 +669,16 @@ internal const val ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME = "android-current.p
 
 private val ANDROID_PROGUARD_RULES = """
     # Decoroutinator ProGuard rules
-    -keep @kotlin.coroutines.jvm.internal.DebugMetadata class * { int label; }
-    -keep @kotlin.coroutines.jvm.internal.DebugMetadata interface * { int label; }
-    -keep @kotlin.coroutines.jvm.internal.DebugMetadata enum * { int label; }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed class * {
-        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
+    -keep,allowshrinking @kotlin.coroutines.jvm.internal.DebugMetadata class * { int label; }
+    -keep,allowshrinking @${DecoroutinatorTransformed::class.java.name} class *
+    -keepclassmembers @${DecoroutinatorTransformed::class.java.name} class * {
+         static *(${DecoroutinatorSpec::class.java.name}, ${Object::class.java.name});
     }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed interface * {
-        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
-    }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed enum * {
-        static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
-    }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep class * { *; }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep interface * { *; }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep enum * { *; }
+    -keep @${AndroidKeep::class.java.name} class * { *; }
     
 """.trimIndent()
 
 private val ANDROID_LEGACY_PROGUARD_RULES = ANDROID_PROGUARD_RULES + """
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorLegacyAndroidKeep class * { *; }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorLegacyAndroidKeep interface * { *; }
-    -keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorLegacyAndroidKeep enum * { *; }
+    -keep @${AndroidLegacyKeep::class.java.name} class * { *; }
     
 """.trimIndent()

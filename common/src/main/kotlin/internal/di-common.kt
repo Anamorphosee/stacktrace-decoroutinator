@@ -1,8 +1,8 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
+import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 
@@ -22,7 +22,7 @@ internal val recoveryExplicitStacktraceTimeoutMs =
 
 internal val methodsNumberThreshold = if (enabled) settingsProvider!!.methodsNumberThreshold else 0
 
-internal var baseContinuationAccessor: DecoroutinatorBaseContinuationAccessor? = null
+internal var baseContinuationAccessor: BaseContinuationAccessor? = null
 
 @Suppress("ObjectPropertyName")
 private val _methodHandleInvoker: MethodHandleInvoker? =
@@ -33,9 +33,9 @@ private val _methodHandleInvoker: MethodHandleInvoker? =
     }
 
 @Suppress("ObjectPropertyName")
-private val _baseContinuationAccessorProvider: DecoroutinatorBaseContinuationAccessorProvider? =
+private val _baseContinuationAccessorProvider: BaseContinuationAccessorProvider? =
     if (enabled) {
-        loadMandatoryService<DecoroutinatorBaseContinuationAccessorProvider>()
+        loadMandatoryService<BaseContinuationAccessorProvider>()
     } else {
         null
     }
@@ -70,7 +70,7 @@ private val _varHandleInvoker: VarHandleInvoker? =
 val methodHandleInvoker: MethodHandleInvoker
     get() = _methodHandleInvoker!!
 
-val baseContinuationAccessorProvider: DecoroutinatorBaseContinuationAccessorProvider
+val baseContinuationAccessorProvider: BaseContinuationAccessorProvider
     get() = _baseContinuationAccessorProvider!!
 
 internal val stacktraceElementsFactory: StacktraceElementsFactory
@@ -92,7 +92,7 @@ private fun supportsMethodHandle(): Boolean {
 }
 
 @Suppress("ClassName")
-@DecoroutinatorAndroidKeep
+@AndroidKeep
 internal class _supportsMethodHandle {
     @Suppress("NewApi")
     fun verify() {

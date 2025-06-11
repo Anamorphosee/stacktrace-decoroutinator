@@ -1,10 +1,10 @@
 @file:Suppress("NewApi", "PackageDirectoryMismatch")
-@file:DecoroutinatorLegacyAndroidKeep
+@file:AndroidLegacyKeep
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorLegacyAndroidKeep
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import java.lang.invoke.MethodType
 import kotlin.jvm.java
 

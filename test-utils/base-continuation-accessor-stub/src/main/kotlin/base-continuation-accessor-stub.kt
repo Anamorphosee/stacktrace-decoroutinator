@@ -3,13 +3,13 @@
 package dev.reformator.stacktracedecoroutinator.test.basecontinuationaccessorstub
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 
-class TestBaseContinuationAccessorProviderAccessor: DecoroutinatorBaseContinuationAccessorProvider {
-    override fun createAccessor(lookup: MethodHandles.Lookup): DecoroutinatorBaseContinuationAccessor {
+class TestBaseContinuationAccessorProviderAccessor: BaseContinuationAccessorProvider {
+    override fun createAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor {
         val invokeSuspendHandle = lookup.findVirtual(
             BaseContinuation::class.java,
             BaseContinuation::invokeSuspend.name,
@@ -20,7 +20,7 @@ class TestBaseContinuationAccessorProviderAccessor: DecoroutinatorBaseContinuati
             BaseContinuation::releaseIntercepted.name,
             MethodType.methodType(Void::class.javaPrimitiveType)
         )
-        return object: DecoroutinatorBaseContinuationAccessor {
+        return object : BaseContinuationAccessor {
             override fun invokeSuspend(baseContinuation: Any, result: Any?): Any? =
                 invokeSuspendHandle.invokeExact(baseContinuation as BaseContinuation, result)
 

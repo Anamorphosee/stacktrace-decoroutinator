@@ -3,7 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.locks.ReentrantLock
@@ -16,11 +16,11 @@ internal class Provider: DecoroutinatorProvider {
     override val isDecoroutinatorEnabled: Boolean
         get() = enabled
 
-    override val baseContinuationAccessor: DecoroutinatorBaseContinuationAccessor?
+    override val baseContinuationAccessor: BaseContinuationAccessor?
         get() = dev.reformator.stacktracedecoroutinator.common.internal.baseContinuationAccessor
 
     @Suppress("NewApi")
-    override fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): DecoroutinatorBaseContinuationAccessor =
+    override fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor =
         prepareBaseContinuationAccessorLock.withLock {
             baseContinuationAccessor?.let { return it }
             val accessor = baseContinuationAccessorProvider.createAccessor(lookup)
@@ -29,7 +29,7 @@ internal class Provider: DecoroutinatorProvider {
         }
 
     override fun awakeBaseContinuation(
-        accessor: DecoroutinatorBaseContinuationAccessor,
+        accessor: BaseContinuationAccessor,
         baseContinuation: Any,
         result: Any?
     ) {

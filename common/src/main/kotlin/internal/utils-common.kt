@@ -4,10 +4,12 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.ContinuationImpl
 import dev.reformator.stacktracedecoroutinator.common.intrinsics._Assertions
+import dev.reformator.stacktracedecoroutinator.common.intrinsics.createFailure
+import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineResumed
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
@@ -22,7 +24,7 @@ const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseCon
 const val UNKNOWN_LINE_NUMBER = 0
 
 class DecoroutinatorSpecImpl(
-    private val accessor: DecoroutinatorBaseContinuationAccessor,
+    private val accessor: BaseContinuationAccessor,
     override val lineNumber: Int,
     private val nextSpecAndItsMethod: SpecAndItsMethodHandle?,
     private val nextContinuation: BaseContinuation
@@ -255,3 +257,21 @@ internal fun <K, V1, V2> Map<K, V1>.mapValuesCompact(threshold: Int, transform: 
 
 internal fun <K, V> newHashMapForSize(size: Int): MutableMap<K, V> =
     HashMap(size * 4 / 3 + 1)
+
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun BaseContinuation.callInvokeSuspend(
+    accessor: BaseContinuationAccessor,
+    result: Any?
+): Any? {
+    probeCoroutineResumed(this)
+    val newResult = try {
+        accessor.invokeSuspend(this, result)
+    } catch (exception: Throwable) {
+        return createFailure(exception)
+    }
+    if (newResult === COROUTINE_SUSPENDED) {
+        return newResult
+    }
+    accessor.releaseIntercepted(this)
+    return newResult
+}

@@ -13,7 +13,14 @@ import com.android.dx.rop.cst.*
 import com.android.dx.rop.type.StdTypeList
 import com.android.dx.rop.type.Type
 import com.android.dx.util.IntList
+import dev.reformator.stacktracedecoroutinator.common.internal.coroutineSuspendedMarkerMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.isLastSpecMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecHandleMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.resumeNextMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.specLineNumberMethodName
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import java.lang.StringBuilder
 import java.lang.invoke.MethodHandle
 import java.lang.reflect.Modifier
 
@@ -84,9 +91,7 @@ private val methodHandleClass = Type.internClassName(MethodHandle::class.java.na
 private val illegalArgumentExceptionClass = Type.internClassName(
     java.lang.IllegalArgumentException::class.java.name.internalName
 )
-private val stringBuilderClass = Type.internClassName(
-    java.lang.StringBuilder::class.java.name.internalName
-)
+private val stringBuilderClass = Type.internClassName(StringBuilder::class.java.name.internalName)
 
 private val specMethodDesc = CstString("(${specClass.descriptor}${Type.OBJECT.descriptor})${Type.OBJECT.descriptor}")
 
@@ -110,7 +115,7 @@ private fun OutputFinisher.saveLineNumber() {
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(getGetterMethodName(DecoroutinatorSpec::lineNumber.name)),
+                CstString(specLineNumberMethodName),
                 CstString("()${Type.INT.descriptor}")
             )
         )
@@ -130,7 +135,7 @@ private fun OutputFinisher.gotoIfLastSpec(label: CodeAddress) {
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(getGetterMethodName(DecoroutinatorSpec::isLastSpec.name)),
+                CstString(isLastSpecMethodName),
                 CstString("()${Type.BOOLEAN.descriptor}")
             )
         )
@@ -148,6 +153,7 @@ private fun OutputFinisher.gotoIfLastSpec(label: CodeAddress) {
     ))
 }
 
+@Suppress("NewApi")
 private fun OutputFinisher.callNextSpec(
     fileName: CstString?,
     lineNumbers: IntList,
@@ -160,7 +166,7 @@ private fun OutputFinisher.callNextSpec(
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(getGetterMethodName(DecoroutinatorSpec::nextSpecHandle.name)),
+                CstString(nextSpecHandleMethodName),
                 CstString("()${methodHandleClass.descriptor}")
             )
         )
@@ -177,7 +183,7 @@ private fun OutputFinisher.callNextSpec(
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(getGetterMethodName(DecoroutinatorSpec::nextSpec.name)),
+                CstString(nextSpecMethodName),
                 CstString("()${specClass.descriptor}")
             )
         )
@@ -200,7 +206,7 @@ private fun OutputFinisher.callNextSpec(
                 CstMethodRef(
                     CstType(Type.METHOD_HANDLE),
                     CstNat(
-                        CstString("invokeExact"),
+                        CstString(MethodHandle::invokeExact.name),
                         CstString("(${Type.OBJECT_ARRAY.descriptor})${Type.OBJECT.descriptor}")
                     )
                 ),
@@ -225,7 +231,7 @@ private fun OutputFinisher.returnSuspendedCoroutineMarkerIfResultIsIt() {
         CstMethodRef(
             CstType(specClass),
             CstNat(
-                CstString(getGetterMethodName(DecoroutinatorSpec::coroutineSuspendedMarker.name)),
+                CstString(coroutineSuspendedMarkerMethodName),
                 CstString("()${Type.OBJECT.descriptor}")
             )
         )
@@ -267,7 +273,7 @@ private fun OutputFinisher.resumeNext(
             CstMethodRef(
                 CstType(specClass),
                 CstNat(
-                    CstString(DecoroutinatorSpec::resumeNext.name),
+                    CstString(resumeNextMethodName),
                     CstString("(${Type.OBJECT.descriptor})${Type.OBJECT.descriptor}")
                 )
             )
@@ -332,7 +338,7 @@ private fun OutputFinisher.throwInvalidLine() {
         CstMethodRef(
             CstType(stringBuilderClass),
             CstNat(
-                CstString("toString"),
+                CstString(StringBuilder::toString.name),
                 CstString("()${Type.STRING.descriptor}")
             )
         )
@@ -420,6 +426,3 @@ private fun OutputFinisher.instructionsByLineNumbers(
     }
     add(endLabel)
 }
-
-private fun getGetterMethodName(propertyName: String): String =
-    if (propertyName.startsWith("is")) propertyName else "get${propertyName[0].uppercase()}${propertyName.substring(1)}"

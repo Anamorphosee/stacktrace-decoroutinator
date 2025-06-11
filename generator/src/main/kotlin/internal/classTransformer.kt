@@ -6,6 +6,8 @@ import dev.reformator.stacktracedecoroutinator.common.internal.*
 import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.*
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -103,7 +105,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
             getGetterMethodName(::providerBaseContinuationAccessor.name),
-            "()${Type.getDescriptor(DecoroutinatorBaseContinuationAccessor::class.java)}"
+            "()${Type.getDescriptor(BaseContinuationAccessor::class.java)}"
         ))
         add(InsnNode(Opcodes.DUP))
         val decoroutinatorAwakeLabel = LabelNode()
@@ -122,7 +124,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
             ::prepareBaseContinuationAccessor.name,
-            "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})${Type.getDescriptor(DecoroutinatorBaseContinuationAccessor::class.java)}"
+            "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})${Type.getDescriptor(BaseContinuationAccessor::class.java)}"
         ))
         add(decoroutinatorAwakeLabel)
         add(FrameNode(Opcodes.F_SAME1, 0, null, 1, arrayOf(Type.getInternalName(Object::class.java))))
@@ -132,7 +134,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
             ::awakeBaseContinuation.name,
-            "(${Type.getDescriptor(DecoroutinatorBaseContinuationAccessor::class.java)}${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
+            "(${Type.getDescriptor(BaseContinuationAccessor::class.java)}${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
         ))
         add(InsnNode(Opcodes.RETURN))
         add(defaultAwakeLabel)
@@ -152,7 +154,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
     })
     invisibleAnnotations.add(AnnotationNode(
         Opcodes.ASM9,
-        Type.getDescriptor(DecoroutinatorAndroidKeep::class.java)
+        Type.getDescriptor(AndroidLegacyKeep::class.java)
     ))
 }
 
@@ -559,3 +561,6 @@ private val ClassNode.classBody: ByteArray
         accept(writer)
         return writer.toByteArray()
     }
+
+private fun getGetterMethodName(propertyName: String): String =
+    if (propertyName.startsWith("is")) propertyName else "get${propertyName[0].uppercase()}${propertyName.substring(1)}"

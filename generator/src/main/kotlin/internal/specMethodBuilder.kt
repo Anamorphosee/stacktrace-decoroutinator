@@ -2,13 +2,18 @@
 
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
+import dev.reformator.stacktracedecoroutinator.common.internal.coroutineSuspendedMarkerMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.isLastSpecMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecHandleMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.resumeNextMethodName
+import dev.reformator.stacktracedecoroutinator.common.internal.specLineNumberMethodName
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.lang.StringBuilder
 import java.lang.invoke.MethodHandle
-import kotlin.reflect.KFunction
 
 internal fun buildSpecMethodNode(
     methodName: String,
@@ -60,7 +65,7 @@ private fun getStoreLineNumberInstructions() = InsnList().apply {
     add(MethodInsnNode(
         Opcodes.INVOKEINTERFACE,
         Type.getType(DecoroutinatorSpec::class.java).internalName,
-        getGetterMethodName(DecoroutinatorSpec::lineNumber.name),
+        specLineNumberMethodName,
         "()${Type.INT_TYPE.descriptor}"
     ))
     add(VarInsnNode(Opcodes.ISTORE, LINE_NUMBER_VAR_INDEX))
@@ -73,7 +78,7 @@ private fun getGotoIfLastSpecInstructions(
     add(MethodInsnNode(
         Opcodes.INVOKEINTERFACE,
         Type.getType(DecoroutinatorSpec::class.java).internalName,
-        getGetterMethodName(DecoroutinatorSpec::isLastSpec.name),
+        isLastSpecMethodName,
         "()${Type.BOOLEAN_TYPE.descriptor}",
     ))
     add(JumpInsnNode(Opcodes.IFNE, label))
@@ -87,14 +92,14 @@ private fun getInvokeNextSpecMethodInstructions(
     add(MethodInsnNode(
         Opcodes.INVOKEINTERFACE,
         Type.getType(DecoroutinatorSpec::class.java).internalName,
-        getGetterMethodName(DecoroutinatorSpec::nextSpecHandle.name),
+        nextSpecHandleMethodName,
         "()${Type.getType(MethodHandle::class.java).descriptor}",
     ))
     add(VarInsnNode(Opcodes.ALOAD, SPEC_VAR_INDEX))
     add(MethodInsnNode(
         Opcodes.INVOKEINTERFACE,
         Type.getType(DecoroutinatorSpec::class.java).internalName,
-        getGetterMethodName(DecoroutinatorSpec::nextSpec.name),
+        nextSpecMethodName,
         "()${Type.getType(DecoroutinatorSpec::class.java).descriptor}"
     ))
     add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
@@ -189,7 +194,7 @@ private fun getThrowInvalidLineNumberInstructions() = InsnList().apply {
     add(MethodInsnNode(
         Opcodes.INVOKEVIRTUAL,
         Type.getType(StringBuilder::class.java).internalName,
-        run {val x: (StringBuilder, Int) -> StringBuilder = StringBuilder::append; x as KFunction<*>}.name,
+        "append",
         "(${Type.INT_TYPE.descriptor})${Type.getType(StringBuilder::class.java).descriptor}"
     ))
     add(MethodInsnNode(
@@ -213,7 +218,7 @@ private fun getReturnSuspendedMarkerIfResultIsSuspendedMarkerInstructions() = In
     add(MethodInsnNode(
         Opcodes.INVOKEINTERFACE,
         Type.getType(DecoroutinatorSpec::class.java).internalName,
-        getGetterMethodName(DecoroutinatorSpec::coroutineSuspendedMarker.name),
+        coroutineSuspendedMarkerMethodName,
         "()${Type.getType(Object::class.java).descriptor}",
     ))
     val endLabel = LabelNode()
@@ -245,7 +250,7 @@ private fun getResumeNextAndReturnInstructions(lineNumbers: List<Int>) = InsnLis
         add(MethodInsnNode(
             Opcodes.INVOKEINTERFACE,
             Type.getType(DecoroutinatorSpec::class.java).internalName,
-            DecoroutinatorSpec::resumeNext.name,
+            resumeNextMethodName,
             "(${Type.getType(Object::class.java).descriptor})${Type.getType(Object::class.java).descriptor}"
         ))
     }
@@ -268,6 +273,3 @@ private fun getResumeNextAndReturnInstructions(lineNumbers: List<Int>) = InsnLis
     ))
     add(InsnNode(Opcodes.POP2))
 }
-
-internal fun getGetterMethodName(propertyName: String): String =
-    if (propertyName.startsWith("is")) propertyName else "get${propertyName[0].uppercase()}${propertyName.substring(1)}"

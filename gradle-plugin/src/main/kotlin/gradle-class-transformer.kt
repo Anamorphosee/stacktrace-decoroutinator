@@ -9,7 +9,7 @@ import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION
 import dev.reformator.stacktracedecoroutinator.generator.internal.PROVIDER_MODULE_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessorProvider
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
@@ -224,7 +224,7 @@ internal fun Artifact.transform(
                                 provides
                             }
                             provides.add(ModuleProvideNode(
-                                Type.getInternalName(DecoroutinatorBaseContinuationAccessorProvider::class.java),
+                                Type.getInternalName(BaseContinuationAccessorProvider::class.java),
                                 listOf(BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME.className2InternalName)
                             ))
                         }
@@ -260,7 +260,7 @@ internal fun Artifact.transform(
             onDirectory(servicesDirPath)
         }
         BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME.toByteArray().inputStream().use { input ->
-            if (!onFile(true, servicesDirPath + DecoroutinatorBaseContinuationAccessorProvider::class.jvmName, input)) {
+            if (!onFile(true, servicesDirPath + BaseContinuationAccessorProvider::class.jvmName, input)) {
                 return
             }
         }

@@ -5,11 +5,9 @@ package dev.reformator.stacktracedecoroutinator.common
 
 import dev.reformator.stacktracedecoroutinator.common.internal.*
 import dev.reformator.stacktracedecoroutinator.common.internal.ENABLED_PROPERTY
-import dev.reformator.stacktracedecoroutinator.common.internal.awakenerFileClass
 import dev.reformator.stacktracedecoroutinator.common.internal.enabled
-import dev.reformator.stacktracedecoroutinator.commonother.SelfCalledSuspendLambda
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorAndroidKeep
+import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -27,7 +25,7 @@ object DecoroutinatorCommonApi {
      */
     fun getStatus(
         allowTailCallOptimization: Boolean = false,
-        sourceCall: suspend (callThisAndReturnItsResult: suspend () -> Any?) -> Any? = SelfCalledSuspendLambda
+        sourceCall: suspend (callThisAndReturnItsResult: suspend () -> Any?) -> Any? = { it() }
     ): DecoroutinatorStatus {
         if (!supportsMethodHandle) {
             return DecoroutinatorStatus(
@@ -42,7 +40,9 @@ object DecoroutinatorCommonApi {
             )
         }
 
-        val contunuation = @DecoroutinatorAndroidKeep object: Continuation<DecoroutinatorStatus> {
+        @Suppress("ClassName")
+        @AndroidKeep
+        class _continuation: Continuation<DecoroutinatorStatus> {
             var continuation: Continuation<Unit>? = null
             var wasSuspended = false
             var status: DecoroutinatorStatus? = null
@@ -85,69 +85,63 @@ object DecoroutinatorCommonApi {
                     - <invoke>
                     - <sourceCalls>
                     - getStatus()
-                    - awakener.callSpecMethods()
                     - <...>
-                    - resumeWith()
+                    - AwakenerKt.awake()
+                    - BaseContinuation.resumeWith()
                 */
                 val baseContinuationResumeIndex = trace.indexOfFirst {
-                    it.className == BaseContinuation::class.java.name && it.methodName == BaseContinuation::resumeWith.name
+                    it.className == BaseContinuation::class.java.name
                 }
                 if (baseContinuationResumeIndex == -1) {
                     return DecoroutinatorStatus(
                         successful = false,
-                        description = "Something wrong. [$BASE_CONTINUATION_CLASS_NAME.resumeWith()] method call is not found"
+                        description = "Something wrong. [${BaseContinuation::class.java.name}.resumeWith()] method call is not found"
                     )
                 }
                 if (baseContinuationResumeIndex == 0) {
                     return DecoroutinatorStatus(
                         successful = false,
-                        description = "Something wrong. [$BASE_CONTINUATION_CLASS_NAME.resumeWith()] method is on the top"
+                        description = "Something wrong. [${BaseContinuation::class.java.name}.resumeWith()] method is on the top"
                     )
                 }
-                if (trace[0].methodName != ::suspendResumeAndGetStacktrace.name) {
+                if (trace[0].className != _continuation::class.java.name) {
                     return DecoroutinatorStatus(
                         successful = false,
-                        description = "Something wrong. The top call is [${trace[0].methodName}]"
+                        description = "Something wrong. The top call is [${trace[0]}]"
                     )
                 }
-                val awakenerIndex = trace.indexOfFirst {
-                    it.className == awakenerFileClass.name && it.methodName == BaseContinuation::awake.name
-                }
-                if (awakenerIndex == -1 || awakenerIndex >= baseContinuationResumeIndex) {
+
+                val restoredSubTrace = trace.subList(1, baseContinuationResumeIndex)
+
+                if (restoredSubTrace.any {
+                    it.className == methodHandleInvoker.unknownSpecMethodClass.name
+                }) {
                     return DecoroutinatorStatus(
                         successful = false,
-                        description = "class [$BASE_CONTINUATION_CLASS_NAME] from Kotlin stdlib is not transformed"
+                        description = "The stack trace contains unknown frames."
                     )
                 }
-                val getStatusIndex = trace.indexOfFirst {
-                    it.className == this.javaClass.name && it.methodName == ::getStatus.name
-                }
-                if (getStatusIndex == -1 || getStatusIndex >= awakenerIndex) {
+
+                val getStatusMethodName = Exception().stackTrace.find {
+                    it.className == _continuation::class.java.name
+                }!!.methodName
+
+                if (restoredSubTrace.all {
+                    it.className != _continuation::class.java.name || it.methodName != getStatusMethodName
+                }) {
                     return DecoroutinatorStatus(
                         successful = false,
-                        description = "'getStatus' call is not found. Probably common lib is not transformed"
+                        description = "'getStatus' call is not found. Probably Decoroutinator wasn't installed."
                     )
                 }
-                if (
-                    trace.subList(0, baseContinuationResumeIndex).any {
-                        it.className == methodHandleInvoker.unknownSpecMethodClass.name
+
+                if (!allowTailCallOptimization) {
+                    if (restoredSubTrace.all { it.className != sourceCall.javaClass.name }) {
+                        return DecoroutinatorStatus(
+                            successful = false,
+                            description = "The stack trace doesn't contain source call frames. Probably the source call was tail call optimized"
+                        )
                     }
-                ) {
-                    return DecoroutinatorStatus(
-                        successful = false,
-                        description = "the stack trace contains unknown frames. Probably some local source is not transformed"
-                    )
-                }
-
-                val hasOtherPackage = trace.subList(1, getStatusIndex).any {
-                    !it.className.startsWith("dev.reformator.stacktracedecoroutinator.common.")
-                }
-
-                if (!allowTailCallOptimization && !hasOtherPackage) {
-                    return DecoroutinatorStatus(
-                        successful = false,
-                        description = "the stack trace doesn't contain source call frames. Probably the source call was tail call optimized"
-                    )
                 }
 
                 return DecoroutinatorStatus(
@@ -160,16 +154,17 @@ object DecoroutinatorCommonApi {
                 javaClass.getDeclaredMethod(::getStatus.name, Continuation::class.java).invoke(this, this)
             }
         }
+        val continuation = _continuation()
 
-        contunuation.callGetStatus()
-        contunuation.continuation.let {
+        continuation.callGetStatus()
+        continuation.continuation.let {
             if (it == null) {
                 error("'sourceCall' must only call its argument, no other actions")
             }
-            contunuation.wasSuspended = true
+            continuation.wasSuspended = true
             it.resumeWith(Result.success(Unit))
         }
-        return contunuation.status.let {
+        return continuation.status.let {
             require(it != null)
             it
         }

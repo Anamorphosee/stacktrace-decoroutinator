@@ -3,10 +3,30 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorBaseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+
+val specLineNumberMethodName = DecoroutinatorSpec::class.java.methods
+    .find { it.returnType == Int::class.javaPrimitiveType }!!
+    .name
+val isLastSpecMethodName = DecoroutinatorSpec::class.java.methods
+    .find { it.returnType == Boolean::class.javaPrimitiveType }!!
+    .name
+val nextSpecHandleMethodName = DecoroutinatorSpec::class.java.methods
+    .find { it.returnType == MethodHandle::class.java }!!
+    .name
+val nextSpecMethodName = DecoroutinatorSpec::class.java.methods
+    .find { it.returnType == DecoroutinatorSpec::class.java }!!
+    .name
+val coroutineSuspendedMarkerMethodName = DecoroutinatorSpec::class.java.methods
+    .find { it.returnType == Object::class.java && it.parameterCount == 0 }!!
+    .name
+val resumeNextMethodName = DecoroutinatorSpec::class.java.methods
+    .find { it.returnType == Object::class.java && it.parameterCount == 1 }!!
+    .name
 
 abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
     private val classesByName: MutableMap<String, ClassSpec> = HashMap()
@@ -181,7 +201,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
         val specMethod: MethodHandle
     ): SpecMethodsFactory {
         override fun getSpecAndItsMethodHandle(
-            accessor: DecoroutinatorBaseContinuationAccessor,
+            accessor: BaseContinuationAccessor,
             element: StacktraceElement,
             nextContinuation: BaseContinuation,
             nextSpec: SpecAndItsMethodHandle?

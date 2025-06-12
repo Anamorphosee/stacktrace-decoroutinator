@@ -31,7 +31,7 @@ enum class DecoroutinatorTransformedState {
 }
 
 val decoroutinatorTransformedStateAttribute: Attribute<DecoroutinatorTransformedState> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.transformedState",
+    "dev.reformator.stacktracedecoroutinator.transformedState1",
     DecoroutinatorTransformedState::class.java
 )
 
@@ -626,8 +626,8 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         if (extractProguardFilesTask == null) {
                             log.error { "Task [extractProguardFiles] was not found" }
                         } else {
+                            val dir = decoroutinatorDir
                             extractProguardFilesTask.doLast { _ ->
-                                val dir = decoroutinatorDir
                                 dir.mkdirs()
                                 dir.resolve(ANDROID_PROGUARD_RULES_FILE_NAME).writeText(ANDROID_PROGUARD_RULES)
                                 dir.resolve(ANDROID_LEGACY_PROGUARD_RULES_FILE_NAME).writeText(ANDROID_LEGACY_PROGUARD_RULES)

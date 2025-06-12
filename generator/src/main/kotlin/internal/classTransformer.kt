@@ -294,13 +294,14 @@ private fun ClassNode.getClassTransformationInfo(
         when (val status = getCheckTransformationStatus(this, method)) {
             is DefaultTransformationStatus -> check(metadataResolver(status.baseContinuationClassName))
             is TailCallTransformationStatus -> {
-                needTransformation = true
-                tailCallDeopt(
+                if (tailCallDeopt(
                     completionVarIndex = status.completionVarIndex,
                     clazz = this,
                     method = method,
                     lineNumbersByMethod = lineNumbersByMethod
-                )
+                )) {
+                    needTransformation = true
+                }
             }
             null -> { }
         }
@@ -320,9 +321,11 @@ private fun tailCallDeopt(
     clazz: ClassNode,
     method: MethodNode,
     lineNumbersByMethod: MutableMap<String, MutableSet<Int>>
-) {
+): Boolean {
+    var result = false
     method.instructions.forEach { instruction ->
         if (instruction is VarInsnNode && instruction.opcode == Opcodes.ALOAD && instruction.`var` == completionVarIndex) {
+            result = true
             val lineNumber = generateSequence(instruction.previous, { it.previous })
                 .mapNotNull { it as? LineNumberNode }
                 .firstOrNull()?.line ?: generateSequence(instruction.next, { it.next })
@@ -358,6 +361,7 @@ private fun tailCallDeopt(
             })
         }
     }
+    return result
 }
 
 @Suppress("UNCHECKED_CAST")

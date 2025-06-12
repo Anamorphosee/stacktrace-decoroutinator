@@ -669,7 +669,8 @@ internal const val ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME = "android-current.p
 
 private val ANDROID_PROGUARD_RULES = """
     # Decoroutinator ProGuard rules
-    -keep,allowshrinking @kotlin.coroutines.jvm.internal.DebugMetadata class * { int label; }
+    -keep,allowshrinking,allowobfuscation @kotlin.coroutines.jvm.internal.DebugMetadata class *
+    -keepclassmembers @kotlin.coroutines.jvm.internal.DebugMetadata class * { int label; }
     -keep,allowshrinking @${DecoroutinatorTransformed::class.java.name} class *
     -keepclassmembers @${DecoroutinatorTransformed::class.java.name} class * {
          static *(${DecoroutinatorSpec::class.java.name}, ${Object::class.java.name});

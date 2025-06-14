@@ -627,11 +627,12 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             log.error { "Task [extractProguardFiles] was not found" }
                         } else {
                             val dir = decoroutinatorDir
+                            val legacyAndroidCompatibility = pluginExtension.legacyAndroidCompatibility
                             extractProguardFilesTask.doLast { _ ->
                                 dir.mkdirs()
                                 dir.resolve(ANDROID_PROGUARD_RULES_FILE_NAME).writeText(ANDROID_PROGUARD_RULES)
                                 dir.resolve(ANDROID_LEGACY_PROGUARD_RULES_FILE_NAME).writeText(ANDROID_LEGACY_PROGUARD_RULES)
-                                val androidCurrentProguardRules = if (pluginExtension.legacyAndroidCompatibility) {
+                                val androidCurrentProguardRules = if (legacyAndroidCompatibility) {
                                     ANDROID_LEGACY_PROGUARD_RULES
                                 } else {
                                     ANDROID_PROGUARD_RULES

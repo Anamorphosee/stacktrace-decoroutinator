@@ -4,6 +4,7 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.VarHandle
 import java.lang.reflect.Field
@@ -214,6 +215,7 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
             return if (localField !== failedField) localField else null
         }
 
+        @AndroidKeep
         private companion object {
             @Suppress("ConstPropertyName")
             protected const val _failedField = 0
@@ -246,6 +248,7 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
             return if (localField !== failedField) localField else null
         }
 
+        @AndroidKeep
         private companion object {
             @Suppress("ConstPropertyName")
             private const val _failedField = 0

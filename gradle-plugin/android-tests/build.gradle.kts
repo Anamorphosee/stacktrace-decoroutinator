@@ -2,7 +2,7 @@ import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentLineNumberProcessor
 
 plugins {
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.application)
     kotlin("android")
     id("dev.reformator.stacktracedecoroutinator")
     id("dev.reformator.bytecodeprocessor")
@@ -63,5 +63,13 @@ android {
     }
     kotlin {
         jvmToolchain(8)
+    }
+    buildTypes {
+        debug {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            proguardFiles("rules.pro", decoroutinatorAndroidProGuardRules)
+        }
     }
 }

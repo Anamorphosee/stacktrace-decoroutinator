@@ -183,23 +183,10 @@ stacktraceDecoroutinator {
 }
 ```
 
-### Using ProGuard
-If you use ProGuard (usually for Android) please add the following exclusion rules:
+### Using Decoroutinator Gradle plugin with on Android with minification enabled
+Please add following ProGuard config to your `build.gradle.kts` for Decoroutinator:
 ```
--keep @kotlin.coroutines.jvm.internal.DebugMetadata class * { int label; }
--keep @kotlin.coroutines.jvm.internal.DebugMetadata interface * { int label; }
--keep @kotlin.coroutines.jvm.internal.DebugMetadata enum * { int label; }
--keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed class * {
-    static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
-}
--keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed interface * {
-    static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
-}
--keep @dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed enum * {
-    static *(dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec, java.lang.Object);
-}
--keep class dev.reformator.stacktracedecoroutinator.common.internal._supportsMethodHandleStub { *; }
--keep class dev.reformator.stacktracedecoroutinator.mhinvoker.internal.UnknownKt { *; }
+proguardFiles(decoroutinatorProGuardRules)
 ```
 
 ### Problem with Shadow Gradle plugin

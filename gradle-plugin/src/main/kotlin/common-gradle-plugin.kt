@@ -462,7 +462,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         val regularMatcher = pluginExtension.regularDependencyConfigurations.matcher
                         val androidMatcher = pluginExtension.androidDependencyConfigurations.matcher
                         val jvmMatcher = pluginExtension.jvmDependencyConfigurations.matcher
-                        configurations.all { config ->
+                        configurations.configureEach { config ->
                             with (dependencies) {
                                 if (regularMatcher.matches(config.name)) {
                                     add(config.name, decoroutinatorCommon())
@@ -484,7 +484,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     //android runtime generator dependency
                     run {
                         val matcher = pluginExtension.androidRuntimeDependencyConfigurations.matcher
-                        configurations.all { config ->
+                        configurations.configureEach { config ->
                             if (matcher.matches(config.name)) {
                                 with (dependencies) {
                                     add(config.name, decoroutinatorAndroidRuntime())
@@ -496,7 +496,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     //jvm runtime generator dependency
                     run {
                         val matcher = pluginExtension.jvmRuntimeDependencyConfigurations.matcher
-                        configurations.all { config ->
+                        configurations.configureEach { config ->
                             if (matcher.matches(config.name)) {
                                 with (dependencies) {
                                     add(config.name, decoroutinatorJvmRuntime())
@@ -508,7 +508,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     //runtime settings dependency
                     run {
                         val matcher = pluginExtension.runtimeSettingsDependencyConfigurations.matcher
-                        configurations.all { config ->
+                        configurations.configureEach { config ->
                             if (matcher.matches(config.name)) {
                                 with (dependencies) {
                                     add(config.name, decoroutinatorRuntimeSettings())
@@ -521,7 +521,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         val matcher = pluginExtension.transformedClassesConfigurations.matcher
                         val skippingSpecMethodsMatcher =
                             pluginExtension.transformedClassesSkippingSpecMethodsConfigurations.matcher
-                        configurations.all { config ->
+                        configurations.configureEach { config ->
                             val state = when {
                                 matcher.matches(config.name) -> DecoroutinatorTransformedState.TRANSFORMED
                                 skippingSpecMethodsMatcher.matches(config.name) ->
@@ -539,7 +539,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
 
                     run {
                         val matcher = pluginExtension.embeddedDebugProbesConfigurations.matcher
-                        configurations.all { config ->
+                        configurations.configureEach { config ->
                             if (matcher.matches(config.name)) {
                                 log.debug { "setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
                                 config.attributes.attribute(decoroutinatorEmbeddedDebugProbesAttribute, true)
@@ -676,6 +676,7 @@ private val ANDROID_PROGUARD_RULES = """
     -keepclassmembers @${DecoroutinatorTransformed::class.java.name} class * {
          static *(${DecoroutinatorSpec::class.java.name}, ${Object::class.java.name});
     }
+    -keep,allowobfuscation interface ${DecoroutinatorSpec::class.java.name} { *; }
     -keep @${AndroidKeep::class.java.name} class * { *; }
     
 """.trimIndent()

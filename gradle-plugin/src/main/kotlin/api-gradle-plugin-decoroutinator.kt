@@ -6,6 +6,7 @@ package org.gradle.kotlin.dsl
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.gradleplugin.ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME
+import dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorAttributePluginExtension
 import dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPluginExtension
 import dev.reformator.stacktracedecoroutinator.gradleplugin.decoroutinatorDir
 import org.gradle.api.Project
@@ -14,6 +15,10 @@ import java.io.File
 
 fun Project.stacktraceDecoroutinator(configure: DecoroutinatorPluginExtension.() -> Unit) {
     extensions.configure(::stacktraceDecoroutinator.name, configure)
+}
+
+fun Project.stacktraceDecoroutinatorAttribute(configure: DecoroutinatorAttributePluginExtension.() -> Unit) {
+    extensions.configure(::stacktraceDecoroutinatorAttribute.name, configure)
 }
 
 @Suppress("UnusedReceiverParameter")

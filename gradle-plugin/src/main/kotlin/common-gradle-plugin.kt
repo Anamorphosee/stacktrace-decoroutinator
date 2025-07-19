@@ -30,7 +30,7 @@ enum class DecoroutinatorTransformedState {
     TRANSFORMED_SKIPPING_SPEC_METHODS
 }
 
-val decoroutinatorTransformedStateAttribute: Attribute<DecoroutinatorTransformedState> = Attribute.of(
+internal val decoroutinatorTransformedStateAttribute: Attribute<DecoroutinatorTransformedState> = Attribute.of(
     "dev.reformator.stacktracedecoroutinator.transformedState1",
     DecoroutinatorTransformedState::class.java
 )
@@ -77,6 +77,15 @@ internal class StringMatcher(property: StringMatcherProperty) {
         includes.any { it.matches(value) } && excludes.all { !it.matches(value) }
 }
 
+internal val defaultArtifactTypes = setOf(
+    ArtifactTypeDefinition.JAR_TYPE,
+    ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
+    ArtifactTypeDefinition.ZIP_TYPE,
+    "aar",
+    "android-classes-jar",
+    "android-classes-directory"
+)
+
 open class DecoroutinatorPluginExtension {
     // high level configurations
     internal val _legacyAndroidCompatibility = ObservableProperty(false)
@@ -92,7 +101,6 @@ open class DecoroutinatorPluginExtension {
     var embedDebugProbesForAndroidTest: Boolean by _embedDebugProbesForAndroidTest
 
     // low level configurations
-    internal val _artifactTypes = ObservableProperty(setOf<String>())
     val regularDependencyConfigurations = StringMatcherProperty()
     val androidDependencyConfigurations = StringMatcherProperty()
     val jvmDependencyConfigurations = StringMatcherProperty()
@@ -102,7 +110,7 @@ open class DecoroutinatorPluginExtension {
     val transformedClassesSkippingSpecMethodsConfigurations = StringMatcherProperty()
     val tasks = StringMatcherProperty()
     val tasksSkippingSpecMethods = StringMatcherProperty()
-    var artifactTypes: Set<String> by _artifactTypes
+    var artifactTypes = defaultArtifactTypes
     val embeddedDebugProbesConfigurations = StringMatcherProperty()
     val runtimeSettingsDependencyConfigurations = StringMatcherProperty()
 }
@@ -368,19 +376,6 @@ private fun DecoroutinatorPluginExtension.setupLowLevelTasksConfig(project: Proj
     }
 }
 
-private fun DecoroutinatorPluginExtension.setupLowLevelArtifactTypesConfig() {
-    _artifactTypes.updateIfNotSet {
-        setOf(
-            ArtifactTypeDefinition.JAR_TYPE,
-            ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
-            ArtifactTypeDefinition.ZIP_TYPE,
-            "aar",
-            "android-classes-jar",
-            "android-classes-directory"
-        )
-    }
-}
-
 private fun DecoroutinatorPluginExtension.setupLowLevelConfig(project: Project) {
     setupHighLevelConfig(project)
     setupLowLevelDependencyConfig(project)
@@ -389,14 +384,47 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfig(project: Project) 
         setupLowLevelCompileTransformedClassesConfig(project)
     }
     setupLowLevelTasksConfig(project)
-    setupLowLevelArtifactTypesConfig()
     setupLowLevelEmbeddedDebugProbesConfigurations(project)
 }
+
+internal fun createUnsetDecoroutinatorTransformedStateAttributeAction(artifactTypes: Set<String>): Action<Project> =
+    Action<Project> { project ->
+        project.configurations.forEach { conf ->
+            conf.outgoing.variants.forEach { variant ->
+                if (variant.artifacts.any { it.type in artifactTypes }) {
+                    val attr = variant.attributes.getAttribute(decoroutinatorTransformedStateAttribute)
+                    if (attr != null) {
+                        log.debug {
+                            "decoroutinatorTransformedStateAttribute for outgoing variant [$variant] of" +
+                                    "configuration [${conf.name}] in project [${project.name}] is already set to [$attr]"
+                        }
+                    } else {
+                        log.debug {
+                            "unsetting decoroutinatorTransformedStateAttribute for outgoing variant" +
+                                    "[$variant] of configuration [${conf.name}] in project [${project.name}]"
+                        }
+                        try {
+                            variant.attributes.attribute(
+                                decoroutinatorTransformedStateAttribute,
+                                DecoroutinatorTransformedState.UNTRANSFORMED
+                            )
+                        } catch (e: IllegalStateException) {
+                            val message =
+                                "Failed to set the necessary attribute for the project " +
+                                        "[${project.name}]. Please apply the " +
+                                        "'dev.reformator.stacktracedecoroutinator.attribute' plugin to it."
+                            throw IllegalStateException(message, e)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 @Suppress("unused")
 class DecoroutinatorPlugin: Plugin<Project> {
     override fun apply(target: Project) {
-        log.debug { "applying Decoroutinator plugin to ${target.name}" }
+        log.debug { "applying Decoroutinator plugin to [${target.name}]" }
         with (target) {
             val pluginExtension = extensions.create(
                 ::stacktraceDecoroutinator.name,
@@ -599,24 +627,14 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         }
                     }
 
-                    val setTransformedAttributeAction = Action<Project> { project ->
-                        project.configurations.forEach { conf ->
-                            conf.outgoing.variants.forEach { variant ->
-                                if (variant.artifacts.any { it.type in pluginExtension.artifactTypes }) {
-                                    log.debug { "unsetting decoroutinatorTransformedStateAttribute for outgoing variant [${variant.name}] of cofiguarion [${conf.name}]" }
-                                    variant.attributes.attribute(
-                                        decoroutinatorTransformedStateAttribute,
-                                        DecoroutinatorTransformedState.UNTRANSFORMED
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    val unsetTransformedAttributeAction = createUnsetDecoroutinatorTransformedStateAttributeAction(
+                        artifactTypes = pluginExtension.artifactTypes
+                    )
                     rootProject.allprojects { project ->
                         if (project.state.executed) {
-                            setTransformedAttributeAction.execute(project)
+                            unsetTransformedAttributeAction.execute(project)
                         } else {
-                            project.afterEvaluate(setTransformedAttributeAction)
+                            project.afterEvaluate(unsetTransformedAttributeAction)
                         }
                     }
 

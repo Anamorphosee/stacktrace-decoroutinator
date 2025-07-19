@@ -136,5 +136,9 @@ gradlePlugin {
             id = "dev.reformator.stacktracedecoroutinator"
             implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPlugin"
         }
+        create("decoroutinatorAttributePlugin") {
+            id = "dev.reformator.stacktracedecoroutinator.attribute"
+            implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorAttributePlugin"
+        }
     }
 }

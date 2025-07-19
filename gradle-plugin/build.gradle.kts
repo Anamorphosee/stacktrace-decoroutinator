@@ -29,6 +29,13 @@ gradlePlugin {
             description = "Gradle plugin for recovering stack trace in exceptions thrown in Kotlin coroutines"
             tags = listOf("kotlin", "coroutines", "debug", "kotlin-coroutines")
         }
+        create("decoroutinatorAttributePlugin") {
+            id = "dev.reformator.stacktracedecoroutinator.attribute"
+            implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorAttributePlugin"
+            displayName = "Attribute helper for Decoroutinator Gradle Plugin"
+            description = "Gradle plugin for setting attribute for artifacts that are transformed by Stacktrace Decoroutinator"
+            tags = listOf("kotlin", "coroutines", "debug", "kotlin-coroutines")
+        }
     }
 }
 
@@ -132,13 +139,9 @@ tasks.test {
     dependsOn(project(":gradle-plugin:jdk8-tests-gp").tasks.test)
 }
 
-val mavenPublicationName = "maven"
-
 publishing {
     publications {
-        create<MavenPublication>(mavenPublicationName) {
-            artifactId = "dev.reformator.stacktracedecoroutinator.gradle.plugin"
-            from(components["java"])
+        withType<MavenPublication> {
             pom {
                 name.set("Stacktrace-decoroutinator Gradle plugin.")
                 description.set("Library for recovering stack trace in exceptions thrown in Kotlin coroutines.")
@@ -178,9 +181,12 @@ publishing {
 
 signing {
     useGpgCmd()
-    sign(publishing.publications[mavenPublicationName])
 }
 
-nmcp {
-    publish(mavenPublicationName) {}
+afterEvaluate {
+    nmcp {
+        publish("pluginMaven") {}
+        publish("decoroutinatorAttributePluginPluginMarkerMaven") {}
+        publish("decoroutinatorPluginPluginMarkerMaven") {}
+    }
 }

@@ -389,8 +389,8 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfig(project: Project) 
 
 internal fun createUnsetDecoroutinatorTransformedStateAttributeAction(artifactTypes: Set<String>): Action<Project> =
     Action<Project> { project ->
-        project.configurations.forEach { conf ->
-            conf.outgoing.variants.forEach { variant ->
+        project.configurations.configureEach { conf ->
+            conf.outgoing.variants.configureEach { variant ->
                 if (variant.artifacts.any { it.type in artifactTypes }) {
                     val attr = variant.attributes.getAttribute(decoroutinatorTransformedStateAttribute)
                     if (attr != null) {

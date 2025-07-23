@@ -105,5 +105,5 @@ afterEvaluate {
 }
 
 afterEvaluate {
-    tasks.register("legacyAndrolegacyAndroidTestidTest").dependsOn(tasks.named("connectedAndroidTest"))
+    tasks.register("legacyAndroidTest").dependsOn(tasks.named("connectedAndroidTest"))
 }

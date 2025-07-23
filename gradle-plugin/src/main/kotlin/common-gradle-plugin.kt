@@ -24,15 +24,15 @@ import kotlin.reflect.KProperty
 
 private val log = KotlinLogging.logger { }
 
-enum class DecoroutinatorTransformedState {
-    UNTRANSFORMED,
-    TRANSFORMED,
-    TRANSFORMED_SKIPPING_SPEC_METHODS
+internal object DecoroutinatorTransformedState {
+    const val UNTRANSFORMED = "UNTRANSFORMED"
+    const val TRANSFORMED = "TRANSFORMED"
+    const val TRANSFORMED_SKIPPING_SPEC_METHODS = "TRANSFORMED_SKIPPING_SPEC_METHODS"
 }
 
-internal val decoroutinatorTransformedStateAttribute: Attribute<DecoroutinatorTransformedState> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.transformedState1",
-    DecoroutinatorTransformedState::class.java
+internal val decoroutinatorTransformedStateAttribute: Attribute<String> = Attribute.of(
+    "dev.reformator.stacktracedecoroutinator.transformedState2",
+    String::class.java
 )
 
 internal class ObservableProperty<T>(private var _value: T): ReadWriteProperty<Any?, T> {

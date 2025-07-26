@@ -6,16 +6,15 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics.FailureResult
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.toResult
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
-import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.math.max
 
 internal fun BaseContinuation.awake(accessor: BaseContinuationAccessor, result: Any?) {
     val baseContinuations = buildList {
-        var completion: Continuation<Any?> = this@awake
-        while (completion is BaseContinuation) {
+        var completion = this@awake
+        while (true) {
             add(completion)
-            completion = completion.completion!!
+            completion = completion.completion!! as? BaseContinuation ?: break
         }
     }
 

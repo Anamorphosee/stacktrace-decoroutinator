@@ -201,3 +201,5 @@ You can call function `DecoroutinatorCommonApi.getStatus { it() }` at runtime to
 
 ### Communication
 Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions).
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/reformator)

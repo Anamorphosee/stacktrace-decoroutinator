@@ -10,31 +10,22 @@ import java.io.InputStream
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.VarHandle
 
-data class StacktraceElement(
-    val className: String,
-    val fileName: String?,
-    val methodName: String,
-    val lineNumber: Int,
-)
-
 fun interface SpecMethodsRegistry {
-    fun getSpecMethodFactoriesByStacktraceElement(
-        elements: Set<StacktraceElement>
-    ): Map<StacktraceElement, SpecMethodsFactory>
+    fun getSpecMethodFactories(elements: Sequence<StackTraceElement>): Map<StackTraceElement, SpecMethodsFactory>
 }
 
-data class SpecAndItsMethodHandle(
+data class SpecAndMethodHandle(
     val specMethodHandle: MethodHandle,
     val spec: DecoroutinatorSpec
 )
 
 fun interface SpecMethodsFactory {
-    fun getSpecAndItsMethodHandle(
+    fun getSpecAndMethodHandle(
         accessor: BaseContinuationAccessor,
-        element: StacktraceElement,
-        nextContinuation: BaseContinuation,
-        nextSpec: SpecAndItsMethodHandle?
-    ): SpecAndItsMethodHandle
+        element: StackTraceElement,
+        nextContinuation: BaseContinuation?,
+        nextSpec: SpecAndMethodHandle?
+    ): SpecAndMethodHandle
 }
 
 data class TransformationMetadata(
@@ -76,13 +67,8 @@ interface VarHandleInvoker {
     fun getIntVar(handle: VarHandle, owner: BaseContinuation): Int
 }
 
-internal data class StacktraceElements(
-    val elementsByContinuation: Map<BaseContinuation, StacktraceElement>,
-    val possibleElements: Set<StacktraceElement>
-)
-
 internal interface StacktraceElementsFactory {
-    fun getStacktraceElements(continuations: Collection<BaseContinuation>): StacktraceElements
+    fun getStacktraceElements(continuations: Sequence<BaseContinuation>): Map<BaseContinuation, StackTraceElement>
     fun getLabelExtractor(continuation: BaseContinuation): LabelExtractor
 
     fun interface LabelExtractor {

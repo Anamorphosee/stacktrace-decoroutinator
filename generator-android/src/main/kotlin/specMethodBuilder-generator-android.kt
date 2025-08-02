@@ -13,7 +13,6 @@ import com.android.dx.rop.cst.*
 import com.android.dx.rop.type.StdTypeList
 import com.android.dx.rop.type.Type
 import com.android.dx.util.IntList
-import dev.reformator.stacktracedecoroutinator.common.internal.coroutineSuspendedMarkerMethodName
 import dev.reformator.stacktracedecoroutinator.common.internal.isLastSpecMethodName
 import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecHandleMethodName
 import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecMethodName
@@ -49,7 +48,6 @@ internal fun buildSpecMethod(
         lineNumbers = lineNumbersIntList,
         invalidLineLabel = invalidLineLabel
     )
-    finisher.returnSuspendedCoroutineMarkerIfResultIsIt()
     finisher.add(resumeNextLabel)
     finisher.resumeNext(
         fileName = fileName,
@@ -100,7 +98,6 @@ private val result = RegisterSpec.make(4, Type.OBJECT)
 private val lineNumber = RegisterSpec.make(0, Type.INT)
 private val aux1Boolean = RegisterSpec.make(1, Type.BOOLEAN)
 private val aux1MethodHandle = RegisterSpec.make(1, methodHandleClass)
-private val aux1Object = RegisterSpec.make(1, Type.OBJECT)
 private val aux2Spec = RegisterSpec.make(2, specClass)
 private val aux1String = RegisterSpec.make(1, Type.STRING)
 private val aux2StringBuilder = RegisterSpec.make(2, stringBuilderClass)
@@ -221,39 +218,6 @@ private fun OutputFinisher.callNextSpec(
             RegisterSpecList.make(result)
         ))
     }
-}
-
-private fun OutputFinisher.returnSuspendedCoroutineMarkerIfResultIsIt() {
-    add(CstInsn(
-        Dops.INVOKE_INTERFACE,
-        SourcePosition.NO_INFO,
-        RegisterSpecList.make(spec),
-        CstMethodRef(
-            CstType(specClass),
-            CstNat(
-                CstString(coroutineSuspendedMarkerMethodName),
-                CstString("()${Type.OBJECT.descriptor}")
-            )
-        )
-    ))
-    add(SimpleInsn(
-        Dops.MOVE_RESULT_OBJECT,
-        SourcePosition.NO_INFO,
-        RegisterSpecList.make(aux1Object)
-    ))
-    val endLabel = CodeAddress(SourcePosition.NO_INFO)
-    add(TargetInsn(
-        Dops.IF_NE,
-        SourcePosition.NO_INFO,
-        RegisterSpecList.make(result, aux1Object),
-        endLabel
-    ))
-    add(SimpleInsn(
-        Dops.RETURN_OBJECT,
-        SourcePosition.NO_INFO,
-        RegisterSpecList.make(aux1Object)
-    ))
-    add(endLabel)
 }
 
 private fun OutputFinisher.resumeNext(

@@ -22,6 +22,8 @@ internal val recoveryExplicitStacktraceTimeoutMs =
 
 internal val methodsNumberThreshold = if (enabled) settingsProvider!!.methodsNumberThreshold else 0
 
+internal val restoreCoroutineStackFrames = enabled && settingsProvider!!.restoreCoroutineStackFrames
+
 internal var baseContinuationAccessor: BaseContinuationAccessor? = null
 
 @Suppress("ObjectPropertyName")

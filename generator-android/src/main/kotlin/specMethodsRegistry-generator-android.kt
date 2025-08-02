@@ -76,7 +76,7 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                             nextSpecAndItsMethod = nextSpec,
                             nextContinuation = nextContinuation
                         )
-                        SpecAndItsMethodHandle(
+                        SpecAndMethodHandle(
                             specMethodHandle = handle,
                             spec = spec
                         )

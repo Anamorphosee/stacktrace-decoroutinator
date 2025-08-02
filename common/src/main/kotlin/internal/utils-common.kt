@@ -26,8 +26,8 @@ const val UNKNOWN_LINE_NUMBER = 0
 class DecoroutinatorSpecImpl(
     private val accessor: BaseContinuationAccessor,
     override val lineNumber: Int,
-    private val nextSpecAndItsMethod: SpecAndItsMethodHandle?,
-    private val nextContinuation: BaseContinuation
+    private val nextSpecAndItsMethod: SpecAndMethodHandle?,
+    private val nextContinuation: BaseContinuation?
 ): DecoroutinatorSpec {
     override val isLastSpec: Boolean
         get() = nextSpecAndItsMethod == null
@@ -38,11 +38,12 @@ class DecoroutinatorSpecImpl(
     override val nextSpec: DecoroutinatorSpec
         get() = nextSpecAndItsMethod!!.spec
 
-    override val coroutineSuspendedMarker: Any
-        get() = COROUTINE_SUSPENDED
-
     override fun resumeNext(result: Any?): Any? =
-        nextContinuation.callInvokeSuspend(accessor, result)
+        if (nextContinuation != null && result !== COROUTINE_SUSPENDED) {
+            nextContinuation.callInvokeSuspend(accessor, result)
+        } else {
+            result
+        }
 }
 
 inline fun assert(check: () -> Boolean) {
@@ -256,7 +257,10 @@ internal fun <K, V1, V2> Map<K, V1>.mapValuesCompact(threshold: Int, transform: 
 }
 
 internal fun <K, V> newHashMapForSize(size: Int): MutableMap<K, V> =
-    HashMap(size * 4 / 3 + 1)
+    HashMap(getHashMapCapacityForSize(size))
+
+private fun getHashMapCapacityForSize(size: Int): Int =
+    if (size < 3) 3 else (size * 4 / 3 + 1)
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun BaseContinuation.callInvokeSuspend(

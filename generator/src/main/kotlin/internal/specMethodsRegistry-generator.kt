@@ -36,7 +36,7 @@ internal class GeneratorSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                     nextSpecAndItsMethod = nextSpec,
                     nextContinuation = nextContinuation
                 )
-                SpecAndItsMethodHandle(
+                SpecAndMethodHandle(
                     specMethodHandle = handle,
                     spec = spec
                 )

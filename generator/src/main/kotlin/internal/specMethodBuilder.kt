@@ -2,7 +2,6 @@
 
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
-import dev.reformator.stacktracedecoroutinator.common.internal.coroutineSuspendedMarkerMethodName
 import dev.reformator.stacktracedecoroutinator.common.internal.isLastSpecMethodName
 import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecHandleMethodName
 import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecMethodName
@@ -42,8 +41,6 @@ internal fun buildSpecMethodNode(
             invalidLineNumberLabel = invalidLineNumberLabel,
             lineNumbers = sortedLineNumbers
         ))
-
-        add(getReturnSuspendedMarkerIfResultIsSuspendedMarkerInstructions())
 
         add(invokeFunctionLabel)
         add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
@@ -210,22 +207,6 @@ private fun getThrowInvalidLineNumberInstructions() = InsnList().apply {
         "(${Type.getType(String::class.java).descriptor})${Type.VOID_TYPE.descriptor}")
     )
     add(InsnNode(Opcodes.ATHROW))
-}
-
-private fun getReturnSuspendedMarkerIfResultIsSuspendedMarkerInstructions() = InsnList().apply {
-    add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
-    add(VarInsnNode(Opcodes.ALOAD, SPEC_VAR_INDEX))
-    add(MethodInsnNode(
-        Opcodes.INVOKEINTERFACE,
-        Type.getType(DecoroutinatorSpec::class.java).internalName,
-        coroutineSuspendedMarkerMethodName,
-        "()${Type.getType(Object::class.java).descriptor}",
-    ))
-    val endLabel = LabelNode()
-    add(JumpInsnNode(Opcodes.IF_ACMPNE, endLabel))
-    add(VarInsnNode(Opcodes.ALOAD, RESULT_VAR_INDEX))
-    add(InsnNode(Opcodes.ARETURN))
-    add(endLabel)
 }
 
 private fun getResumeNextAndReturnInstructions(lineNumbers: List<Int>) = InsnList().apply {

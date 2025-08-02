@@ -9,12 +9,16 @@ interface DecoroutinatorRuntimeSettingsProvider {
         get() = System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
 
     val recoveryExplicitStacktrace: Boolean
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace", "true")
-            .toBoolean()
+        get() = System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace",
+            "true"
+        ).toBoolean()
 
     val recoveryExplicitStacktraceTimeoutMs: UInt
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktraceTimeoutMs", "500")
-            .toUInt()
+        get() = System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktraceTimeoutMs",
+            "500"
+        ).toUInt()
 
     val tailCallDeoptimize: Boolean
         get() = System.getProperty("dev.reformator.stacktracedecoroutinator.tailCallDeoptimize", "true")
@@ -23,6 +27,12 @@ interface DecoroutinatorRuntimeSettingsProvider {
     val methodsNumberThreshold: Int
         get() = System.getProperty("dev.reformator.stacktracedecoroutinator.methodsNumberThreshold", "50")
             .toInt()
+
+    val restoreCoroutineStackFrames: Boolean
+        get() = System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.restoreCoroutineStackFrames",
+            "true"
+        ).toBoolean()
 
     // JVM Agent settings
 

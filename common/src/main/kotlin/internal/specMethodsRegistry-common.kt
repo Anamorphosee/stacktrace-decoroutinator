@@ -9,22 +9,19 @@ import java.lang.invoke.MethodHandle
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-val specLineNumberMethodName = DecoroutinatorSpec::class.java.methods
+val specLineNumberMethodName: String = DecoroutinatorSpec::class.java.methods
     .find { it.returnType == Int::class.javaPrimitiveType }!!
     .name
-val isLastSpecMethodName = DecoroutinatorSpec::class.java.methods
+val isLastSpecMethodName: String = DecoroutinatorSpec::class.java.methods
     .find { it.returnType == Boolean::class.javaPrimitiveType }!!
     .name
-val nextSpecHandleMethodName = DecoroutinatorSpec::class.java.methods
+val nextSpecHandleMethodName: String = DecoroutinatorSpec::class.java.methods
     .find { it.returnType == MethodHandle::class.java }!!
     .name
-val nextSpecMethodName = DecoroutinatorSpec::class.java.methods
+val nextSpecMethodName: String = DecoroutinatorSpec::class.java.methods
     .find { it.returnType == DecoroutinatorSpec::class.java }!!
     .name
-val coroutineSuspendedMarkerMethodName = DecoroutinatorSpec::class.java.methods
-    .find { it.returnType == Object::class.java && it.parameterCount == 0 }!!
-    .name
-val resumeNextMethodName = DecoroutinatorSpec::class.java.methods
+val resumeNextMethodName: String = DecoroutinatorSpec::class.java.methods
     .find { it.returnType == Object::class.java && it.parameterCount == 1 }!!
     .name
 
@@ -38,17 +35,14 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
             lock = classesByNameUpdateLock
         ) { ClassSpec() }
 
-    override fun getSpecMethodFactoriesByStacktraceElement(
-        elements: Set<StacktraceElement>
-    ): Map<StacktraceElement, SpecMethodsFactory> {
-        val transformedFactories = SpecMethodsRegistryImpl.getSpecMethodFactoriesByStacktraceElement(elements)
-        if (elements.all { it in transformedFactories }) return transformedFactories
+    override fun getSpecMethodFactories(
+        elements: Sequence<StackTraceElement>
+    ): Map<StackTraceElement, SpecMethodsFactory> {
+        val factories = SpecMethodsRegistryImpl.getSpecMethodFactories(elements)
+        if (elements.all { it in factories }) return factories
 
-        val generatedFactories = mutableMapOf<StacktraceElement, SpecMethodsFactory>()
-        generatedFactories.putAll(transformedFactories)
-
-        elements.asSequence()
-            .filter { it !in transformedFactories }
+        elements
+            .filter { it !in factories }
             .groupBy { it.className }
             .forEach { (className, elements) ->
                 val classSpec = getClassSpec(className)
@@ -64,7 +58,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                             }
                             elements.forEach {
                                 if (it.lineNumber in method.lineNumbers) {
-                                    generatedFactories[it] = method.factory
+                                    factories[it] = method.factory
                                 } else {
                                     result = true
                                 }
@@ -103,13 +97,13 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                     lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
                                 )
                             }
-                            isRebuildNeeded()
+                            assert(!isRebuildNeeded())
                         }
                     }
                 }
             }
 
-        return generatedFactories
+        return factories
     }
 
     abstract fun generateSpecMethodFactories(
@@ -166,10 +160,10 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             notSetValue = ClassSpec.notSet
         )
 
-    override fun getSpecMethodFactoriesByStacktraceElement(
-        elements: Set<StacktraceElement>
-    ): Map<StacktraceElement, SpecMethodsFactory> {
-        val specMethodFactoriesByElement = mutableMapOf<StacktraceElement, SpecMethodsFactory>()
+    override fun getSpecMethodFactories(
+        elements: Sequence<StackTraceElement>
+    ): MutableMap<StackTraceElement, SpecMethodsFactory> {
+        val specMethodFactoriesByElement = mutableMapOf<StackTraceElement, SpecMethodsFactory>()
         elements.groupBy { it.className }.forEach { (className, elements) ->
             val classSpec = getClassSpec(className)
             if (classSpec != null) {
@@ -200,19 +194,19 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
         val lineNumbers: IntArray,
         val specMethod: MethodHandle
     ): SpecMethodsFactory {
-        override fun getSpecAndItsMethodHandle(
+        override fun getSpecAndMethodHandle(
             accessor: BaseContinuationAccessor,
-            element: StacktraceElement,
-            nextContinuation: BaseContinuation,
-            nextSpec: SpecAndItsMethodHandle?
-        ): SpecAndItsMethodHandle {
+            element: StackTraceElement,
+            nextContinuation: BaseContinuation?,
+            nextSpec: SpecAndMethodHandle?
+        ): SpecAndMethodHandle {
             assert {
                 val clazz = getClassSpec(element.className)!!
                 assert { clazz.fileName == element.fileName }
                 assert { clazz.methodsByName[element.methodName] == this }
                 element.lineNumber in lineNumbers
             }
-            return SpecAndItsMethodHandle(
+            return SpecAndMethodHandle(
                 specMethodHandle = specMethod,
                 spec = DecoroutinatorSpecImpl(
                     accessor = accessor,

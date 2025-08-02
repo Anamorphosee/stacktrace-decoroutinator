@@ -13,17 +13,17 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 private const val LABEL_FIELD_NAME = "label"
-private val notSetPossibleElements = emptyArray<StacktraceElement>()
 
 internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
-    private val possibleElementsBySpecClassName: MutableMap<String, Array<StacktraceElement>> = HashMap()
     private val specsByBaseContinuationClassName: MutableMap<String, BaseContinuationClassSpec> = HashMap()
     private val updateLock = ReentrantLock()
 
     init {
-        TransformedClassesRegistry.addListener(::registerTransformedClassSpec)
-        updateLock.withLock {
-            TransformedClassesRegistry.transformedClasses.forEach(::registerTransformedClassSpec)
+        if (methodHandleInvoker.supportsVarHandle) {
+            TransformedClassesRegistry.addListener(::registerTransformedClassSpec)
+            updateLock.withLock {
+                TransformedClassesRegistry.transformedClasses.forEach(::registerTransformedClassSpec)
+            }
         }
     }
 
@@ -33,85 +33,51 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
             lock = updateLock
         ) { BaseContinuationClassSpec() }
 
-    private fun getPossibleElements(specClassName: String): Array<StacktraceElement>? =
-        possibleElementsBySpecClassName.optimisticLockGet(
-            key = specClassName,
-            notSetValue = notSetPossibleElements,
-            lock = updateLock
-        )
-
     private fun registerTransformedClassSpec(spec: TransformedClassesRegistry.TransformedClassSpec) {
         updateLock.withLock {
-            possibleElementsBySpecClassName[spec.transformedClass.name] = spec.lineNumbersByMethod.asSequence()
-                .flatMap { (methodName, lineNumbers) ->
-                    lineNumbers.asSequence().map { lineNumber ->
-                        StacktraceElement(
-                            className = spec.transformedClass.name,
-                            fileName = spec.fileName,
-                            methodName = methodName,
-                            lineNumber = lineNumber
-                        )
-                    }
-                }.toList().toTypedArray()
-
-            if (methodHandleInvoker.supportsVarHandle) {
-                spec.baseContinuationClasses.forEach { baseContinuationClassName ->
-                    getBaseContinuationClassSpec(baseContinuationClassName).labelExtractor =
-                        VarHandleLabelExtractor(spec.lookup)
-                }
+            spec.baseContinuationClasses.forEach { baseContinuationClassName ->
+                getBaseContinuationClassSpec(baseContinuationClassName).labelExtractor =
+                    VarHandleLabelExtractor(spec.lookup)
             }
         }
     }
 
-    override fun getStacktraceElements(continuations: Collection<BaseContinuation>): StacktraceElements {
-        val elementsByContinuation = mutableMapOf<BaseContinuation, StacktraceElement>()
-        val possibleElements = mutableSetOf<StacktraceElement>()
+    override fun getStacktraceElements(
+        continuations: Sequence<BaseContinuation>
+    ): Map<BaseContinuation, StackTraceElement> {
+        val elementsByContinuation = mutableMapOf<BaseContinuation, StackTraceElement>()
         continuations.groupBy { it.javaClass }.forEach { (baseContinuationClass, continuations) ->
             if (baseContinuationClass == DecoroutinatorContinuationImpl::class.java) {
                 @Suppress("UNCHECKED_CAST")
                 (continuations as List<DecoroutinatorContinuationImpl>).forEach { continuation ->
-                    val element = StacktraceElement(
-                        fileName = continuation.fileName,
-                        className = continuation.className,
-                        methodName = continuation.methodName,
-                        lineNumber = continuation.lineNumber
+                    val element = StackTraceElement(
+                        continuation.className,
+                        continuation.methodName,
+                        continuation.fileName,
+                        continuation.lineNumber
                     )
                     elementsByContinuation[continuation] = element
-                    getPossibleElements(continuation.className)?.let {
-                        possibleElements.addAll(it)
-                    }
-                    possibleElements.add(element)
                 }
             } else {
                 val spec = getBaseContinuationClassSpec(baseContinuationClass.name)
-                val info = spec.getInfo(baseContinuationClass)
-                if (info != null) {
+                val elementsByLabel = spec.getElementsByLabel(baseContinuationClass)
+                if (elementsByLabel != null) {
                     continuations.forEach { continuation ->
                         val label = spec.labelExtractor.getLabel(continuation)
-                        val element = info.elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
+                        val element = elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
                         elementsByContinuation[continuation] = element
                     }
-                    possibleElements.addAll(info.possibleElements)
                 } else {
                     continuations.forEach { continuation ->
-                        continuation.getStackTraceElement()?.let {
-                            val element = StacktraceElement(
-                                className = it.className,
-                                fileName = it.fileName,
-                                methodName = it.methodName,
-                                lineNumber = it.lineNumber
-                            )
-                            possibleElements.add(element)
+                        val element = continuation.getStackTraceElement()
+                        if (element != null) {
                             elementsByContinuation[continuation] = element
                         }
                     }
                 }
             }
         }
-        return StacktraceElements(
-            elementsByContinuation = elementsByContinuation,
-            possibleElements = possibleElements
-        )
+        return elementsByContinuation
     }
 
     override fun getLabelExtractor(continuation: BaseContinuation): StacktraceElementsFactory.LabelExtractor {
@@ -120,22 +86,19 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         return spec.labelExtractor
     }
 
-    private class BaseContinuationClassSpecInfo(
-        val elementsByLabel: Array<StacktraceElement>,
-        val possibleElements: Array<StacktraceElement>
-    ) {
-        companion object {
-            val failed = BaseContinuationClassSpecInfo(emptyArray(), emptyArray())
-        }
+    companion object {
+        val failedElementsByLabel = emptyArray<StackTraceElement>()
     }
 
     private class BaseContinuationClassSpec {
         var labelExtractor: StacktraceElementsFactory.LabelExtractor = ReflectionLabelExtractor()
-        var info: BaseContinuationClassSpecInfo? = null
+        var elementsByLabel: Array<StackTraceElement>? = null
     }
 
-    private fun BaseContinuationClassSpec.getInfo(clazz: Class<out BaseContinuation>): BaseContinuationClassSpecInfo? {
-        val localInfo = info ?: run {
+    private fun BaseContinuationClassSpec.getElementsByLabel(
+        clazz: Class<out BaseContinuation>
+    ): Array<StackTraceElement>? {
+        val elementsByLabel = elementsByLabel ?: run {
             val meta = try {
                 clazz.getAnnotation(DebugMetadata::class.java)?.let { debugMetadataAnnotation ->
                     KotlinDebugMetadata(
@@ -157,32 +120,24 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                     null
                 }
             }
-            val newInfo = if (meta != null) {
+            val newElementsByLabel = if (meta != null) {
                 val className = meta.className
-                val elementsByLabel = Array(meta.lineNumbers.size + 1) { index ->
+                Array(meta.lineNumbers.size + 1) { index ->
                     val lineNumber = if (index == 0) UNKNOWN_LINE_NUMBER else meta.lineNumbers[index - 1]
-                    StacktraceElement(
-                        className = className,
-                        fileName = meta.sourceFile.ifEmpty { null },
-                        methodName = meta.methodName,
-                        lineNumber = lineNumber
+                    StackTraceElement(
+                        className,
+                        meta.methodName,
+                        meta.sourceFile.ifEmpty { null },
+                        lineNumber
                     )
                 }
-                val otherPossibleElements = getPossibleElements(className)
-                BaseContinuationClassSpecInfo(
-                    elementsByLabel = elementsByLabel,
-                    possibleElements = when {
-                        otherPossibleElements == null -> elementsByLabel
-                        else -> elementsByLabel + otherPossibleElements
-                    }
-                )
             } else {
-                BaseContinuationClassSpecInfo.failed
+                failedElementsByLabel
             }
-            info = newInfo
-            newInfo
+            elementsByLabel = newElementsByLabel
+            newElementsByLabel
         }
-        return if (localInfo !== BaseContinuationClassSpecInfo.failed) localInfo else null
+        return if (elementsByLabel !== failedElementsByLabel) elementsByLabel else null
     }
 
     private open class ReflectionLabelExtractor: StacktraceElementsFactory.LabelExtractor {

@@ -166,10 +166,10 @@ private fun callSpecMethods(
     }
 
     val newResult = if (specAndMethodHandle != null) {
-        @Suppress("UNNECESSARY_NOT_NULL_ASSERTION") val specAndMethodHandle = specAndMethodHandle!!
+        @Suppress("UNNECESSARY_NOT_NULL_ASSERTION") val specAndMethodHandleCopy = specAndMethodHandle!!
         val newResult = methodHandleInvoker.callSpecMethod(
-            handle = specAndMethodHandle.specMethodHandle,
-            spec = specAndMethodHandle.spec,
+            handle = specAndMethodHandleCopy.specMethodHandle,
+            spec = specAndMethodHandleCopy.spec,
             result = result
         )
         if (newResult === COROUTINE_SUSPENDED) return newResult

@@ -57,7 +57,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                 return@fr
                             }
                             elements.forEach {
-                                if (it.lineNumber in method.lineNumbers) {
+                                if (it.normalizedLineNumber in method.lineNumbers) {
                                     factories[it] = method.factory
                                 } else {
                                     result = true
@@ -80,7 +80,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                 lineNumbersByMethod.compute(methodName) { _, lineNumbers: Set<Int>? ->
                                     buildSet {
                                         if (lineNumbers != null) addAll(lineNumbers)
-                                        elements.forEach { add(it.lineNumber) }
+                                        elements.forEach { add(it.normalizedLineNumber) }
                                     }
                                 }
                             }
@@ -174,7 +174,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
                         val method = classSpec.methodsByName[methodName]
                         if (method != null) {
                             elements.asSequence()
-                                .filter { it.lineNumber in method.lineNumbers }
+                                .filter { it.normalizedLineNumber in method.lineNumbers }
                                 .forEach { specMethodFactoriesByElement[it] = method }
                         }
                     }
@@ -204,13 +204,13 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
                 val clazz = getClassSpec(element.className)!!
                 assert { clazz.fileName == element.fileName }
                 assert { clazz.methodsByName[element.methodName] == this }
-                element.lineNumber in lineNumbers
+                element.normalizedLineNumber in lineNumbers
             }
             return SpecAndMethodHandle(
                 specMethodHandle = specMethod,
                 spec = DecoroutinatorSpecImpl(
                     accessor = accessor,
-                    lineNumber = element.lineNumber,
+                    lineNumber = element.normalizedLineNumber,
                     nextSpecAndItsMethod = nextSpec,
                     nextContinuation = nextContinuation
                 )

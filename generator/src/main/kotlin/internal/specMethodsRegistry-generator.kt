@@ -29,10 +29,10 @@ internal class GeneratorSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                 assert { element.className == className }
                 assert { element.fileName == fileName }
                 assert { element.methodName == methodName }
-                assert { element.lineNumber in lineNumbersByMethod[element.methodName]!! }
+                assert { element.normalizedLineNumber in lineNumbersByMethod[element.methodName]!! }
                 val spec = DecoroutinatorSpecImpl(
                     accessor = accessor,
-                    lineNumber = element.lineNumber,
+                    lineNumber = element.normalizedLineNumber,
                     nextSpecAndItsMethod = nextSpec,
                     nextContinuation = nextContinuation
                 )

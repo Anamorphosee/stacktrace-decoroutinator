@@ -279,3 +279,6 @@ internal inline fun BaseContinuation.callInvokeSuspend(
     accessor.releaseIntercepted(this)
     return newResult
 }
+
+val StackTraceElement.normalizedLineNumber: Int
+    get() = if (lineNumber < 0) UNKNOWN_LINE_NUMBER else lineNumber

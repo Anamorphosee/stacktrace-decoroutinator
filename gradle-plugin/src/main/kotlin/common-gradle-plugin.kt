@@ -70,8 +70,8 @@ class StringMatcherProperty {
 }
 
 internal class StringMatcher(property: StringMatcherProperty) {
-    private val includes = property.include.map { Regex(it) }
-    private val excludes = property.exclude.map { Regex(it) }
+    private val includes = property.include.asSequence().distinct().map { Regex(it) }.toList()
+    private val excludes = property.exclude.asSequence().distinct().map { Regex(it) }.toList()
 
     fun matches(value: String): Boolean =
         includes.any { it.matches(value) } && excludes.all { !it.matches(value) }
@@ -217,6 +217,8 @@ private fun DecoroutinatorPluginExtension.setupLowLevelRuntimeTransformedClasses
                     "androidReleaseRuntimeClasspath",
                     ".*AndroidTestRuntimeClasspath",
                     "androidTestRuntimeClasspath",
+                    "debugRuntimeClasspath",
+                    "releaseRuntimeClasspath"
                 )
             }
         }
@@ -224,7 +226,12 @@ private fun DecoroutinatorPluginExtension.setupLowLevelRuntimeTransformedClasses
             if (androidTestsOnly) {
                 setOf(".*AndroidTestRuntimeClasspath", "androidTestRuntimeClasspath")
             } else {
-                setOf(".*RuntimeClasspath", "runtimeClasspath")
+                setOf(
+                    ".*RuntimeClasspath",
+                    "runtimeClasspath",
+                    "debugRuntimeClasspath",
+                    "releaseRuntimeClasspath"
+                )
             }
         }
         else -> emptySet()

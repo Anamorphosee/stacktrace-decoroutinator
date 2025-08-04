@@ -24,6 +24,8 @@ internal val methodsNumberThreshold = if (enabled) settingsProvider!!.methodsNum
 
 internal val restoreCoroutineStackFrames = enabled && settingsProvider!!.restoreCoroutineStackFrames
 
+internal val fillUnknownElementsWithClassName = enabled && settingsProvider!!.fillUnknownElementsWithClassName
+
 internal var baseContinuationAccessor: BaseContinuationAccessor? = null
 
 @Suppress("ObjectPropertyName")

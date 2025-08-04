@@ -50,8 +50,9 @@ internal fun BaseContinuation.awake(accessor: BaseContinuationAccessor, result: 
 
 @Suppress("MayBeConstant", "RedundantSuppression")
 private val boundaryLabel = "decoroutinator-boundary"
+private const val unknown = "unknown"
 private val unknownStacktraceElement =
-    StackTraceElement("", "", "unknown", -1)
+    StackTraceElement("", "", unknown, -1)
 private val boundaryStacktraceElement =
     StackTraceElement("", "", boundaryLabel, -1)
 
@@ -112,12 +113,20 @@ private fun getElementsByFrameIndex(
     }
     return Array(frames.size) { index ->
         val frame = frames[index]
-        if (index < baseContinuationsEndIndex) {
-            elementsByBaseContinuation[frame]
-        } else if (frame is BaseContinuation) {
-            elementsByBaseContinuation[frame]
+        val element = when {
+            index < baseContinuationsEndIndex -> elementsByBaseContinuation[frame]
+            frame is BaseContinuation -> elementsByBaseContinuation[frame]
+            else -> frame.getStackTraceElement()
+        }
+        if (fillUnknownElementsWithClassName && element == null) {
+            StackTraceElement(
+                frame.javaClass.name,
+                unknown,
+                unknown,
+                UNKNOWN_LINE_NUMBER
+            )
         } else {
-            frame.getStackTraceElement()
+            element
         }
     }
 }

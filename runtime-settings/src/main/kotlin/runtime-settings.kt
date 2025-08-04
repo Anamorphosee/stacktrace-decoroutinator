@@ -34,6 +34,12 @@ interface DecoroutinatorRuntimeSettingsProvider {
             "true"
         ).toBoolean()
 
+    val fillUnknownElementsWithClassName: Boolean
+        get() = System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.fillUnknownElementsWithClassName",
+            "false"
+        ).toBoolean()
+
     // JVM Agent settings
 
     val metadataInfoResolveStrategy: DecoroutinatorMetadataInfoResolveStrategy

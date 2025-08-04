@@ -8,7 +8,6 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics.createFailure
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineResumed
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import java.io.InputStream
@@ -51,9 +50,6 @@ inline fun assert(check: () -> Boolean) {
         throw AssertionError()
     }
 }
-
-val Class<*>.isTransformed: Boolean
-    get() = @Suppress("NewApi") getDeclaredAnnotation(DecoroutinatorTransformed::class.java) != null
 
 fun parseTransformationMetadata(
     fileNamePresent: Boolean?,

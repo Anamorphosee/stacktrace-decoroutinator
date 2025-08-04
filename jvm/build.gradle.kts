@@ -20,6 +20,7 @@ dependencies {
     api(project(":stacktrace-decoroutinator-common"))
 
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common"))
+    implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(libs.byte.buddy.agent)
 
     testImplementation(project(":stacktrace-decoroutinator-provider"))

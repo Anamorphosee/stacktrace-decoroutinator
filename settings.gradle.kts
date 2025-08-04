@@ -51,8 +51,8 @@ includeBuild("_plugins/bytecode-processor")
 includeBuild("_plugins/decoroutinatortest")
 includeBuild("_plugins/force-variant-java-version")
 
-includeBuild("_tests/last-kotlin-gradle-plugin-test")
-includeBuild("_tests/last-kotlin-kmp-gradle-plugin-test")
+includeBuild("_tests/latest-kotlin-gradle-plugin-test")
+includeBuild("_tests/latest-kotlin-kmp-gradle-plugin-test")
 
 pluginManagement {
     includeBuild("_plugins/bytecode-processor")

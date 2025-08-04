@@ -1,4 +1,4 @@
-rootProject.name = "last-kotlin-gradle-plugin-test"
+rootProject.name = "latest-kotlin-gradle-plugin-test"
 
 includeBuild("../../_plugins/decoroutinatortest")
 includeBuild("../../_plugins/bytecode-processor")

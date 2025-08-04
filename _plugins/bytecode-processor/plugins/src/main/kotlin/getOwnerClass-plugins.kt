@@ -59,11 +59,15 @@ class GetOwnerClassProcessor(
                                 instruction,
                                 LdcInsnNode(method.name)
                             )
+                            processingClass.markModified()
+                            modified = true
                         } else if (instruction eq ownerClassInstruction) {
                             method.instructions.set(
                                 instruction,
                                 LdcInsnNode(Type.getObjectType(processingClass.node.name))
                             )
+                            processingClass.markModified()
+                            modified = true
                         } else if (instruction.opcode == Opcodes.INVOKESTATIC
                             && instruction.desc == "()${Type.getDescriptor(Class::class.java)}") {
                             val key = MethodKey(

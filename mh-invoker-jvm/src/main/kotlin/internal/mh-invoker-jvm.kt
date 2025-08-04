@@ -3,8 +3,11 @@
 
 package dev.reformator.stacktracedecoroutinator.mhinvokerjvm.internal
 
+import dcunknownjvm.getUnknownPackageLookup
+import dcunknownjvm.getUnknownPackageName
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.bytecodeprocessor.intrinsics.ownerClass
 import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker
 import dev.reformator.stacktracedecoroutinator.common.internal.VarHandleInvoker
 import java.lang.invoke.MethodHandles
@@ -24,8 +27,16 @@ internal class JvmVarHandleInvoker: VarHandleInvoker by
 private val loader = run {
     val classes = getRegularMethodHandleInvokerClasses()
     try {
-        val lookup = MethodHandles.lookup()
-        classes.forEach { (_, body) ->
+        val internalPackageLookup = MethodHandles.lookup()
+        val unknownPackageLookup = getUnknownPackageLookup()
+        val internalPackageName = ownerClass.packageName
+        val unknownPackageName = getUnknownPackageName()
+        classes.forEach { (name, body) ->
+            val lookup = when (name.substringBeforeLast('.')) {
+                internalPackageName -> internalPackageLookup
+                unknownPackageName -> unknownPackageLookup
+                else -> error("Unexpected package name in class [$name]")
+            }
             lookup.defineClass(body)
         }
         JvmMethodHandleInvoker::class.java.classLoader

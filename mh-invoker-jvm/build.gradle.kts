@@ -134,9 +134,10 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
         val tempDir = temporaryDir
         tempDir.clearDir()
         mhInvokerCompileKotlinTask.get().destinationDirectory.get().asFile.copyClassesTo(tempDir)
+        val packageNames = listOf("dev.reformator.stacktracedecoroutinator.mhinvoker", "dcunknown")
         val changeClassNameParameters = tempDir.classNameSequence.map { className ->
-            val newClassName = "dev.reformator.stacktracedecoroutinator.mhinvokerjvm." +
-                    className.removePrefix("dev.reformator.stacktracedecoroutinator.mhinvoker.")
+            val packageName = packageNames.first { className.startsWith(it) }
+            val newClassName = "${packageName}jvm${className.removePrefix(packageName)}"
             className to newClassName
         }.toMap()
         applyBytecodeProcessors(

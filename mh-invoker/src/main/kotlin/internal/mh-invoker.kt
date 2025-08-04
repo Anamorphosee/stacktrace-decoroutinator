@@ -2,10 +2,11 @@
 
 package dev.reformator.stacktracedecoroutinator.mhinvoker.internal
 
+import dcunknown.getUnknownSpecMethodHandle
+import dcunknown.unknownSpecClass
 import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker
 import dev.reformator.stacktracedecoroutinator.common.internal.VarHandleInvoker
 import dev.reformator.stacktracedecoroutinator.common.internal.assert
-import dev.reformator.stacktracedecoroutinator.common.internal.specMethodType
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
@@ -14,12 +15,7 @@ import java.lang.invoke.MethodHandles
 import java.lang.invoke.VarHandle
 
 internal class RegularMethodHandleInvoker: MethodHandleInvoker {
-    override val unknownSpecMethodHandle: MethodHandle =
-        MethodHandles.lookup().findStatic(
-            unknownSpecClass,
-            ::unknown.name,
-            specMethodType
-        )
+    override val unknownSpecMethodHandle = getUnknownSpecMethodHandle()
 
     override fun callSpecMethod(handle: MethodHandle, spec: DecoroutinatorSpec, result: Any?): Any? =
         handle.invokeExact(spec, result)

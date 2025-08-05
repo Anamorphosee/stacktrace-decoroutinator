@@ -97,7 +97,8 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                     lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
                                 )
                             }
-                            assert(!isRebuildNeeded())
+                            //do not assert cause generateSpecMethodFactories() may return empty map
+                            isRebuildNeeded()
                         }
                     }
                 }
@@ -200,11 +201,11 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             nextContinuation: BaseContinuation?,
             nextSpec: SpecAndMethodHandle?
         ): SpecAndMethodHandle {
-            assert {
+            ifAssertionEnabled {
                 val clazz = getClassSpec(element.className)!!
-                assert { clazz.fileName == element.fileName }
-                assert { clazz.methodsByName[element.methodName] == this }
-                element.normalizedLineNumber in lineNumbers
+                check(clazz.fileName == element.fileName)
+                check(clazz.methodsByName[element.methodName] == this)
+                check(element.normalizedLineNumber in lineNumbers)
             }
             return SpecAndMethodHandle(
                 specMethodHandle = specMethod,

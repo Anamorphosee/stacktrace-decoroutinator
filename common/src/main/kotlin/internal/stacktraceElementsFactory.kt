@@ -81,7 +81,7 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     }
 
     override fun getLabelExtractor(continuation: BaseContinuation): StacktraceElementsFactory.LabelExtractor {
-        assert { continuation.javaClass !== DecoroutinatorContinuationImpl::class.java }
+        assert { continuation.javaClass != DecoroutinatorContinuationImpl::class.java }
         val spec = getBaseContinuationClassSpec(continuation.javaClass.name)
         return spec.labelExtractor
     }

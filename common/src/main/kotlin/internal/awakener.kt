@@ -139,8 +139,10 @@ private fun callSpecMethods(
     elementsByFrameIndex: Array<StackTraceElement?>,
     result: Any?
 ): Any? {
-    assert { frames.size == elementsByFrameIndex.size }
-    assert { baseContinuationsEndIndex <= frames.size }
+    ifAssertionEnabled {
+        check(frames.size == elementsByFrameIndex.size)
+        check(baseContinuationsEndIndex <= frames.size)
+    }
     val specFactories = specMethodsRegistry.getSpecMethodFactories(
         elements = elementsByFrameIndex.asSequence().drop(1).filterNotNull()
     )

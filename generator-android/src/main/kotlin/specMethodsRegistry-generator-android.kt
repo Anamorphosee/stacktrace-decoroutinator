@@ -66,10 +66,12 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                         return@repeat
                     }
                     SpecMethodsFactory { accessor, element, nextContinuation, nextSpec ->
-                        assert { element.className == className }
-                        assert { element.fileName == fileName }
-                        assert { element.methodName == methodName }
-                        assert { element.normalizedLineNumber in lineNumbers }
+                        ifAssertionEnabled {
+                            check(element.className == className)
+                            check(element.fileName == fileName)
+                            check(element.methodName == methodName)
+                            check(element.normalizedLineNumber in lineNumbers)
+                        }
                         val spec = DecoroutinatorSpecImpl(
                             accessor = accessor,
                             lineNumber = element.normalizedLineNumber,

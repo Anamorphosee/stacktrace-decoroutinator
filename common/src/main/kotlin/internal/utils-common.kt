@@ -45,9 +45,17 @@ class DecoroutinatorSpecImpl(
         }
 }
 
+inline fun ifAssertionEnabled(check: () -> Unit) {
+    if (_Assertions.ENABLED) {
+        check()
+    }
+}
+
 inline fun assert(check: () -> Boolean) {
-    if (_Assertions.ENABLED && !check()) {
-        throw AssertionError()
+    ifAssertionEnabled {
+        if (!check()) {
+            throw AssertionError()
+        }
     }
 }
 

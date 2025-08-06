@@ -76,6 +76,14 @@ interface DecoroutinatorRuntimeSettingsProvider {
             "true"
         ).toBoolean()
 
+    // Generator Android settings
+
+    val androidGeneratorAttemptsCount: Int
+        get() = System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.androidGeneratorAttemptsCount",
+            "3"
+        ).toInt()
+
     // end
 
     val priority: Int

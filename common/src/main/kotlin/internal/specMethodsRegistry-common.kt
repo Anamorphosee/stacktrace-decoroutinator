@@ -77,7 +77,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                 }
                             }
                             elements.groupBy { it.methodName }.forEach { (methodName, elements) ->
-                                lineNumbersByMethod.compute(methodName) { _, lineNumbers: Set<Int>? ->
+                                lineNumbersByMethod.compute(methodName) { _, lineNumbers ->
                                     buildSet {
                                         if (lineNumbers != null) addAll(lineNumbers)
                                         elements.forEach { add(it.normalizedLineNumber) }
@@ -91,14 +91,19 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
                                 fileName = fileName,
                                 lineNumbersByMethod = lineNumbersByMethod
                             )
-                            classSpec[fileName] = factoriesByMethod.mapValuesCompact(methodsNumberThreshold) { (methodName, specMethodsFactory) ->
-                                MethodSpec(
-                                    factory = specMethodsFactory,
-                                    lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
-                                )
+                            if (factoriesByMethod != null) {
+                                assert { factoriesByMethod.keys == lineNumbersByMethod.keys }
+                                classSpec[fileName] =
+                                    factoriesByMethod.mapValuesCompact(methodsNumberThreshold) { (methodName, specMethodsFactory) ->
+                                        MethodSpec(
+                                            factory = specMethodsFactory,
+                                            lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
+                                        )
+                                    }
+                                assert(!isRebuildNeeded())
+                            } else {
+                                classSpec.revision--
                             }
-                            //do not assert cause generateSpecMethodFactories() may return empty map
-                            isRebuildNeeded()
                         }
                     }
                 }
@@ -112,7 +117,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
         classRevision: Int,
         fileName: String?,
         lineNumbersByMethod: Map<String, Set<Int>>
-    ): Map<String, SpecMethodsFactory>
+    ): Map<String, SpecMethodsFactory>?
 
     private class MethodSpec(
         val factory: SpecMethodsFactory,

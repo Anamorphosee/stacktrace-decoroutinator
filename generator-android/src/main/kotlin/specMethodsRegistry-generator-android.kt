@@ -3,6 +3,7 @@
 
 package dev.reformator.stacktracedecoroutinator.generatorandroid
 
+import android.util.Log
 import com.android.dex.DexFormat
 import com.android.dx.dex.DexOptions
 import com.android.dx.dex.file.ClassDefItem
@@ -21,6 +22,10 @@ import java.lang.reflect.Modifier
 import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList
 
+private val androidGeneratorAttemptsCount = settingsProvider.androidGeneratorAttemptsCount
+
+private const val LOG_TAG = "Decoroutinator"
+
 internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
     init {
         //assert the platform
@@ -33,9 +38,8 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
         classRevision: Int,
         fileName: String?,
         lineNumbersByMethod: Map<String, Set<Int>>
-    ): Map<String, SpecMethodsFactory> {
-        // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
-        repeat(3) {
+    ): Map<String, SpecMethodsFactory>? {
+        repeat(androidGeneratorAttemptsCount) {
             val loader = try {
                 buildClassLoader(
                     className = className,
@@ -43,14 +47,16 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                     lineNumbersByMethod = lineNumbersByMethod
                 )
             // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/42#issuecomment-2508562491
-            } catch (_: IOException) {
+            } catch (e: IOException) {
+                Log.w(LOG_TAG, e)
                 return@repeat
             }
             val clazz = try {
                 @Suppress("NewApi")
                 loader.findClass(className)
             // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/42#issuecomment-2508562491
-            } catch (_: ClassNotFoundException) {
+            } catch (e: ClassNotFoundException) {
+                Log.w(LOG_TAG, e)
                 return@repeat
             }
             val result = run {
@@ -59,10 +65,12 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                         @Suppress("NewApi")
                         MethodHandles.publicLookup().findStatic(clazz, methodName, specMethodType)
                     // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
-                    } catch (_: NoSuchMethodException) {
+                    } catch (e: NoSuchMethodException) {
+                        Log.w(LOG_TAG, e)
                         return@repeat
                     // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/39#issuecomment-2421913959
-                    } catch (_: IllegalAccessException) {
+                    } catch (e: IllegalAccessException) {
+                        Log.w(LOG_TAG, e)
                         return@repeat
                     }
                     SpecMethodsFactory { accessor, element, nextContinuation, nextSpec ->
@@ -89,7 +97,8 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
             loaders.add(loader)
             return result
         }
-        return emptyMap()
+        Log.w(LOG_TAG, "Failed to generate spec methods for class [$className] after $androidGeneratorAttemptsCount attempts")
+        return null
     }
 
     private val loaders: MutableCollection<ClassLoader> = CopyOnWriteArrayList()

@@ -3,28 +3,29 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
+import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 
 internal val supportsMethodHandle = supportsMethodHandle()
 
-val settingsProvider =
-    if (supportsMethodHandle) loadRuntimeSettingsProvider() else null
+@Suppress("ObjectPropertyName")
+private val _settingsProvider = if (supportsMethodHandle) loadRuntimeSettingsProvider() else null
 
-internal val enabled = supportsMethodHandle && settingsProvider!!.enabled
+internal val enabled = supportsMethodHandle && _settingsProvider!!.enabled
 
-internal val recoveryExplicitStacktrace = enabled && settingsProvider!!.recoveryExplicitStacktrace
+internal val recoveryExplicitStacktrace = enabled && _settingsProvider!!.recoveryExplicitStacktrace
 
-internal val tailCallDeoptimize = enabled && settingsProvider!!.tailCallDeoptimize
+internal val tailCallDeoptimize = enabled && _settingsProvider!!.tailCallDeoptimize
 
 internal val recoveryExplicitStacktraceTimeoutMs =
-    if (tailCallDeoptimize) settingsProvider!!.recoveryExplicitStacktraceTimeoutMs else 0U
+    if (tailCallDeoptimize) _settingsProvider!!.recoveryExplicitStacktraceTimeoutMs else 0U
 
-internal val methodsNumberThreshold = if (enabled) settingsProvider!!.methodsNumberThreshold else 0
+internal val methodsNumberThreshold = if (enabled) _settingsProvider!!.methodsNumberThreshold else 0
 
-internal val restoreCoroutineStackFrames = enabled && settingsProvider!!.restoreCoroutineStackFrames
+internal val restoreCoroutineStackFrames = enabled && _settingsProvider!!.restoreCoroutineStackFrames
 
-internal val fillUnknownElementsWithClassName = enabled && settingsProvider!!.fillUnknownElementsWithClassName
+internal val fillUnknownElementsWithClassName = enabled && _settingsProvider!!.fillUnknownElementsWithClassName
 
 internal var baseContinuationAccessor: BaseContinuationAccessor? = null
 
@@ -70,6 +71,9 @@ private val _varHandleInvoker: VarHandleInvoker? =
     } else {
         null
     }
+
+val settingsProvider: DecoroutinatorRuntimeSettingsProvider
+    get() = _settingsProvider!!
 
 val methodHandleInvoker: MethodHandleInvoker
     get() = _methodHandleInvoker!!

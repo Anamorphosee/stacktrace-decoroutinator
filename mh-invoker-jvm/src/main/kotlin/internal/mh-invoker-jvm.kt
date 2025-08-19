@@ -51,7 +51,7 @@ private val loader = run {
 }
 
 private val regularMethodHandleJarBase64: String
-    @LoadConstant get() { fail() }
+    @LoadConstant("regularMethodHandleJarBase64") get() { fail() }
 
 private val String.decodeBase64: ByteArray
     get() = Base64.getDecoder().decode(this)

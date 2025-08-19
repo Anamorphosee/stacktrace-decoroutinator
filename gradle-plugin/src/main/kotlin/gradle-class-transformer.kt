@@ -274,4 +274,4 @@ private val ArtifactPath.isClass: Boolean
     get() = last().endsWith(CLASS_EXTENSION) && !isModuleInfo
 
 private val baseContinuationAccessorImplBodyBase64: String
-    @LoadConstant get() { fail() }
+    @LoadConstant("baseContinuationAccessorImplBodyBase64") get() { fail() }

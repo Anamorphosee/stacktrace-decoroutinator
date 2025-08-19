@@ -1,5 +1,4 @@
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
-import dev.reformator.bytecodeprocessor.plugins.GetCurrentLineNumberProcessor
 
 plugins {
     alias(libs.plugins.android.library)
@@ -42,9 +41,8 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(
-        GetCurrentFileNameProcessor,
-        GetCurrentLineNumberProcessor
+    processors = listOf(
+        GetCurrentFileNameProcessor
     )
 }
 

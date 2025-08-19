@@ -12,7 +12,7 @@ import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 
 internal val unknownSpecClass: Class<*>
-    @GetOwnerClass(deleteAfterModification = true) get() = fail()
+    @GetOwnerClass get() = fail()
 
 @Suppress("unused")
 private fun unknown(spec: DecoroutinatorSpec, result: Any?): Any? {

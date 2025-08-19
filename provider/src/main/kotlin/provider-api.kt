@@ -69,4 +69,4 @@ fun getBaseContinuation(
     )
 
 val providerApiClass: Class<*>
-    @GetOwnerClass(deleteAfterModification = true) get() { fail() }
+    @GetOwnerClass get() { fail() }

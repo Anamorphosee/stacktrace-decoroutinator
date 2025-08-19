@@ -4,3 +4,6 @@ package dev.reformator.bytecodeprocessor.intrinsics
 
 val currentFileName: String
     get() { fail() }
+
+val currentLineNumber: Int
+    get() { fail() }

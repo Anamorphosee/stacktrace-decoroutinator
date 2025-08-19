@@ -1,8 +1,10 @@
+import dev.reformator.bytecodeprocessor.plugins.ChangeClassNameProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
     id("dev.reformator.forcevariantjavaversion")
+    id("dev.reformator.bytecodeprocessor")
 }
 
 repositories {
@@ -33,4 +35,11 @@ sourceSets {
     main {
         kotlin.destinationDirectory = java.destinationDirectory
     }
+}
+
+bytecodeProcessor {
+    processors = listOf(
+        ChangeClassNameProcessor
+    )
+    skipUpdate = true
 }

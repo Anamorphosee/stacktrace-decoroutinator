@@ -4,52 +4,93 @@ package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.ownerClass
+import dev.reformator.bytecodeprocessor.intrinsics.ownerClassName
 import dev.reformator.bytecodeprocessor.intrinsics.ownerMethodName
+import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
 import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.eq
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
-import dev.reformator.bytecodeprocessor.plugins.internal.internalName
 import dev.reformator.bytecodeprocessor.plugins.internal.isStatic
 import dev.reformator.bytecodeprocessor.plugins.internal.readAsm
+import dev.reformator.bytecodeprocessor.plugins.internal.setParameter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.LdcInsnNode
 import org.objectweb.asm.tree.MethodInsnNode
 import org.objectweb.asm.tree.MethodNode
+import kotlin.collections.first
 
-class GetOwnerClassProcessor(
-    private val methods: Set<MethodKey> = emptySet()
-): Processor {
-    data class MethodKey(
-        val className: String,
-        val methodName: String
+private val classMethodDesc = "()${Type.getDescriptor(Class::class.java)}"
+private val stringMethodDesc = "()${Type.getDescriptor(String::class.java)}"
+
+private const val APPLIED_PARAMETER = "applied"
+
+object GetOwnerClassProcessor: Processor {
+    object ContextKey: BytecodeProcessorContext.Key<Set<Key>> {
+        override val id: String
+            get() = "getOwnerClassMethods"
+        override val default: Set<Key>
+            get() = emptySet()
+        override fun merge(value1: Set<Key>, value2: Set<Key>): Set<Key> =
+            value1 + value2
+    }
+
+    data class Key(
+        val internalClassName: String,
+        val methodName: String,
+        val isString: Boolean
     )
 
-    override fun process(directory: ProcessingDirectory) {
-        val internalMethods = methods.asSequence()
-            .map {
-                MethodKey(
-                    className = it.className.internalName,
-                    methodName = it.methodName
-                )
-            }.toMutableSet()
+    override val usedContextKeys = listOf(ContextKey)
 
-        directory.classes.forEach { processingClass ->
-            processingClass.node.methods?.forEach { method ->
-                method.invisibleAnnotations.find(GetOwnerClass::class.java)?.let { _ ->
-                    require(method.isStatic)
-                    require(method.desc == "()${Type.getDescriptor(Class::class.java)}")
-                    internalMethods.add(MethodKey(
-                        className = processingClass.node.name,
-                        methodName = method.name
-                    ))
+    override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
+        val values = directory.classes.flatMap { processingClass ->
+            val methodsToDelete: MutableCollection<MethodNode> = mutableListOf()
+            val list = processingClass.node.methods.orEmpty().mapNotNull { method ->
+                val annotation = method.invisibleAnnotations.find(GetOwnerClass::class.java)
+                    ?: return@mapNotNull null
+
+                require(method.isStatic)
+
+                val isString = when (method.desc) {
+                    classMethodDesc -> false
+                    stringMethodDesc -> true
+                    else -> error(
+                        "invalid @GetOwnerClass desc [${method.desc}] for class [${processingClass.node.name}] "
+                        + "and method [${method.name}]"
+                    )
                 }
-            }
-        }
 
-        var modified = false
+                val deleteAfterChanging =
+                    annotation.getParameter(GetOwnerClass::deleteAfterModification.name) as Boolean? ?: true
+
+                if (annotation.getParameter(APPLIED_PARAMETER) as Boolean? ?: false) {
+                    require(!deleteAfterChanging)
+                    return@mapNotNull null
+                }
+
+                if (deleteAfterChanging) {
+                    methodsToDelete.add(method)
+                } else {
+                    annotation.setParameter(APPLIED_PARAMETER, true)
+                }
+                processingClass.markModified()
+
+                Key(
+                    internalClassName = processingClass.node.name,
+                    methodName = method.name,
+                    isString = isString
+                )
+            }
+            if (methodsToDelete.isNotEmpty()) {
+                require(processingClass.node.methods.removeAll(methodsToDelete))
+            }
+            list
+        }.toSet()
+        context.merge(ContextKey, values)
+
         directory.classes.forEach { processingClass ->
             processingClass.node.methods?.forEach { method ->
                 method.instructions?.forEach { instruction ->
@@ -60,49 +101,39 @@ class GetOwnerClassProcessor(
                                 LdcInsnNode(method.name)
                             )
                             processingClass.markModified()
-                            modified = true
                         } else if (instruction eq ownerClassInstruction) {
                             method.instructions.set(
                                 instruction,
                                 LdcInsnNode(Type.getObjectType(processingClass.node.name))
                             )
                             processingClass.markModified()
-                            modified = true
-                        } else if (instruction.opcode == Opcodes.INVOKESTATIC
-                            && instruction.desc == "()${Type.getDescriptor(Class::class.java)}") {
-                            val key = MethodKey(
-                                className = instruction.owner,
-                                methodName = instruction.name
+                        } else if (instruction eq ownerClassNameInstruction) {
+                            method.instructions.set(
+                                instruction,
+                                LdcInsnNode(Type.getObjectType(processingClass.node.name).className)
                             )
-                            if (key in internalMethods) {
-                                method.instructions.set(
-                                    instruction,
-                                    LdcInsnNode(Type.getObjectType(instruction.owner))
+                            processingClass.markModified()
+                        } else if (instruction.opcode == Opcodes.INVOKESTATIC) {
+                            val isString = when(instruction.desc) {
+                                classMethodDesc -> false
+                                stringMethodDesc -> true
+                                else -> null
+                            }
+                            if (isString != null) {
+                                val key = Key(
+                                    internalClassName = instruction.owner,
+                                    methodName = instruction.name,
+                                    isString = isString
                                 )
-                                processingClass.markModified()
-                                modified = true
+                                if (key in context[ContextKey]) {
+                                    val type = Type.getObjectType(instruction.owner)
+                                    val ldcConst = if (isString) type.className else type
+                                    method.instructions.set(instruction, LdcInsnNode(ldcConst))
+                                    processingClass.markModified()
+                                }
                             }
                         }
                     }
-                }
-            }
-        }
-
-        if (!modified) {
-            directory.classes.forEach { processingClass ->
-                val methodsToDelete = mutableSetOf<MethodNode>()
-                processingClass.node.methods?.forEach { method ->
-                    method.invisibleAnnotations.find(GetOwnerClass::class.java)?.let { annotation ->
-                        val deleteAfterModification =
-                            annotation.getParameter(GetOwnerClass::deleteAfterModification.name) as Boolean?
-                        if (deleteAfterModification == true) {
-                            methodsToDelete.add(method)
-                        }
-                    }
-                }
-                if (methodsToDelete.isNotEmpty()) {
-                    processingClass.markModified()
-                    require(processingClass.node.methods.removeAll(methodsToDelete))
                 }
             }
         }
@@ -111,26 +142,36 @@ class GetOwnerClassProcessor(
     private fun usageOwnerClass() {
         ownerClass
     }
+    private fun usageOwnerClassName() {
+        ownerClassName
+    }
     private fun usageOwnerMethodName() {
         ownerMethodName
     }
 
-    companion object {
-        private val ownerClassInstruction =
-            GetOwnerClassProcessor::class.java.readAsm()
-                .methods
-                .first { it.name == GetOwnerClassProcessor::usageOwnerClass.name }
-                .instructions
-                .asSequence()
-                .mapNotNull { it as? MethodInsnNode }
-                .first()
-        private val ownerMethodNameInstruction =
-            GetOwnerClassProcessor::class.java.readAsm()
-                .methods
-                .first { it.name == GetOwnerClassProcessor::usageOwnerMethodName.name }
-                .instructions
-                .asSequence()
-                .mapNotNull { it as? MethodInsnNode }
-                .first()
+    private val ownerClassInstruction: MethodInsnNode
+    private val ownerClassNameInstruction: MethodInsnNode
+    private val ownerMethodNameInstruction: MethodInsnNode
+
+    init {
+        val methods: List<MethodNode> = GetOwnerClassProcessor::class.java.readAsm().methods
+        ownerClassInstruction = methods
+            .first { it.name == GetOwnerClassProcessor::usageOwnerClass.name }
+            .instructions
+            .asSequence()
+            .mapNotNull { it as? MethodInsnNode }
+            .first()
+        ownerClassNameInstruction = methods
+            .first { it.name == GetOwnerClassProcessor::usageOwnerClassName.name }
+            .instructions
+            .asSequence()
+            .mapNotNull { it as? MethodInsnNode }
+            .first()
+        ownerMethodNameInstruction = methods
+            .first { it.name == GetOwnerClassProcessor::usageOwnerMethodName.name }
+            .instructions
+            .asSequence()
+            .mapNotNull { it as? MethodInsnNode }
+            .first()
     }
 }

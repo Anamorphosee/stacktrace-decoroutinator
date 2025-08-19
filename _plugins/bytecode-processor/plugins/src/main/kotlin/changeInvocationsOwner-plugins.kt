@@ -3,22 +3,36 @@
 package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeInvocationsOwner
+import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
 import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
 import dev.reformator.bytecodeprocessor.plugins.internal.internalName
+import dev.reformator.bytecodeprocessor.plugins.internal.setParameter
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.MethodInsnNode
 import org.objectweb.asm.tree.MethodNode
 
+private const val APPLIED_PARAMETER = "applied"
+
 object ChangeInvocationsOwnerProcessor: Processor {
-    override fun process(directory: ProcessingDirectory) {
-        if (modify(directory)) return
-        deleteAfterModification(directory)
+    object ContextKey: BytecodeProcessorContext.Key<Map<Key, String>> {
+        override val id: String
+            get() = "ownerInternalNamesByMethod"
+        override val default: Map<Key, String>
+            get() = emptyMap()
+        override fun merge(value1: Map<Key, String>, value2: Map<Key, String>): Map<Key, String> {
+            value1.forEach { (key, value) ->
+                if (key in value2 && value2[key] != value) {
+                    error("different owner internal names for methods [$key]: [$value] and [${value2[key]}]")
+                }
+            }
+            return value1 + value2
+        }
     }
 
-    private data class Key(
+    data class Key(
         val ownerInternalName: String,
         val name: String,
         val descriptor: String
@@ -30,10 +44,14 @@ object ChangeInvocationsOwnerProcessor: Processor {
         )
     }
 
-    private fun modify(module: ProcessingDirectory): Boolean {
-        val newOwnerInternalNamesByMethod = module.classes.asSequence().flatMap { processingClass ->
-            processingClass.node.methods.orEmpty().asSequence().mapNotNull { method ->
-                val annotation = method.invisibleAnnotations.find(ChangeInvocationsOwner::class.java) ?: return@mapNotNull null
+    override val usedContextKeys = listOf(ContextKey)
+
+    override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
+        val values = directory.classes.flatMap { processingClass ->
+            val methodsToDelete: MutableCollection<MethodNode> = mutableListOf()
+            val list = processingClass.node.methods.orEmpty().mapNotNull { method ->
+                val annotation = method.invisibleAnnotations.find(ChangeInvocationsOwner::class.java)
+                    ?: return@mapNotNull null
 
                 val toParameter = annotation.getParameter(ChangeInvocationsOwner::to.name) as Type?
                 val toNameParameter = annotation.getParameter(ChangeInvocationsOwner::toName.name) as String?
@@ -46,21 +64,38 @@ object ChangeInvocationsOwnerProcessor: Processor {
                     toNameParameter != null -> toNameParameter.internalName
                     else -> error("both parameters [${ChangeInvocationsOwner::to.name}] and [${ChangeInvocationsOwner::toName.name}] weren't set")
                 }
+                require(toInternalName != processingClass.node.name)
 
-                require(toNameParameter != processingClass.node.name)
+                val deleteAfterChanging =
+                    annotation.getParameter(ChangeInvocationsOwner::deleteAfterChanging.name) as Boolean? ?: true
+
+                if (annotation.getParameter(APPLIED_PARAMETER) as Boolean? ?: false) {
+                    require(!deleteAfterChanging)
+                    return@mapNotNull null
+                }
 
                 val key = Key(
                     ownerInternalName = processingClass.node.name,
                     method = method
                 )
 
+                if (deleteAfterChanging) {
+                    methodsToDelete.add(method)
+                } else {
+                    annotation.setParameter(APPLIED_PARAMETER, true)
+                }
+                processingClass.markModified()
+
                 key to toInternalName
             }
+            if (methodsToDelete.isNotEmpty()) {
+                require(processingClass.node.methods.removeAll(methodsToDelete))
+            }
+            list
         }.toMap()
+        context.merge(ContextKey, values)
 
-        var modified = false
-
-        module.classes.forEach { processingClass ->
+        directory.classes.forEach { processingClass ->
             processingClass.node.methods?.forEach { method ->
                 method.instructions?.forEach {
                     if (it is MethodInsnNode) {
@@ -69,34 +104,14 @@ object ChangeInvocationsOwnerProcessor: Processor {
                             name = it.name,
                             descriptor = it.desc
                         )
-                        val newOwnerInternalName = newOwnerInternalNamesByMethod[key]
+                        val newOwnerInternalName = context[ContextKey][key]
                         if (newOwnerInternalName != null) {
                             it.owner = newOwnerInternalName
-                            modified = true
                             processingClass.markModified()
                         }
                     }
                 }
             }
         }
-
-        return modified
     }
-}
-
-private fun deleteAfterModification(module: ProcessingDirectory): Boolean {
-    var modified = false
-    module.classes.forEach { processingClass ->
-        val iter = processingClass.node.methods?.iterator() ?: return@forEach
-        while (iter.hasNext()) {
-            val method = iter.next()
-            val annotation = method.invisibleAnnotations.find(ChangeInvocationsOwner::class.java) ?: continue
-            if (annotation.getParameter(ChangeInvocationsOwner::deleteAfterChanging.name) as Boolean? == true) {
-                iter.remove()
-                processingClass.markModified()
-                modified = true
-            }
-        }
-    }
-    return modified
 }

@@ -28,13 +28,10 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(
-        RemoveKotlinStdlibProcessor(includeModuleInfo = false),
-        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
-        ChangeClassNameProcessor(mapOf(
-            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
-        )),
-        GetOwnerClassProcessor()
+    dependentProjects = listOf(project(":stacktrace-decoroutinator-common"))
+    processors = listOf(
+        ChangeClassNameProcessor,
+        GetOwnerClassProcessor
     )
 }
 

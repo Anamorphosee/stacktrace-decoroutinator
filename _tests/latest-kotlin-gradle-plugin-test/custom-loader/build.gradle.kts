@@ -20,8 +20,7 @@ dependencies {
 bytecodeProcessor {
     processors = setOf(
         GetCurrentFileNameProcessor,
-        GetCurrentLineNumberProcessor,
-        GetOwnerClassProcessor()
+        GetOwnerClassProcessor
     )
 }
 

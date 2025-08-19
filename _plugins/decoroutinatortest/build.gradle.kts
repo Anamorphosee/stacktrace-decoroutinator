@@ -3,7 +3,6 @@ import org.gradle.kotlin.dsl.named
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.util.Base64
-import kotlin.jvm.java
 
 buildscript {
     repositories {
@@ -38,15 +37,17 @@ dependencies {
 
 bytecodeProcessor {
     processors = setOf(
-        GetOwnerClassProcessor(),
-        ChangeClassNameProcessor(),
+        GetOwnerClassProcessor,
+        ChangeClassNameProcessor,
         ChangeInvocationsOwnerProcessor,
         SkipInvocationsProcessor,
         MakeStaticProcessor,
-        RemoveKotlinStdlibProcessor(includeClassNames = setOf(
-            Regex("dev.reformator.stacktracedecoroutinator.generator.internal.GeneratorSpecImpl")
-        ))
+        RemoveKotlinStdlibProcessor,
+        LoadConstantProcessor
     )
+    initContext {
+        LoadConstantProcessor.addValues(this, mapOf("version" to "unknown"))
+    }
 }
 
 val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
@@ -71,39 +72,20 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
             .file("DecoroutinatorBaseContinuationAccessorImpl.class").asFile.readBytes()
         val base64Encoder = Base64.getEncoder()
         bytecodeProcessor {
-            processors += LoadConstantProcessor(mapOf(
-                LoadConstantProcessor.Key(
-                    "org.gradle.kotlin.dsl.ApiGradlePluginDecoroutinatorKt",
-                    "getProjectVersionIntrinsic"
-                ) to LoadConstantProcessor.Value("unspecified"),
-                LoadConstantProcessor.Key(
-                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
-                    "getDebugProbesKtClassBodyBase64"
-                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesBody)),
-                LoadConstantProcessor.Key(
-                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
-                    "getDebugProbesProviderClassBodyBase64"
-                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderBody)),
-                LoadConstantProcessor.Key(
-                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
-                    "getDebugProbesProviderImplClassBodyBase64"
-                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderImplBody)),
-                LoadConstantProcessor.Key(
-                    "dev.reformator.stacktracedecoroutinator.gradleplugin.DebugProbesEmbedderKt",
-                    "getDebugProbesProviderUtilsClassBodyBase64"
-                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(debugProbesProviderUtilsBody)),
-                LoadConstantProcessor.Key(
-                    "dev.reformator.stacktracedecoroutinator.gradleplugin.GradleClassTransformerKt",
-                    "getBaseContinuationAccessorImplBodyBase64"
-                ) to LoadConstantProcessor.Value(base64Encoder.encodeToString(regularAccessorBody))
-            ))
+            initContext {
+                LoadConstantProcessor.addValues(this, mapOf(
+                    "debugProbesKtClassBodyBase64" to base64Encoder.encodeToString(debugProbesBody),
+                    "debugProbesProviderClassBodyBase64" to base64Encoder.encodeToString(debugProbesProviderBody),
+                    "debugProbesProviderImplClassBodyBase64" to base64Encoder.encodeToString(debugProbesProviderImplBody),
+                    "debugProbesProviderUtilsClassBodyBase64" to base64Encoder.encodeToString(debugProbesProviderUtilsBody),
+                    "baseContinuationAccessorImplBodyBase64" to base64Encoder.encodeToString(regularAccessorBody)
+                ))
+            }
         }
     }
 }
 
-tasks.withType(KotlinJvmCompile::class.java) {
-    dependsOn(fillConstantProcessorTask)
-}
+bytecodeProcessorInitTask.dependsOn(fillConstantProcessorTask)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8

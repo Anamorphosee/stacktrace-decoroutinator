@@ -169,7 +169,7 @@ internal class ZipArtifactBuilder(private val zip: ZipOutputStream): ArtifactBui
     @Suppress("AssertionSideEffect")
     override fun addDirectory(path: ArtifactPath) {
         val file = path.fold(root) { acc, segment -> acc.resolve(segment) }
-        assert(file.mkdir())
+        file.mkdir()
     }
 }
 

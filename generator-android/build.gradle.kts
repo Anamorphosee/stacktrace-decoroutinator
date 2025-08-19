@@ -109,10 +109,9 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(
-        ChangeClassNameProcessor(mapOf(
-            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
-        ))
+    dependentProjects = listOf(project(":stacktrace-decoroutinator-common"))
+    processors = listOf(
+        ChangeClassNameProcessor
     )
 }
 

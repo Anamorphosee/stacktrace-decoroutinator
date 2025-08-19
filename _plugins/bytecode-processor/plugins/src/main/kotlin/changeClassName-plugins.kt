@@ -3,6 +3,7 @@
 package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
+import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
 import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.find
@@ -13,23 +14,37 @@ import org.objectweb.asm.Handle
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 
-class ChangeClassNameProcessor(
-    private val replacesClassNamesByOriginalName: Map<String, String> = emptyMap()
-): Processor {
-    override fun process(directory: ProcessingDirectory) {
-        if (modify(directory)) return
-        deleteAfterModification(directory)
+private const val FROM_INTERNAL_NAME = "fromInternalName"
+
+object ChangeClassNameProcessor: Processor {
+    object ContextKey: BytecodeProcessorContext.Key<Map<String, String>> {
+        override val id: String
+            get() = "replacedClassInternalNamesByOriginalInternalName"
+        override val default: Map<String, String>
+            get() = emptyMap()
+        override fun merge(value1: Map<String, String>, value2: Map<String, String>): Map<String, String> {
+            value1.forEach { (key, value) ->
+                if (key in value2 && value2[key] != value) {
+                    error("different replaced class internal names for original internal name [$key]: [$value] and [${value2[key]}]")
+                }
+            }
+            return value1 + value2
+        }
     }
 
-    private fun modify(module: ProcessingDirectory): Boolean {
-        var modified = false
+    override val usedContextKeys = listOf(ContextKey)
 
-        val replacedClassInternalNamesByOriginalInternalName = mutableMapOf<String, String>()
-        replacesClassNamesByOriginalName.forEach { (originalName, replacedName) ->
-           replacedClassInternalNamesByOriginalInternalName[originalName.internalName] = replacedName.internalName
-        }
-        module.classes.forEach { processingClass ->
-            val annotation = processingClass.node.invisibleAnnotations.find(ChangeClassName::class.java) ?: return@forEach
+    fun add(context: BytecodeProcessorContext, replacedClassNamesByOriginalName: Map<String, String>) {
+        context.merge(
+            key = ContextKey,
+            value = replacedClassNamesByOriginalName.asSequence().map { it.key.internalName to it.value.internalName }.toMap()
+        )
+    }
+
+    override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
+        val values = directory.classes.mapNotNull { processingClass ->
+            val annotation = processingClass.node.invisibleAnnotations.find(ChangeClassName::class.java)
+                ?: return@mapNotNull null
 
             val toParameter = annotation.getParameter(ChangeClassName::to.name) as Type?
             val toNameParameter = annotation.getParameter(ChangeClassName::toName.name) as String?
@@ -43,30 +58,36 @@ class ChangeClassNameProcessor(
                 else -> error("both parameters [${ChangeClassName::to.name}] and [${ChangeClassName::toName.name}] weren't set")
             }
 
+            val deleteAfterChanging =
+                annotation.getParameter(ChangeClassName::deleteAfterChanging.name) as Boolean? ?: false
+
             val fromInternalNameParameter = annotation.getParameter(FROM_INTERNAL_NAME) as String?
-            val fromInternalName = if (fromInternalNameParameter == null) {
-                require(processingClass.node.name != toInternalName)
-                val oldInternalName = processingClass.node.name
-                modified = true
-                processingClass.markModified()
-                annotation.setParameter(FROM_INTERNAL_NAME, oldInternalName)
-                processingClass.node.name = toInternalName
-                oldInternalName
-            } else {
+            if (fromInternalNameParameter != null) {
                 require(processingClass.node.name == toInternalName)
-                fromInternalNameParameter
+                require(!deleteAfterChanging)
+                return@mapNotNull null
             }
 
-            replacedClassInternalNamesByOriginalInternalName[fromInternalName] = toInternalName
-        }
+            require(processingClass.node.name != toInternalName)
+            val oldInternalName = processingClass.node.name
+            if (deleteAfterChanging) {
+                processingClass.delete()
+            } else {
+                annotation.setParameter(FROM_INTERNAL_NAME, oldInternalName)
+                processingClass.node.name = toInternalName
+                processingClass.markModified()
+            }
+
+            oldInternalName to toInternalName
+        }.toMap()
+        context.merge(ContextKey, values)
 
         fun String?.modify(onChange: (newValue: String) -> Unit) {
             var value = this ?: return
-            replacedClassInternalNamesByOriginalInternalName.forEach { (internalName, replacedClassInternalName) ->
+            context[ContextKey].forEach { (internalName, replacedClassInternalName) ->
                 value = value.replace(internalName, replacedClassInternalName)
             }
             if (this != value) {
-                modified = true
                 onChange(value)
             }
         }
@@ -110,7 +131,7 @@ class ChangeClassNameProcessor(
             }
         }
 
-        module.classes.forEach { processingClass ->
+        directory.classes.forEach { processingClass ->
             processingClass.node.name.modify {
                 processingClass.markModified()
                 processingClass.node.name = it
@@ -234,26 +255,5 @@ class ChangeClassNameProcessor(
                 }
             }
         }
-
-        return modified
     }
-}
-
-private const val FROM_INTERNAL_NAME = "fromInternalName"
-
-private fun deleteAfterModification(module: ProcessingDirectory): Boolean {
-    var modified = false
-    module.classes.forEach { clazz ->
-        val changeClassName = clazz.node.invisibleAnnotations.find(ChangeClassName::class.java)
-        if (changeClassName != null) {
-            if (changeClassName.getParameter(ChangeClassName::deleteAfterChanging.name) as Boolean? == true) {
-                clazz.delete()
-            } else {
-                clazz.node.invisibleAnnotations.remove(changeClassName)
-                clazz.markModified()
-            }
-            modified = true
-        }
-    }
-    return modified
 }

@@ -1,7 +1,5 @@
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
-import dev.reformator.bytecodeprocessor.plugins.GetCurrentLineNumberProcessor
 import dev.reformator.bytecodeprocessor.plugins.GetOwnerClassProcessor
-import dev.reformator.bytecodeprocessor.plugins.RemoveModuleRequiresProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.FileOutputStream
@@ -23,10 +21,8 @@ dependencies {
 
 bytecodeProcessor {
     processors = setOf(
-        GetCurrentLineNumberProcessor,
         GetCurrentFileNameProcessor,
-        GetOwnerClassProcessor(),
-        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics"),
+        GetOwnerClassProcessor
     )
 }
 

@@ -39,9 +39,9 @@ internal class AgentBaseContinuationAccessorProvider: BaseContinuationAccessorPr
 }
 
 private fun loadRegularAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor {
-    val regularProviderClass: Class<*> = lookup.defineClass(Base64.getDecoder().decode(regularAccessorBodyBase64))
+    val regularProviderClass: Class<*> = lookup.defineClass(Base64.getDecoder().decode(regularAccessorClassBodyBase64))
     return regularProviderClass.getDeclaredConstructor().newInstance() as BaseContinuationAccessor
 }
 
-private val regularAccessorBodyBase64: String
-    @LoadConstant get() { fail() }
+private val regularAccessorClassBodyBase64: String
+    @LoadConstant("regularAccessorClassBodyBase64") get() { fail() }

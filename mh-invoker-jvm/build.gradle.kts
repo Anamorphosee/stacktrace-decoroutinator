@@ -1,4 +1,5 @@
-import dev.reformator.bytecodeprocessor.impl.applyBytecodeProcessors
+import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContextImpl
+import dev.reformator.bytecodeprocessor.pluginapi.applyBytecodeProcessors
 import dev.reformator.bytecodeprocessor.plugins.*
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
@@ -68,18 +69,17 @@ afterEvaluate {
 }
 
 bytecodeProcessor {
+    dependentProjects = listOf(project(":stacktrace-decoroutinator-common"))
     processors = setOf(
-        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
-        ChangeClassNameProcessor(mapOf(
-            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
-        )),
+        ChangeClassNameProcessor,
         ChangeInvocationsOwnerProcessor,
-        GetOwnerClassProcessor()
+        GetOwnerClassProcessor,
+        LoadConstantProcessor
     )
 }
 
 private fun File.clearDir() {
-    listFiles().forEach {
+    listFiles()!!.forEach {
         if (it.isDirectory) {
             it.deleteRecursively()
         } else {
@@ -140,25 +140,23 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
             val newClassName = "${packageName}jvm${className.removePrefix(packageName)}"
             className to newClassName
         }.toMap()
-        applyBytecodeProcessors(
-            processors = setOf(ChangeClassNameProcessor(changeClassNameParameters)),
-            classesDir = tempDir
+        tempDir.applyBytecodeProcessors(
+            processors = listOf(ChangeClassNameProcessor),
+            context = BytecodeProcessorContextImpl().apply {
+                ChangeClassNameProcessor.add(this, changeClassNameParameters)
+            }
         )
-        val jarBodyBase64 = Base64.getEncoder().encodeToString(tempDir.zipDirectoryToArray())
         bytecodeProcessor {
-            processors += LoadConstantProcessor(mapOf(
-                LoadConstantProcessor.Key(
-                    "dev.reformator.stacktracedecoroutinator.mhinvokerjvm.internal.MhInvokerJvmKt",
-                    "getRegularMethodHandleJarBase64"
-                ) to LoadConstantProcessor.Value(jarBodyBase64)
-            ))
+            initContext {
+                LoadConstantProcessor.addValues(this, mapOf(
+                    "regularMethodHandleJarBase64" to Base64.getEncoder().encodeToString(tempDir.zipDirectoryToArray())
+                ))
+            }
         }
     }
 }
 
-tasks.withType(KotlinJvmCompile::class.java) {
-    dependsOn(fillConstantProcessorTask)
-}
+bytecodeProcessorInitTask.dependsOn(fillConstantProcessorTask)
 
 abstract class Transform: TransformAction<TransformParameters.None> {
     @get:InputArtifact

@@ -16,7 +16,7 @@ internal class AndroidMethodHandleInvoker: MethodHandleInvoker by loadRegularMet
 internal class AndroidVarHandleInvoker: VarHandleInvoker by loadRegularVarHandleInvoker()
 
 private val regularMethodHandleDexBase64: String
-    @LoadConstant get() { fail() }
+    @LoadConstant("regularMethodHandleDexBase64") get() { fail() }
 
 private val String.decodeBase64: ByteArray
     get() = Base64.decode(this, Base64.DEFAULT)

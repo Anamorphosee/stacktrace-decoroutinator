@@ -8,7 +8,7 @@ plugins {
 
 bytecodeProcessor {
     processors = setOf(
-        ChangeClassNameProcessor()
+        ChangeClassNameProcessor
     )
 }
 

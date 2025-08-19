@@ -106,10 +106,10 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(
-        ChangeClassNameProcessor(mapOf(
-            "dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation" to "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
-        ))
+    dependentProjects = listOf(project(":stacktrace-decoroutinator-common"))
+    processors = listOf(
+        ChangeClassNameProcessor,
+        LoadConstantProcessor
     )
 }
 
@@ -132,21 +132,17 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
             ).asIterable())
         }.result.get().rethrowFailure()
         bytecodeProcessor {
-            processors += LoadConstantProcessor(mapOf(
-                LoadConstantProcessor.Key(
-                    "dev.reformator.stacktracedecoroutinator.mhinvokerandroid.MhInvokerAndroidKt",
-                    "getRegularMethodHandleDexBase64"
-                ) to LoadConstantProcessor.Value(
-                    Base64.getEncoder().encodeToString(tmpDir.resolve("classes.dex").readBytes())
-                )
-            ))
+            initContext {
+                LoadConstantProcessor.addValues(this, mapOf(
+                    "regularMethodHandleDexBase64" to
+                            Base64.getEncoder().encodeToString(tmpDir.resolve("classes.dex").readBytes())
+                ))
+            }
         }
     }
 }
 
-tasks.withType(KotlinJvmCompile::class.java) {
-    dependsOn(fillConstantProcessorTask)
-}
+bytecodeProcessorInitTask.dependsOn(fillConstantProcessorTask)
 
 afterEvaluate {
     configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(transformedAttribute, true)

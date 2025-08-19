@@ -11,11 +11,11 @@ repositories {
 
 dependencies {
     implementation(libs.kotlin.gradle.plugin.api)
-    implementation(project(":bytecode-processor-plugin-api"))
-    implementation(project(":bytecode-processor-impl"))
-    implementation(project(":bytecode-processor-plugins"))
-    implementation(project(":bytecode-processor-intrinsics"))
+    api(project(":bytecode-processor-api"))
+    api(project(":bytecode-processor-plugins"))
     implementation(libs.asm.utils)
+    implementation(libs.jackson.core)
+    implementation(libs.jackson.kotlin)
     testImplementation(kotlin("test"))
 }
 

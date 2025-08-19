@@ -396,10 +396,10 @@ suspend fun tailCallDeoptimizeBasicRecRec(depth: Int) {
 }
 
 private val currentFileClass: Class<*>
-    @GetOwnerClass(deleteAfterModification = true) get() { fail() }
+    @GetOwnerClass get() { fail() }
 
 private val customLoaderJarUri: String
-    @LoadConstant get() { fail() }
+    @LoadConstant("customLoaderJarUri") get() { fail() }
 
 private fun loadCustomLoaderStubClass(withDecoroutinatorDependency: Boolean): Class<*> =
     URLClassLoader(

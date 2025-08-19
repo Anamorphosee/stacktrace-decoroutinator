@@ -3,116 +3,113 @@
 package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.MakeStatic
+import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
 import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.find
-import dev.reformator.bytecodeprocessor.plugins.internal.forEachAllowingAddingToEnd
 import dev.reformator.bytecodeprocessor.plugins.internal.getOrCreateClinit
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
+import dev.reformator.bytecodeprocessor.plugins.internal.isStatic
+import dev.reformator.bytecodeprocessor.plugins.internal.setParameter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.InsnList
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-object MakeStaticProcessor: Processor {
-    override fun process(directory: ProcessingDirectory) {
-        modify(directory)
-    }
+private const val APPLIED_PARAMETER = "applied"
 
-    private data class Key(
-        val ownerInternalName: String,
-        val name: String,
-        val descriptor: String
+object MakeStaticProcessor: Processor {
+    data class Key(
+        val classInternalName: String,
+        val methodName: String,
+        val methodDesc: String
     )
 
-    private fun modify(module: ProcessingDirectory) {
-        val newDescriptorsByMethod = module.classes.asSequence().flatMap { processingClass ->
-            sequence {
-                processingClass.node.methods?.forEachAllowingAddingToEnd { method ->
-                    val annotation = method.invisibleAnnotations.find(MakeStatic::class.java) ?:
-                        return@forEachAllowingAddingToEnd
+    object ContextKey: BytecodeProcessorContext.Key<Set<Key>> {
+        override val id: String
+            get() = "makeStaticMethods"
+        override val default: Set<Key>
+            get() = emptySet()
+        override fun merge(value1: Set<Key>, value2: Set<Key>): Set<Key> =
+            value1 + value2
+    }
 
-                    if (annotation.getParameter(APPLIED_PARAMETER) as Boolean? != true) {
-                        require(method.access and Opcodes.ACC_STATIC == 0)
-                        processingClass.markModified()
+    override val usedContextKeys = listOf(ContextKey)
 
-                        annotation.values.add(APPLIED_PARAMETER)
-                        annotation.values.add(true)
-                        method.access = method.access or Opcodes.ACC_STATIC
-                        val descriptor = Type.getMethodType(method.desc)
-                        val newDescriptor = Type.getMethodType(
-                            descriptor.returnType,
-                            *Array<Type>(descriptor.argumentTypes.size + 1) {
-                                when (it) {
-                                    0 -> Type.getObjectType(processingClass.node.name)
-                                    else -> descriptor.argumentTypes[it - 1]
-                                }
-                            }
-                        )
-                        method.desc = newDescriptor.descriptor
+    override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
+        val values = directory.classes.flatMap { processingClass ->
+            val keysToAddToStaticInitializer: MutableSet<Key> = hashSetOf()
+            val list = processingClass.node.methods.orEmpty().mapNotNull { method ->
+                val annotation = method.invisibleAnnotations.find(MakeStatic::class.java)
+                    ?: return@mapNotNull null
 
-                        if (annotation.getParameter(MakeStatic::addToStaticInitializer.name) as Boolean? == true) {
-                            require(descriptor.argumentTypes.isEmpty())
-                            require(descriptor.returnType == Type.VOID_TYPE)
+                val methodType = Type.getMethodType(method.desc)
 
-                            val clinit = processingClass.node.getOrCreateClinit()
+                if (annotation.getParameter(APPLIED_PARAMETER) as Boolean? ?: false) {
+                    require(method.isStatic)
+                    val argumentTypes = methodType.argumentTypes
+                    require(argumentTypes.isNotEmpty())
+                    require(argumentTypes[0] == Type.getObjectType(processingClass.node.name))
+                    return@mapNotNull null
+                }
 
-                            clinit.instructions.insertBefore(
-                                clinit.instructions.first,
-                                InsnList().apply {
-                                    add(InsnNode(Opcodes.ACONST_NULL))
-                                    add(
-                                        MethodInsnNode(
-                                            Opcodes.INVOKESTATIC,
-                                            processingClass.node.name,
-                                            method.name,
-                                            method.desc
-                                        )
-                                    )
-                                }
-                            )
-                        }
-                    }
+                require(!method.isStatic)
+                val key = Key(
+                    classInternalName = processingClass.node.name,
+                    methodName = method.name,
+                    methodDesc = method.desc
+                )
 
-                    require(method.access and Opcodes.ACC_STATIC != 0)
+                method.access = method.access or Opcodes.ACC_STATIC
+                method.desc = key.newMethodDesc
+                if (annotation.getParameter(MakeStatic::addToStaticInitializer.name) as Boolean? ?: false) {
+                    require(methodType.argumentCount == 0)
+                    require(methodType.returnType == Type.VOID_TYPE)
+                    keysToAddToStaticInitializer.add(key)
+                }
 
-                    val descriptor = Type.getMethodType(method.desc)
-                    require(descriptor.argumentTypes.isNotEmpty())
-                    require(descriptor.argumentTypes[0] == Type.getObjectType(processingClass.node.name))
+                annotation.setParameter(APPLIED_PARAMETER, true)
+                processingClass.markModified()
 
-                    val oldDescriptor = Type.getMethodType(
-                        descriptor.returnType,
-                        *Array<Type>(descriptor.argumentCount - 1) {
-                            descriptor.argumentTypes[it + 1]
+                key
+            }
+            if (keysToAddToStaticInitializer.isNotEmpty()) {
+                val clinit = processingClass.node.getOrCreateClinit()
+                val firstInstruction = clinit.instructions.first
+                keysToAddToStaticInitializer.forEach { key ->
+                    require(key.classInternalName == processingClass.node.name)
+                    clinit.instructions.insertBefore(
+                        firstInstruction,
+                        InsnList().apply {
+                            add(InsnNode(Opcodes.ACONST_NULL))
+                            add(MethodInsnNode(
+                                Opcodes.INVOKESTATIC,
+                                key.classInternalName,
+                                key.methodName,
+                                key.newMethodDesc
+                            ))
                         }
                     )
-
-                    val key = Key(
-                        ownerInternalName = processingClass.node.name,
-                        name = method.name,
-                        descriptor = oldDescriptor.descriptor
-                    )
-
-                    yield(key to method.desc)
                 }
             }
-        }.toMap()
+            list
+        }.toSet()
+        context.merge(ContextKey, values)
 
-        module.classes.forEach { processingClass ->
-            processingClass.node.methods?.forEach method@{ method ->
+        directory.classes.forEach { processingClass ->
+            processingClass.node.methods?.forEach { method ->
                 method.instructions?.forEach { instruction ->
                     if (instruction is MethodInsnNode && instruction.opcode != Opcodes.INVOKESTATIC) {
                         val key = Key(
-                            ownerInternalName = instruction.owner,
-                            name = instruction.name,
-                            descriptor = instruction.desc
+                            classInternalName = instruction.owner,
+                            methodName = instruction.name,
+                            methodDesc = instruction.desc
                         )
-                        val newDescriptor = newDescriptorsByMethod[key]
-                        if (newDescriptor != null) {
-                            processingClass.markModified()
+                        if (key in context[ContextKey]) {
                             instruction.opcode = Opcodes.INVOKESTATIC
-                            instruction.desc = newDescriptor
+                            instruction.desc = key.newMethodDesc
+                            processingClass.markModified()
                         }
                     }
                 }
@@ -121,4 +118,17 @@ object MakeStaticProcessor: Processor {
     }
 }
 
-private const val APPLIED_PARAMETER = "applied"
+private val MakeStaticProcessor.Key.newMethodDesc: String
+    get() {
+        val methodType = Type.getMethodType(methodDesc)
+        val newMethodType = Type.getMethodType(
+            methodType.returnType,
+            *Array<Type>(methodType.argumentTypes.size + 1) {
+                when (it) {
+                    0 -> Type.getObjectType(classInternalName)
+                    else -> methodType.argumentTypes[it - 1]
+                }
+            }
+        )
+        return newMethodType.descriptor
+    }

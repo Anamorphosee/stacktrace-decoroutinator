@@ -9,10 +9,8 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":bytecode-processor-plugin-api"))
-    implementation(libs.asm.utils)
-
-    compileOnly(project(":bytecode-processor-intrinsics"))
+    implementation(project(":bytecode-processor-api"))
+    implementation(project(":bytecode-processor-intrinsics"))
 
     testImplementation(kotlin("test"))
 }

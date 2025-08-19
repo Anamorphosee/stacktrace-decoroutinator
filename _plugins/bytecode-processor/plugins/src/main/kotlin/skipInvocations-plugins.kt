@@ -3,96 +3,109 @@
 package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.SkipInvocations
+import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
 import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
+import dev.reformator.bytecodeprocessor.plugins.internal.isStatic
+import dev.reformator.bytecodeprocessor.plugins.internal.setParameter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.MethodInsnNode
 import org.objectweb.asm.tree.MethodNode
 
-object SkipInvocationsProcessor: Processor {
-    override fun process(directory: ProcessingDirectory) {
-        if (modify(directory)) return
-        deleteAfterModification(directory)
-    }
+private const val APPLIED_PARAMETER = "applied"
 
-    private data class Key(
-        val ownerInternalName: String,
-        val name: String,
-        val descriptor: String
+object SkipInvocationsProcessor: Processor {
+    data class Key(
+        val classInternalName: String,
+        val methodName: String,
+        val methodDesc: String,
+        val isStatic: Boolean
     ) {
         constructor(ownerInternalName: String, method: MethodNode): this(
-            ownerInternalName = ownerInternalName,
-            name = method.name,
-            descriptor = method.desc
+            classInternalName = ownerInternalName,
+            methodName = method.name,
+            methodDesc = method.desc,
+            isStatic = method.isStatic
         )
     }
 
-    private fun modify(module: ProcessingDirectory): Boolean {
-        val skipInvocationMethods = module.classes.asSequence().flatMap { processingClass ->
-            processingClass.node.methods.orEmpty().asSequence().mapNotNull { method ->
-                if (method.invisibleAnnotations.find(SkipInvocations::class.java) == null) return@mapNotNull null
+    object ContextKey: BytecodeProcessorContext.Key<Set<Key>> {
+        override val id: String
+            get() = "skipInvocationKeys"
+        override val default: Set<Key>
+            get() = emptySet()
+        override fun merge(value1: Set<Key>, value2: Set<Key>): Set<Key> =
+            value1 + value2
+
+    }
+
+    override val usedContextKeys = listOf(ContextKey)
+
+    override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
+        val values = directory.classes.flatMap { processingClass ->
+            val methodsToDelete: MutableCollection<MethodNode> = mutableListOf()
+            val list = processingClass.node.methods.orEmpty().mapNotNull { method ->
+                val annotation = method.invisibleAnnotations.find(SkipInvocations::class.java)
+                    ?: return@mapNotNull null
 
                 val methodType = Type.getMethodType(method.desc)
                 if (methodType.returnType == Type.VOID_TYPE) {
-                    require(method.access and Opcodes.ACC_STATIC != 0)
-                    require(methodType.argumentTypes.isEmpty())
-                } else if (method.access and Opcodes.ACC_STATIC != 0) {
-                    require(methodType.argumentTypes.size == 1)
+                    require(method.isStatic)
+                    require(methodType.argumentCount == 0)
+                } else if (method.isStatic) {
+                    require(methodType.argumentCount == 1)
                     require(methodType.argumentTypes[0] == methodType.returnType)
                 } else {
-                    require(methodType.argumentTypes.isEmpty())
+                    require(methodType.argumentCount == 0)
                     require(Type.getObjectType(processingClass.node.name) == methodType.returnType)
                 }
 
-                Key(
-                    ownerInternalName = processingClass.node.name,
-                    method = method
-                )
+                val deleteAfterChanging =
+                    annotation.getParameter(SkipInvocations::deleteAfterChanging.name) as Boolean? ?: true
+
+                if (annotation.getParameter(APPLIED_PARAMETER) as Boolean? ?: false) {
+                    require(!deleteAfterChanging)
+                    return@mapNotNull null
+                }
+
+                if (deleteAfterChanging) {
+                    methodsToDelete.add(method)
+                } else {
+                    annotation.setParameter(APPLIED_PARAMETER, true)
+                }
+                processingClass.markModified()
+
+                Key(processingClass.node.name, method)
             }
+            if (methodsToDelete.isNotEmpty()) {
+                require(processingClass.node.methods.removeAll(methodsToDelete))
+            }
+            list
         }.toSet()
+        context.merge(ContextKey, values)
 
-        var modified = false
-
-        module.classes.forEach { processingClass ->
-            processingClass.node.methods?.forEach method@{ method ->
-                val iter = method.instructions?.iterator() ?: return@method
+        directory.classes.forEach { processingClass ->
+            processingClass.node.methods.orEmpty().forEach { method ->
+                val iter = method.instructions?.iterator() ?: return@forEach
                 while (iter.hasNext()) {
                     val instruction = iter.next()
                     if (instruction is MethodInsnNode) {
                         val key = Key(
-                            ownerInternalName = instruction.owner,
-                            name = instruction.name,
-                            descriptor = instruction.desc
+                            classInternalName = instruction.owner,
+                            methodName = instruction.name,
+                            methodDesc = instruction.desc,
+                            isStatic = instruction.opcode == Opcodes.INVOKESTATIC
                         )
-                        if (key in skipInvocationMethods) {
+                        if (key in context[ContextKey]) {
                             iter.remove()
-                            modified = true
                             processingClass.markModified()
                         }
                     }
                 }
             }
         }
-
-        return modified
     }
-}
-
-private fun deleteAfterModification(module: ProcessingDirectory): Boolean {
-    var modified = false
-    module.classes.forEach { processingClass ->
-        val iter = processingClass.node.methods?.iterator() ?: return@forEach
-        while (iter.hasNext()) {
-            val method = iter.next()
-            val annotation = method.invisibleAnnotations.find(SkipInvocations::class.java) ?: continue
-            if (annotation.getParameter(SkipInvocations::deleteAfterChanging.name) as Boolean? == false) continue
-            iter.remove()
-            processingClass.markModified()
-            modified = true
-        }
-    }
-    return modified
 }

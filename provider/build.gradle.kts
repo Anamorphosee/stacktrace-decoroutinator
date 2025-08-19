@@ -24,10 +24,9 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(
-        RemoveKotlinStdlibProcessor(),
-        GetOwnerClassProcessor(),
-        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics")
+    processors = listOf(
+        RemoveKotlinStdlibProcessor,
+        GetOwnerClassProcessor
     )
 }
 

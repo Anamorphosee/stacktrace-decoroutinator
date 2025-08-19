@@ -11,7 +11,7 @@ suspend fun call(callIt: suspend () -> Any?): Any? {
 }
 
 private val currentFileClass: Class<*>
-    @GetOwnerClass(deleteAfterModification = true) get() { fail() }
+    @GetOwnerClass get() { fail() }
 
 val duplicateJarCallClassName = currentFileClass.name
 val duplicateJarCallMethodName = ::call.name

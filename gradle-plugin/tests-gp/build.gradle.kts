@@ -1,6 +1,4 @@
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
-import dev.reformator.bytecodeprocessor.plugins.GetCurrentLineNumberProcessor
-import dev.reformator.bytecodeprocessor.plugins.RemoveModuleRequiresProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -39,10 +37,8 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(
-        RemoveModuleRequiresProcessor("dev.reformator.bytecodeprocessor.intrinsics", "intrinsics"),
+    processors = listOf(
         GetCurrentFileNameProcessor,
-        GetCurrentLineNumberProcessor
     )
 }
 

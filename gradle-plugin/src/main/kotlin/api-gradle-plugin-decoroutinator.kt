@@ -54,4 +54,4 @@ val Project.decoroutinatorAndroidProGuardRules: File
     get() = decoroutinatorDir.resolve(ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME)
 
 private val projectVersionIntrinsic: String
-    @LoadConstant get() { fail() }
+    @LoadConstant("version") get() { fail() }

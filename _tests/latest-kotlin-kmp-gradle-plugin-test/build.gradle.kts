@@ -1,5 +1,4 @@
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
-import dev.reformator.bytecodeprocessor.plugins.GetCurrentLineNumberProcessor
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -26,8 +25,7 @@ stacktraceDecoroutinator {
 
 bytecodeProcessor {
     processors = setOf(
-        GetCurrentFileNameProcessor,
-        GetCurrentLineNumberProcessor
+        GetCurrentFileNameProcessor
     )
 }
 

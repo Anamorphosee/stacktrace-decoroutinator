@@ -24,6 +24,14 @@ internal fun AnnotationNode.getParameter(name: String): Any? {
 
 internal fun AnnotationNode.setParameter(name: String, value: Any) {
     val parameters: MutableList<Any> = values ?: run { values = mutableListOf(); values }
+    var index = 0
+    while (index < parameters.size) {
+        if (parameters[index] == name) {
+            parameters[index + 1] = value
+            return
+        }
+        index += 2
+    }
     parameters.add(name)
     parameters.add(value)
 }
@@ -43,21 +51,6 @@ internal fun ClassNode.getOrCreateClinit(): MethodNode =
         val methods: MutableList<MethodNode> = methods ?: run { methods = mutableListOf(); methods }
         methods.add(this)
     }
-
-internal fun MethodNode.insertBefore(instructions: InsnList) {
-    this.instructions.insertBefore(this.instructions.first, instructions)
-}
-
-internal fun MethodNode.insertBefore(instruction: AbstractInsnNode) {
-    this.instructions.insertBefore(this.instructions.first, instruction)
-}
-
-internal inline fun <T> List<T>.forEachAllowingAddingToEnd(action: (T) -> Unit) {
-    var index = 0
-    while (index < size) {
-        action(get(index++))
-    }
-}
 
 internal fun Class<*>.readAsm(): ClassNode =
     classLoader.getResourceAsStream(

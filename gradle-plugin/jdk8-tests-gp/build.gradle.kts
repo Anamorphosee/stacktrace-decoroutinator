@@ -1,5 +1,4 @@
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
-import dev.reformator.bytecodeprocessor.plugins.GetCurrentLineNumberProcessor
 
 plugins {
     kotlin("jvm")
@@ -36,9 +35,8 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = setOf(
-        GetCurrentFileNameProcessor,
-        GetCurrentLineNumberProcessor
+    processors = listOf(
+        GetCurrentFileNameProcessor
     )
 }
 

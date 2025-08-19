@@ -9,7 +9,8 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.asm.utils)
+    api(libs.asm.utils)
+
     testImplementation(kotlin("test"))
 }
 

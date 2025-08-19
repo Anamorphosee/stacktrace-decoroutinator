@@ -198,13 +198,13 @@ abstract class DecoroutinatorEmbedDebugProbesAction: TransformAction<TransformPa
 }
 
 private val debugProbesProviderClassBodyBase64: String
-    @LoadConstant get() = fail()
+    @LoadConstant("debugProbesProviderClassBodyBase64") get() = fail()
 private val debugProbesKtClassBodyBase64: String
-    @LoadConstant get() = fail()
+    @LoadConstant("debugProbesKtClassBodyBase64") get() = fail()
 private val debugProbesProviderImplClassBodyBase64: String
-    @LoadConstant get() = fail()
+    @LoadConstant("debugProbesProviderImplClassBodyBase64") get() = fail()
 private val debugProbesProviderUtilsClassBodyBase64: String
-    @LoadConstant get() = fail()
+    @LoadConstant("debugProbesProviderUtilsClassBodyBase64") get() = fail()
 
 private fun getDebugProbesKtClassBodyStream() =
     ByteArrayInputStream(Base64.getDecoder().decode(debugProbesKtClassBodyBase64))

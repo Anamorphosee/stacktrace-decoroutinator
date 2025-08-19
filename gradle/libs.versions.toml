@@ -4,6 +4,7 @@ agp = "8.9.3"
 kotlin-latest = "2.2.20-Beta2"
 coroutines-build = "1.8.1"
 coroutines-latest = "1.10.2"
+jackson = "2.19.2"
 
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -25,6 +26,8 @@ kotlinx-coroutines-jdk8-latest = { group = "org.jetbrains.kotlinx", name = "kotl
 kotlinx-coroutines-debug-build = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-debug", version.ref = "coroutines-build" }
 kotlinx-coroutines-debug-latest = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-debug", version.ref = "coroutines-latest" }
 multidex = { group = "androidx.multidex", name = "multidex", version = "2.0.1" }
+jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
+jackson-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version.ref = "jackson" }
 
 [plugins]
 shadow = { id = "com.github.johnrengelman.shadow" }

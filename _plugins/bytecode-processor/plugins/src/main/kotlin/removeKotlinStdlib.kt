@@ -2,6 +2,7 @@
 
 package dev.reformator.bytecodeprocessor.plugins
 
+import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
 import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.pluginapi.Processor
 import org.objectweb.asm.Opcodes
@@ -12,18 +13,14 @@ import org.objectweb.asm.tree.MethodInsnNode
 import kotlin.jvm.internal.Intrinsics
 import kotlin.reflect.KFunction
 
-class RemoveKotlinStdlibProcessor(
-    private val includeClassNames: Set<Regex>? = null,
-    private val includeModuleInfo: Boolean = true
-): Processor {
-    override fun process(directory: ProcessingDirectory) {
+private const val KOTLIN_STDLIB_MODULE = "kotlin.stdlib"
+
+object RemoveKotlinStdlibProcessor: Processor {
+    override val usedContextKeys: List<BytecodeProcessorContext.Key<*>>
+        get() = emptyList()
+
+    override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
         directory.classes.forEach { clazz ->
-            if (includeClassNames != null) {
-                val className = Type.getObjectType(clazz.node.name).className
-                if (includeClassNames.all { !it.matches(className) }) {
-                    return@forEach
-                }
-            }
             clazz.node.methods?.forEach { method ->
                 method.instructions?.forEach { instruction ->
                     if (instruction is MethodInsnNode) {
@@ -70,17 +67,13 @@ class RemoveKotlinStdlibProcessor(
                 }
             }
         }
-        if (includeModuleInfo) {
-            directory.module?.let { module ->
-                if (module.node.requires?.removeIf { it.module == KOTLIN_STDLIB_MODULE } == true) {
-                    module.markModified()
-                }
+        directory.module?.let { module ->
+            if (module.node.requires?.removeIf { it.module == KOTLIN_STDLIB_MODULE } == true) {
+                module.markModified()
             }
         }
     }
 }
-
-private const val KOTLIN_STDLIB_MODULE = "kotlin.stdlib"
 
 private val intrinsicCheckNotNullWithMessageMethodNames = setOf(
     run {val x: (Any?, String) -> Unit = Intrinsics::checkNotNull; x as KFunction<*> }.name,

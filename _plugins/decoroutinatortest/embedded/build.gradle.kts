@@ -1,4 +1,3 @@
-import dev.reformator.bytecodeprocessor.plugins.AddToStaticInitializerProcessor
 import dev.reformator.bytecodeprocessor.plugins.ChangeClassNameProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -9,8 +8,7 @@ plugins {
 
 bytecodeProcessor {
     processors = setOf(
-        ChangeClassNameProcessor(),
-        AddToStaticInitializerProcessor
+        ChangeClassNameProcessor
     )
 }
 

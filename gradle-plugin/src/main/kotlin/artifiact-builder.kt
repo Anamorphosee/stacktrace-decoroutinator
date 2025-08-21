@@ -134,11 +134,13 @@ internal class ZipArtifactBuilder(private val zip: ZipOutputStream): ArtifactBui
 @JvmInline internal value class DirectoryArtifact(private val root: File): Artifact, ArtifactBuilder {
     override fun walk(walker: ArtifactWalker) {
         root.walk().forEach { file ->
-            val relativePath = file.relativeTo(root)
-            if (file.isDirectory) {
-                walker.onDirectory(relativePath.path.split(File.separator))
-            } else {
-                walker.onFile(relativePath.path.split(File.separator)) { file.inputStream() }
+            if (file != root) {
+                val relativePath = file.relativeTo(root)
+                if (file.isDirectory) {
+                    walker.onDirectory(relativePath.path.split(File.separator))
+                } else {
+                    walker.onFile(relativePath.path.split(File.separator)) { file.inputStream() }
+                }
             }
         }
     }
@@ -169,7 +171,7 @@ internal class ZipArtifactBuilder(private val zip: ZipOutputStream): ArtifactBui
     @Suppress("AssertionSideEffect")
     override fun addDirectory(path: ArtifactPath) {
         val file = path.fold(root) { acc, segment -> acc.resolve(segment) }
-        file.mkdir()
+        assert(file.mkdir())
     }
 }
 

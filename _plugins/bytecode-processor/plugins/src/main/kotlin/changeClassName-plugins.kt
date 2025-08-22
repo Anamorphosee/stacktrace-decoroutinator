@@ -3,9 +3,9 @@
 package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
-import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
-import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
+import dev.reformator.bytecodeprocessor.api.ProcessingDirectory
+import dev.reformator.bytecodeprocessor.api.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
 import dev.reformator.bytecodeprocessor.plugins.internal.internalName
@@ -31,8 +31,6 @@ object ChangeClassNameProcessor: Processor {
             return value1 + value2
         }
     }
-
-    override val usedContextKeys = listOf(ContextKey)
 
     fun add(context: BytecodeProcessorContext, replacedClassNamesByOriginalName: Map<String, String>) {
         context.merge(

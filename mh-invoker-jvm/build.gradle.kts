@@ -1,5 +1,5 @@
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContextImpl
-import dev.reformator.bytecodeprocessor.pluginapi.applyBytecodeProcessors
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContextImpl
+import dev.reformator.bytecodeprocessor.api.applyBytecodeProcessors
 import dev.reformator.bytecodeprocessor.plugins.*
 import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody

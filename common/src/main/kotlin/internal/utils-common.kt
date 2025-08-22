@@ -9,7 +9,6 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineR
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
-import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
 import java.util.ServiceLoader
@@ -128,21 +127,6 @@ private fun <T: Any> loadMandatoryService(type: Class<T>): T {
 
 internal inline fun <reified T: Any> loadMandatoryService(): T =
     loadMandatoryService(T::class.java)
-
-internal fun loadRuntimeSettingsProvider(): DecoroutinatorRuntimeSettingsProvider {
-    val services = loadServices(DecoroutinatorRuntimeSettingsProvider::class.java)
-    if (services.first.isEmpty()) {
-        return DecoroutinatorRuntimeSettingsProvider
-    }
-    val maxPriority = services.first.maxOf { it.priority }
-    val providersWithMaxPriority = services.first.filter { it.priority == maxPriority }
-    if (providersWithMaxPriority.size > 1) {
-        throw IllegalStateException(
-            "Multiple DecoroutinatorRuntimeSettingsProvider implementations with max priority found: $providersWithMaxPriority"
-        )
-    }
-    return providersWithMaxPriority.first()
-}
 
 internal fun Class<*>.getBodyStream(loader: ClassLoader): InputStream? =
     loader.getResourceAsStream(name.replace('.', '/') + ".class")

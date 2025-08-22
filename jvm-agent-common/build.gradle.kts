@@ -4,7 +4,6 @@ import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
 import org.gradle.kotlin.dsl.named
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.util.Base64
 
 plugins {
@@ -38,7 +37,10 @@ dependencies {
 }
 
 bytecodeProcessor {
-    dependentProjects = listOf(project(":stacktrace-decoroutinator-generator"))
+    dependentProjects = listOf(
+        project(":stacktrace-decoroutinator-generator"),
+        project(":gradle-plugin:base-continuation-accessor")
+    )
     processors = listOf(
         GetOwnerClassProcessor,
         ChangeClassNameProcessor,
@@ -47,20 +49,18 @@ bytecodeProcessor {
 }
 
 val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
-    val accessorProject = project(":base-continuation-accessor")
-    val accessorCompileKotlinTask = accessorProject.tasks.named<KotlinJvmCompile>("compileKotlin")
-    dependsOn(accessorCompileKotlinTask)
+    val baseContinuationAccessorJarTask =
+        project(":gradle-plugin:base-continuation-accessor").tasks.named<Jar>("jar")
+    dependsOn(baseContinuationAccessorJarTask)
     doLast {
-        val regularAccessorClass = accessorCompileKotlinTask.get().destinationDirectory.get().dir("kotlin")
-            .dir("coroutines").dir("jvm").dir("internal")
-            .file("DecoroutinatorBaseContinuationAccessorImpl.class").asFile
-        val regularAccessorClassBodyBase64 = Base64.getEncoder().encodeToString(regularAccessorClass.readBytes())
+        val baseContinuationAccessorJarBody = baseContinuationAccessorJarTask.get().archiveFile.get().asFile.readBytes()
         bytecodeProcessor {
             initContext {
-                LoadConstantProcessor.addValues(
-                    context = this,
-                    valuesByKeys = mapOf("regularAccessorClassBodyBase64" to regularAccessorClassBodyBase64)
-                )
+                val base64Encoder = Base64.getEncoder()
+                LoadConstantProcessor.addValues(this, mapOf(
+                    "baseContinuationAccessorJarBase64"
+                            to base64Encoder.encodeToString(baseContinuationAccessorJarBody)
+                ))
             }
         }
     }

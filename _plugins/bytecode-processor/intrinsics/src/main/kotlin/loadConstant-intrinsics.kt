@@ -8,3 +8,7 @@ annotation class LoadConstant(
     val key: String,
     val deleteAfterModification: Boolean = true
 )
+
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.CLASS)
+annotation class ClassNameConstant(val key: String)

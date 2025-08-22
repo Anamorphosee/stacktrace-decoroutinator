@@ -1,16 +1,7 @@
-import dev.reformator.bytecodeprocessor.plugins.ChangeClassNameProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm")
-    id("dev.reformator.bytecodeprocessor")
-}
-
-bytecodeProcessor {
-    dependentProjects = listOf(project(":intrinsics"))
-    processors = listOf(
-        ChangeClassNameProcessor
-    )
 }
 
 repositories {
@@ -20,18 +11,18 @@ repositories {
 dependencies {
     //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
-    compileOnly(project(":stacktrace-decoroutinator-provider"))
     compileOnly(project(":intrinsics"))
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    targetCompatibility = JavaVersion.VERSION_1_9
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
+        freeCompilerArgs.add("-Xallow-kotlin-package")
     }
 }
 
@@ -43,3 +34,6 @@ sourceSets {
         kotlin.destinationDirectory = java.destinationDirectory
     }
 }
+
+val kotlinSources = sourceSets.main.get().kotlin
+kotlinSources.srcDirs("../../../gradle-plugin/embedded-debug-probes-stdlib/src/main/kotlin")

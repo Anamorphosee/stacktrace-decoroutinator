@@ -14,7 +14,7 @@ buildscript {
         //noinspection UseTomlInstead
         classpath("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
         //noinspection UseTomlInstead
-        classpath("dev.reformator.decoroutinatortest:decoroutinatortest")
+        classpath("dev.reformator.gradle-plugin-test:gradle-plugin-test")
     }
 }
 

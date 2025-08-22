@@ -15,6 +15,7 @@ import com.android.dx.rop.type.Type
 import dalvik.system.InMemoryDexClassLoader
 import dev.reformator.stacktracedecoroutinator.common.internal.*
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.runtimesettings.internal.getRuntimeSettingsValue
 import java.io.IOException
 import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
@@ -22,7 +23,13 @@ import java.lang.reflect.Modifier
 import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList
 
-private val androidGeneratorAttemptsCount = settingsProvider.androidGeneratorAttemptsCount
+private val androidGeneratorAttemptsCount =
+    getRuntimeSettingsValue({ androidGeneratorAttemptsCount }) {
+        System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.androidGeneratorAttemptsCount",
+            "3"
+        )!!.toInt()
+    }
 
 private const val LOG_TAG = "Decoroutinator"
 

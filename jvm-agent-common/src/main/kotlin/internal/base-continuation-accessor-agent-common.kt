@@ -10,6 +10,7 @@ import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuatio
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.util.Base64
+import java.util.zip.ZipInputStream
 
 internal class AgentBaseContinuationAccessorProvider: BaseContinuationAccessorProvider {
     override fun createAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor {
@@ -39,9 +40,25 @@ internal class AgentBaseContinuationAccessorProvider: BaseContinuationAccessorPr
 }
 
 private fun loadRegularAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor {
-    val regularProviderClass: Class<*> = lookup.defineClass(Base64.getDecoder().decode(regularAccessorClassBodyBase64))
-    return regularProviderClass.getDeclaredConstructor().newInstance() as BaseContinuationAccessor
+    var baseContinuationAccessorClass: Class<*>? = null
+    ZipInputStream(Base64.getDecoder().decode(baseContinuationAccessorJarBase64).inputStream()).use { input ->
+        while (true) {
+            val entry = input.nextEntry ?: break
+            if (entry.name.endsWith(".class")) {
+                val body = input.readBytes()
+                lookup.defineClass(body).let { definedClass ->
+                    if (definedClass.name == baseContinuationAccessorImplClassName) {
+                        baseContinuationAccessorClass = definedClass
+                    }
+                }
+            }
+        }
+    }
+    return baseContinuationAccessorClass!!.getDeclaredConstructor().newInstance() as BaseContinuationAccessor
 }
 
-private val regularAccessorClassBodyBase64: String
-    @LoadConstant("regularAccessorClassBodyBase64") get() { fail() }
+private val baseContinuationAccessorJarBase64: String
+    @LoadConstant("baseContinuationAccessorJarBase64") get() { fail() }
+
+private val baseContinuationAccessorImplClassName: String
+    @LoadConstant("baseContinuationAccessorImplClassName") get() { fail() }

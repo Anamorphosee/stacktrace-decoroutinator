@@ -6,9 +6,9 @@ import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
 import dev.reformator.bytecodeprocessor.intrinsics.ownerClass
 import dev.reformator.bytecodeprocessor.intrinsics.ownerClassName
 import dev.reformator.bytecodeprocessor.intrinsics.ownerMethodName
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
-import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
-import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
+import dev.reformator.bytecodeprocessor.api.ProcessingDirectory
+import dev.reformator.bytecodeprocessor.api.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.eq
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
@@ -42,8 +42,6 @@ object GetOwnerClassProcessor: Processor {
         val methodName: String,
         val isString: Boolean
     )
-
-    override val usedContextKeys = listOf(ContextKey)
 
     override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
         val values = directory.classes.flatMap { processingClass ->
@@ -126,8 +124,8 @@ object GetOwnerClassProcessor: Processor {
                                     isString = isString
                                 )
                                 if (key in context[ContextKey]) {
-                                    val type = Type.getObjectType(instruction.owner)
-                                    val ldcConst = if (isString) type.className else type
+                                    val type: Type = Type.getObjectType(instruction.owner)
+                                    val ldcConst: Any = if (isString) type.className else type
                                     method.instructions.set(instruction, LdcInsnNode(ldcConst))
                                     processingClass.markModified()
                                 }

@@ -4,9 +4,9 @@ package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
-import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
-import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
+import dev.reformator.bytecodeprocessor.api.ProcessingDirectory
+import dev.reformator.bytecodeprocessor.api.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.eq
 import dev.reformator.bytecodeprocessor.plugins.internal.readAsm
 import org.objectweb.asm.Opcodes
@@ -17,9 +17,6 @@ import org.objectweb.asm.tree.MethodInsnNode
 import org.objectweb.asm.tree.MethodNode
 
 object GetCurrentFileNameProcessor: Processor {
-    override val usedContextKeys: List<BytecodeProcessorContext.Key<*>>
-        get() = emptyList()
-
     override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
         directory.classes.forEach { clazz ->
             clazz.node.methods?.forEach { method ->

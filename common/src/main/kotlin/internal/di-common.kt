@@ -3,29 +3,69 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
-import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
+import dev.reformator.stacktracedecoroutinator.runtimesettings.internal.getRuntimeSettingsValue
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 
 internal val supportsMethodHandle = supportsMethodHandle()
 
-@Suppress("ObjectPropertyName")
-private val _settingsProvider = if (supportsMethodHandle) loadRuntimeSettingsProvider() else null
+internal val enabled =
+    supportsMethodHandle && getRuntimeSettingsValue({ enabled }) {
+        System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
+    }
 
-internal val enabled = supportsMethodHandle && _settingsProvider!!.enabled
+internal val recoveryExplicitStacktrace =
+    enabled && getRuntimeSettingsValue({ recoveryExplicitStacktrace }) {
+        System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace",
+            "true"
+        ).toBoolean()
+    }
 
-internal val recoveryExplicitStacktrace = enabled && _settingsProvider!!.recoveryExplicitStacktrace
-
-internal val tailCallDeoptimize = enabled && _settingsProvider!!.tailCallDeoptimize
+internal val tailCallDeoptimize =
+    enabled && getRuntimeSettingsValue({ tailCallDeoptimize }) {
+        System.getProperty("dev.reformator.stacktracedecoroutinator.tailCallDeoptimize", "true").toBoolean()
+    }
 
 internal val recoveryExplicitStacktraceTimeoutMs =
-    if (tailCallDeoptimize) _settingsProvider!!.recoveryExplicitStacktraceTimeoutMs else 0U
+    if (tailCallDeoptimize) {
+        getRuntimeSettingsValue({ recoveryExplicitStacktraceTimeoutMs }) {
+            System.getProperty(
+                "dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktraceTimeoutMs",
+                "500"
+            ).toUInt()
+        }
+    } else {
+        0U
+    }
 
-internal val methodsNumberThreshold = if (enabled) _settingsProvider!!.methodsNumberThreshold else 0
+internal val methodsNumberThreshold =
+    if (enabled) {
+        getRuntimeSettingsValue({ methodsNumberThreshold }) {
+            System.getProperty(
+                "dev.reformator.stacktracedecoroutinator.methodsNumberThreshold",
+                "50"
+            ).toInt()
+        }
+    } else {
+        0
+    }
 
-internal val restoreCoroutineStackFrames = enabled && _settingsProvider!!.restoreCoroutineStackFrames
+internal val fillUnknownElementsWithClassName =
+    enabled && getRuntimeSettingsValue({ fillUnknownElementsWithClassName }) {
+        System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.fillUnknownElementsWithClassName",
+            "false"
+        ).toBoolean()
+    }
 
-internal val fillUnknownElementsWithClassName = enabled && _settingsProvider!!.fillUnknownElementsWithClassName
+internal val isUsingElementFactoryForBaseContinuationEnabled: Boolean =
+    enabled && getRuntimeSettingsValue({ isUsingElementFactoryForBaseContinuationEnabled }) {
+        System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.isUsingElementFactoryForBaseContinuationEnabled",
+            "true"
+        ).toBoolean()
+    }
 
 internal var baseContinuationAccessor: BaseContinuationAccessor? = null
 
@@ -71,9 +111,6 @@ private val _varHandleInvoker: VarHandleInvoker? =
     } else {
         null
     }
-
-val settingsProvider: DecoroutinatorRuntimeSettingsProvider
-    get() = _settingsProvider!!
 
 val methodHandleInvoker: MethodHandleInvoker
     get() = _methodHandleInvoker!!

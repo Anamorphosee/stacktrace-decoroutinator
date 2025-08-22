@@ -2,10 +2,11 @@
 
 package dev.reformator.bytecodeprocessor.plugins
 
+import dev.reformator.bytecodeprocessor.intrinsics.ClassNameConstant
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
-import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
-import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
+import dev.reformator.bytecodeprocessor.api.ProcessingDirectory
+import dev.reformator.bytecodeprocessor.api.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
 import dev.reformator.bytecodeprocessor.plugins.internal.isStatic
@@ -60,9 +61,26 @@ object LoadConstantProcessor: Processor {
         context.merge(KeyValueContextKey, valuesByKeys)
     }
 
-    override val usedContextKeys = listOf(KeyValueContextKey, MethodKeyContextKey)
-
     override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
+        directory.classes.forEach { processingClass ->
+            val annotation = processingClass.node.invisibleAnnotations.find(ClassNameConstant::class.java)
+                ?: return@forEach
+
+            if (annotation.getParameter(APPLIED_PARAMETER) as Boolean? ?: false) {
+                return@forEach
+            }
+
+            val key = annotation.getParameter(ClassNameConstant::key.name) as String
+
+            context.merge(
+                key = KeyValueContextKey,
+                value = mapOf(key to Type.getObjectType(processingClass.node.name).className)
+            )
+
+            annotation.setParameter(APPLIED_PARAMETER, true)
+            processingClass.markModified()
+        }
+
         val keys = directory.classes.flatMap { processingClass ->
             val methodsToDelete = mutableListOf<MethodNode>()
             val list = processingClass.node.methods.orEmpty().mapNotNull { method ->

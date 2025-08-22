@@ -2,9 +2,9 @@
 
 package dev.reformator.bytecodeprocessor.plugins
 
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
-import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
-import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
+import dev.reformator.bytecodeprocessor.api.ProcessingDirectory
+import dev.reformator.bytecodeprocessor.api.Processor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.FieldInsnNode
@@ -16,9 +16,6 @@ import kotlin.reflect.KFunction
 private const val KOTLIN_STDLIB_MODULE = "kotlin.stdlib"
 
 object RemoveKotlinStdlibProcessor: Processor {
-    override val usedContextKeys: List<BytecodeProcessorContext.Key<*>>
-        get() = emptyList()
-
     override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
         directory.classes.forEach { clazz ->
             clazz.node.methods?.forEach { method ->

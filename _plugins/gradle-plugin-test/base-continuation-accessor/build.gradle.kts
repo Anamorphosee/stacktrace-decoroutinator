@@ -1,4 +1,5 @@
 import dev.reformator.bytecodeprocessor.plugins.ChangeClassNameProcessor
+import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -7,7 +8,11 @@ plugins {
 }
 
 bytecodeProcessor {
-    processors = setOf(
+    dependentProjects = listOf(
+        project(":intrinsics")
+    )
+    processors = listOf(
+        LoadConstantProcessor,
         ChangeClassNameProcessor
     )
 }
@@ -19,6 +24,8 @@ repositories {
 dependencies {
     //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
+    compileOnly(project(":provider"))
+    compileOnly(project(":intrinsics"))
 }
 
 java {
@@ -29,21 +36,11 @@ java {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
-    }
-}
-
-sourceSets {
-    main {
-        kotlin.destinationDirectory = java.destinationDirectory
-    }
-    test {
-        kotlin.destinationDirectory = java.destinationDirectory
+        freeCompilerArgs.add("-Xallow-kotlin-package")
     }
 }
 
 val kotlinSources = sourceSets.main.get().kotlin
-kotlinSources.srcDirs("../../../gradle-plugin/embedded-debug-probes/src/main/kotlin")
-kotlinSources.srcDirs("../../../runtime-settings/src/main/kotlin")
-kotlinSources.srcDirs("../../../provider/src/main/kotlin")
-kotlinSources.srcDirs("../../../base-continuation-accessor/src/main/kotlin")
-kotlinSources.srcDirs("../../../intrinsics/src/main/kotlin")
+val resourcesSources = sourceSets.main.get().resources
+kotlinSources.srcDirs("../../../gradle-plugin/base-continuation-accessor/src/main/kotlin")
+resourcesSources.srcDirs("../../../gradle-plugin/base-continuation-accessor/src/main/resources")

@@ -20,9 +20,9 @@ import com.fasterxml.jackson.databind.node.TextNode
 import com.fasterxml.jackson.databind.ser.std.StdSerializer
 import com.fasterxml.jackson.databind.util.TokenBuffer
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
-import dev.reformator.bytecodeprocessor.pluginapi.applyBytecodeProcessors
-import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
+import dev.reformator.bytecodeprocessor.api.applyBytecodeProcessors
+import dev.reformator.bytecodeprocessor.api.Processor
 import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
@@ -38,7 +38,6 @@ import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.compile.AbstractCompile
-import org.gradle.kotlin.dsl.bytecodeProcessor
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.File
 import java.lang.reflect.ParameterizedType
@@ -61,12 +60,6 @@ open class BytecodeProcessorPluginExtension {
     internal val initialContext = MapperBytecodeProcessorContext()
 }
 
-private val Project.contextKeysById: Map<String, BytecodeProcessorContext.Key<*>>
-    get() = bytecodeProcessor.processors.asSequence()
-        .flatMap { it.usedContextKeys }
-        .map { it.id to it }
-        .toMap()
-
 abstract class BytecodeProcessorMergeContextsTask @Inject constructor(
     private val initialContext: MapperBytecodeProcessorContext
 ): DefaultTask() {
@@ -81,12 +74,11 @@ abstract class BytecodeProcessorMergeContextsTask @Inject constructor(
 
     @TaskAction
     fun action() {
-        val contextKeysById = project.contextKeysById
         val context = initialContext.copy()
         contextFilesToMerge.forEach { file ->
             if (file.exists()) {
                 val fileContext = MapperBytecodeProcessorContext.read(file)
-                context.merge(contextKeysById, fileContext)
+                context.merge(fileContext)
             }
         }
         context.write(mergedContextsFile.get().asFile)
@@ -312,13 +304,13 @@ private object MapAsArrayModule: SimpleModule() {
 
 
 class MapperBytecodeProcessorContext private constructor(
-    private val root: MutableMap<String, JsonNode>
+    private val root: MutableMap<String, List<JsonNode>>
 ): BytecodeProcessorContext {
     constructor(): this(hashMapOf())
 
     companion object {
         val empty = MapperBytecodeProcessorContext()
-        private val rootTypeRef = object: TypeReference<MutableMap<String, JsonNode>>() { }
+        private val rootTypeRef = object: TypeReference<MutableMap<String, List<JsonNode>>>() { }
 
         fun read(from: File): MapperBytecodeProcessorContext {
             val root = objectMapper.readValue(from, rootTypeRef)
@@ -327,13 +319,22 @@ class MapperBytecodeProcessorContext private constructor(
     }
 
     override fun <T: Any> get(key: BytecodeProcessorContext.Key<T>): T {
-        val keyNode = root[key.id] ?: return key.default
-        return objectMapper.convertValue(keyNode, key.jacksonType)
+        var keyNode = root[key.id] ?: return key.default
+        if (keyNode.isEmpty()) return key.default
+        val keyType = key.jacksonType
+        if (keyNode.size > 1) {
+            keyNode = keyNode.asSequence()
+                .map { objectMapper.convertValue<T>(it, keyType) }
+                .reduce(key::merge)
+                .let { listOf(objectMapper.convertValue(it, JsonNode::class.java)) }
+            root[key.id] = keyNode
+        }
+        return objectMapper.convertValue(keyNode[0], key.jacksonType)
     }
 
     override fun <T: Any> merge(key: BytecodeProcessorContext.Key<T>, value: T): T {
         val newValue = key.merge(this[key], value)
-        root[key.id] = objectMapper.convertValue(newValue, JsonNode::class.java)
+        root[key.id] = listOf(objectMapper.convertValue(newValue, JsonNode::class.java))
         return newValue
     }
 
@@ -344,16 +345,13 @@ class MapperBytecodeProcessorContext private constructor(
     fun copy(): MapperBytecodeProcessorContext =
         MapperBytecodeProcessorContext(HashMap(root))
 
-    fun merge(contextKeysById: Map<String, BytecodeProcessorContext.Key<*>>, context: MapperBytecodeProcessorContext) {
-        context.root.forEach { (keyId, otherValue) ->
-            when (root[keyId]) {
-                null -> root[keyId] = otherValue
-                otherValue -> { }
-                else -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val key = contextKeysById[keyId]!! as BytecodeProcessorContext.Key<Any>
-                    merge(key, context[key])
-                }
+    fun merge(context: MapperBytecodeProcessorContext) {
+        context.root.forEach { (keyId, otherValues) ->
+            val values = root[keyId]
+            root[keyId] = if (values.isNullOrEmpty()) {
+                otherValues
+            } else {
+                values + otherValues
             }
         }
     }

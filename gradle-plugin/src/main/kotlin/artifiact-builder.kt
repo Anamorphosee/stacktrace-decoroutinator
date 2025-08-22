@@ -66,6 +66,13 @@ internal interface Artifact {
 internal interface ArtifactBuilder {
     fun addFile(path: ArtifactPath, body: InputStream)
     fun addDirectory(path: ArtifactPath)
+    fun ensureDirectory(path: ArtifactPath)
+    fun ensureDirAndAndAddFile(path: ArtifactPath, body: InputStream) {
+        if (path.size > 1) {
+            ensureDirectory(path.subList(0, path.size - 1))
+        }
+        addFile(path, body)
+    }
 }
 
 @JvmInline internal value class ZipArtifact(private val zip: ZipFile): Artifact {
@@ -106,6 +113,7 @@ internal interface ArtifactBuilder {
 
 internal class ZipArtifactBuilder(private val zip: ZipOutputStream): ArtifactBuilder {
     private val names = mutableSetOf<String>()
+
     override fun addFile(path: ArtifactPath, body: InputStream) {
         val name = path.joinToString(separator = "/")
         if (!names.add(name)) {
@@ -128,6 +136,18 @@ internal class ZipArtifactBuilder(private val zip: ZipOutputStream): ArtifactBui
         val entry = ZipEntry(path.joinToString(separator = "/", postfix = "/"))
         zip.putNextEntry(entry)
         zip.closeEntry()
+    }
+
+    override fun ensureDirectory(path: ArtifactPath) {
+        val builder = StringBuilder()
+        path.forEachIndexed { index, segment ->
+            builder.append(segment)
+            builder.append("/")
+            val name = builder.toString()
+            if (name !in names) {
+                addDirectory(path.subList(0, index + 1))
+            }
+        }
     }
 }
 
@@ -172,6 +192,11 @@ internal class ZipArtifactBuilder(private val zip: ZipOutputStream): ArtifactBui
     override fun addDirectory(path: ArtifactPath) {
         val file = path.fold(root) { acc, segment -> acc.resolve(segment) }
         assert(file.mkdir())
+    }
+
+    override fun ensureDirectory(path: ArtifactPath) {
+        val file = path.fold(root) { acc, segment -> acc.resolve(segment) }
+        file.mkdirs()
     }
 }
 

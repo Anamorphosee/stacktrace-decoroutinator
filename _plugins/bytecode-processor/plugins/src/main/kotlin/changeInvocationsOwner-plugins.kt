@@ -3,9 +3,9 @@
 package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeInvocationsOwner
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
-import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
-import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
+import dev.reformator.bytecodeprocessor.api.ProcessingDirectory
+import dev.reformator.bytecodeprocessor.api.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
 import dev.reformator.bytecodeprocessor.plugins.internal.internalName
@@ -43,8 +43,6 @@ object ChangeInvocationsOwnerProcessor: Processor {
             descriptor = method.desc
         )
     }
-
-    override val usedContextKeys = listOf(ContextKey)
 
     override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
         val values = directory.classes.flatMap { processingClass ->

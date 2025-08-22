@@ -1,6 +1,6 @@
 @file:Suppress("PackageDirectoryMismatch")
 
-package dev.reformator.bytecodeprocessor.pluginapi
+package dev.reformator.bytecodeprocessor.api
 
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter

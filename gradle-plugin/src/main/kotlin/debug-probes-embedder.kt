@@ -5,7 +5,6 @@ package dev.reformator.stacktracedecoroutinator.gradleplugin
 
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorRuntimeSettingsProvider
 import org.objectweb.asm.tree.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.artifacts.transform.InputArtifact
@@ -15,13 +14,10 @@ import org.gradle.api.artifacts.transform.TransformParameters
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Provider
-import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
-import java.util.Base64
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
-import kotlin.reflect.jvm.jvmName
 
 private val log = KotlinLogging.logger { }
 
@@ -29,7 +25,6 @@ private const val DEBUG_PROBES_CLASS_NAME = "kotlin.coroutines.jvm.internal.Debu
 private const val DEBUG_PROBES_PROVIDER_CLASS_NAME = "kotlin.coroutines.jvm.internal.DecoroutinatorDebugProbesProvider"
 private const val DEBUG_PROBES_IMPL_CLASS_NAME = "kotlinx.coroutines.debug.internal.DebugProbesImpl"
 private const val DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME = "kotlinx.coroutines.debug.internal.DecoroutinatorDebugProbesProviderImpl"
-private const val DEBUG_PROBES_PROVIDER_UTILS_CLASS_NAME = "kotlinx.coroutines.debug.internal.DecoroutinatorDebugProbesProviderUtilsKt"
 
 private val ArtifactPath.isModuleInfo: Boolean
     get() = lastOrNull() == "module-info.class"
@@ -45,7 +40,6 @@ private inline fun Artifact.processArtifact(
             walk(object: ArtifactWalker {
                 override fun onFile(path: ArtifactPath, reader: () -> InputStream): Boolean {
                     if (path == debugProbesPath) {
-                        newArtifact.addFile(debugProbesPath, getDebugProbesKtClassBodyStream())
                         return true
                     }
                     if (path.isModuleInfo) {
@@ -70,10 +64,7 @@ private inline fun Artifact.processArtifact(
                     return true
                 }
             })
-            newArtifact.addFile(
-                path = DEBUG_PROBES_PROVIDER_CLASS_NAME.className2ArtifactPath,
-                body = getDebugProbesProviderClassBodyStream()
-            )
+            newArtifact.addJarClassesAndResources(embeddedDebugProbesStdlibJarBase64)
         }
     } else if (containsFile(debugProbesImplPath)) {
         modifyArtifact { newArtifact ->
@@ -91,12 +82,6 @@ private inline fun Artifact.processArtifact(
                                 DEBUG_PROBES_PROVIDER_CLASS_NAME.className2InternalName,
                                 listOf(DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME.className2InternalName)
                             ))
-                            val uses: MutableList<String> = moduleInfo.module.uses ?: run {
-                                val uses = mutableListOf<String>()
-                                moduleInfo.module.uses = uses
-                                uses
-                            }
-                            uses.add(DecoroutinatorRuntimeSettingsProvider::class.jvmName.className2InternalName)
                             moduleInfo.module.addRequiresModule("dev.reformator.stacktracedecoroutinator.runtimesettings")
                             newArtifact.addFile(path, moduleInfo.classBody.inputStream())
                             return true
@@ -111,26 +96,7 @@ private inline fun Artifact.processArtifact(
                     return true
                 }
             })
-            newArtifact.addFile(
-                path = DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME.className2ArtifactPath,
-                body = getDebugProbesProviderImplClassBodyStream()
-            )
-            newArtifact.addFile(
-                path = DEBUG_PROBES_PROVIDER_UTILS_CLASS_NAME.className2ArtifactPath,
-                body = getDebugProbesProviderUtilsClassBodyStream()
-            )
-            val metaInfDirPath = listOf("META-INF")
-            if (!containsDirectory(metaInfDirPath)) {
-                newArtifact.addDirectory(metaInfDirPath)
-            }
-            val servicesDirPath = metaInfDirPath + "services"
-            if (!containsDirectory(servicesDirPath)) {
-                newArtifact.addDirectory(servicesDirPath)
-            }
-            newArtifact.addFile(
-                path = servicesDirPath + DEBUG_PROBES_PROVIDER_CLASS_NAME,
-                body = DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME.toByteArray().inputStream()
-            )
+            newArtifact.addJarClassesAndResources(embeddedDebugProbesXcoroutinesJarBase64)
         }
     } else {
         skipArtifact()
@@ -197,20 +163,7 @@ abstract class DecoroutinatorEmbedDebugProbesAction: TransformAction<TransformPa
     }
 }
 
-private val debugProbesProviderClassBodyBase64: String
-    @LoadConstant("debugProbesProviderClassBodyBase64") get() = fail()
-private val debugProbesKtClassBodyBase64: String
-    @LoadConstant("debugProbesKtClassBodyBase64") get() = fail()
-private val debugProbesProviderImplClassBodyBase64: String
-    @LoadConstant("debugProbesProviderImplClassBodyBase64") get() = fail()
-private val debugProbesProviderUtilsClassBodyBase64: String
-    @LoadConstant("debugProbesProviderUtilsClassBodyBase64") get() = fail()
-
-private fun getDebugProbesKtClassBodyStream() =
-    ByteArrayInputStream(Base64.getDecoder().decode(debugProbesKtClassBodyBase64))
-private fun getDebugProbesProviderClassBodyStream() =
-    ByteArrayInputStream(Base64.getDecoder().decode(debugProbesProviderClassBodyBase64))
-private fun getDebugProbesProviderImplClassBodyStream() =
-    ByteArrayInputStream(Base64.getDecoder().decode(debugProbesProviderImplClassBodyBase64))
-private fun getDebugProbesProviderUtilsClassBodyStream() =
-    ByteArrayInputStream(Base64.getDecoder().decode(debugProbesProviderUtilsClassBodyBase64))
+private val embeddedDebugProbesStdlibJarBase64: String
+    @LoadConstant("embeddedDebugProbesStdlibJarBase64") get() = fail()
+private val embeddedDebugProbesXcoroutinesJarBase64: String
+    @LoadConstant("embeddedDebugProbesXcoroutinesJarBase64") get() = fail()

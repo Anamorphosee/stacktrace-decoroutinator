@@ -57,7 +57,8 @@ dependencies {
 bytecodeProcessor {
     processors = setOf(
         GetCurrentFileNameProcessor,
-        GetOwnerClassProcessor
+        GetOwnerClassProcessor,
+        LoadConstantProcessor
     )
 }
 
@@ -66,9 +67,14 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
     val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
     dependsOn(customLoaderJarTask)
     doLast {
-        //val customLoaderJarUri = customLoaderJarTask.get().archiveFile.get().asFile.toURI().toString()
+        val customLoaderJarUri = customLoaderJarTask.get().archiveFile.get().asFile.toURI().toString()
         bytecodeProcessor {
-            processors += LoadConstantProcessor
+            initContext {
+                LoadConstantProcessor.addValues(
+                    context = this,
+                    valuesByKeys = mapOf("customLoaderJarUri" to customLoaderJarUri)
+                )
+            }
         }
     }
 }

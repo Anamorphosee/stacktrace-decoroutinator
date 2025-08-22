@@ -1,13 +1,11 @@
 @file:Suppress("PackageDirectoryMismatch")
-@file:ChangeClassName(toName = "kotlin.coroutines.jvm.internal.DebugProbesKt")
+@file:JvmName("DebugProbesKt")
 
-package dev.reformator.stacktracedecoroutinator.gradleplugin.embeddeddebugprobes
+package kotlin.coroutines.jvm.internal
 
-import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
 import java.util.ServiceLoader
 import kotlin.coroutines.Continuation
 
-@ChangeClassName(toName = "kotlin.coroutines.jvm.internal.DecoroutinatorDebugProbesProvider")
 interface DecoroutinatorDebugProbesProvider {
     fun <T> probeCoroutineCreated(completion: Continuation<T>): Continuation<T>
     fun probeCoroutineResumed(frame: Continuation<*>)

@@ -3,9 +3,9 @@
 package dev.reformator.bytecodeprocessor.plugins
 
 import dev.reformator.bytecodeprocessor.intrinsics.SkipInvocations
-import dev.reformator.bytecodeprocessor.pluginapi.BytecodeProcessorContext
-import dev.reformator.bytecodeprocessor.pluginapi.ProcessingDirectory
-import dev.reformator.bytecodeprocessor.pluginapi.Processor
+import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
+import dev.reformator.bytecodeprocessor.api.ProcessingDirectory
+import dev.reformator.bytecodeprocessor.api.Processor
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
 import dev.reformator.bytecodeprocessor.plugins.internal.isStatic
@@ -41,8 +41,6 @@ object SkipInvocationsProcessor: Processor {
             value1 + value2
 
     }
-
-    override val usedContextKeys = listOf(ContextKey)
 
     override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
         val values = directory.classes.flatMap { processingClass ->
@@ -88,8 +86,8 @@ object SkipInvocationsProcessor: Processor {
         context.merge(ContextKey, values)
 
         directory.classes.forEach { processingClass ->
-            processingClass.node.methods.orEmpty().forEach { method ->
-                val iter = method.instructions?.iterator() ?: return@forEach
+            processingClass.node.methods.orEmpty().forEach methodForEach@{ method ->
+                val iter = method.instructions?.iterator() ?: return@methodForEach
                 while (iter.hasNext()) {
                     val instruction = iter.next()
                     if (instruction is MethodInsnNode) {

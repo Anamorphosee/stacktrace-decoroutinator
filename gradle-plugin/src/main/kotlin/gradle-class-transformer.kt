@@ -23,15 +23,12 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ModuleProvideNode
 import java.io.IOException
 import java.io.InputStream
-import java.util.Base64
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
-import kotlin.reflect.jvm.jvmName
 
 private const val CLASS_EXTENSION = ".class"
 internal const val MODULE_INFO_CLASS_NAME = "module-info.class"
-private const val BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME =
-    "kotlin.coroutines.jvm.internal.DecoroutinatorBaseContinuationAccessorImpl"
+
 private val log = KotlinLogging.logger { }
 
 abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTransformAction.Parameters> {
@@ -143,6 +140,9 @@ private fun Artifact.transformTo(skipSpecMethods: Boolean, builder: ArtifactBuil
             builder.addDirectory(path)
         }
     )
+    if (containsFile(BASE_CONTINUATION_CLASS_NAME.className2ArtifactPath)) {
+        builder.addJarClassesAndResources(baseContinuationAccessorJarBase64)
+    }
 }
 
 internal fun Artifact.transform(
@@ -225,7 +225,7 @@ internal fun Artifact.transform(
                             }
                             provides.add(ModuleProvideNode(
                                 Type.getInternalName(BaseContinuationAccessorProvider::class.java),
-                                listOf(BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME.className2InternalName)
+                                listOf(baseContinuationAccessorImplClassName.className2InternalName)
                             ))
                         }
                         node.classBody
@@ -244,27 +244,6 @@ internal fun Artifact.transform(
         override fun onDirectory(path: ArtifactPath): Boolean = true
     })
     if (stop) return
-
-    if (containsBaseContinuation) {
-        Base64.getDecoder().decode(baseContinuationAccessorImplBodyBase64).inputStream().use { input ->
-            if (!onFile(true, BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME.className2ArtifactPath, input)) {
-                return
-            }
-        }
-        val metaInfDirPath = listOf("META-INF")
-        if (!containsDirectory(metaInfDirPath)) {
-            onDirectory(metaInfDirPath)
-        }
-        val servicesDirPath = metaInfDirPath + "services"
-        if (!containsDirectory(servicesDirPath)) {
-            onDirectory(servicesDirPath)
-        }
-        BASE_CONTINUATION_ACCESSOR_IMPL_CLASS_NAME.toByteArray().inputStream().use { input ->
-            if (!onFile(true, servicesDirPath + BaseContinuationAccessorProvider::class.jvmName, input)) {
-                return
-            }
-        }
-    }
 }
 
 private val ArtifactPath.isModuleInfo: Boolean
@@ -273,5 +252,8 @@ private val ArtifactPath.isModuleInfo: Boolean
 private val ArtifactPath.isClass: Boolean
     get() = last().endsWith(CLASS_EXTENSION) && !isModuleInfo
 
-private val baseContinuationAccessorImplBodyBase64: String
-    @LoadConstant("baseContinuationAccessorImplBodyBase64") get() { fail() }
+private val baseContinuationAccessorJarBase64: String
+    @LoadConstant("baseContinuationAccessorJarBase64") get() { fail() }
+
+private val baseContinuationAccessorImplClassName: String
+    @LoadConstant("baseContinuationAccessorImplClassName") get() { fail() }

@@ -74,24 +74,21 @@ private fun BaseContinuation.getFrames(): List<CoroutineStackFrame> =
     buildList {
         add(this@getFrames)
         var frame = callerFrame
-        while (if (restoreCoroutineStackFrames) frame != null else frame is BaseContinuation) {
-            add(frame!!)
+        while (frame != null) {
+            add(frame)
             frame = frame.callerFrame
         }
     }
 
 private fun getBaseContinuationsEndIndex(
     frames: List<CoroutineStackFrame>
-): Int =
-    if (restoreCoroutineStackFrames) {
-        var baseContinuationsEndIndex = 1
-        while (baseContinuationsEndIndex < frames.size && frames[baseContinuationsEndIndex] is BaseContinuation) {
-            baseContinuationsEndIndex++
-        }
-        baseContinuationsEndIndex
-    } else {
-        frames.size
+): Int  {
+    var baseContinuationsEndIndex = 1
+    while (baseContinuationsEndIndex < frames.size && frames[baseContinuationsEndIndex] is BaseContinuation) {
+        baseContinuationsEndIndex++
     }
+    return baseContinuationsEndIndex
+}
 
 private fun getElementsByFrameIndex(
     frames: List<CoroutineStackFrame>,

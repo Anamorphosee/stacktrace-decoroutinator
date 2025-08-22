@@ -1,6 +1,6 @@
 @file:Suppress("PackageDirectoryMismatch")
 
-package dev.reformator.bytecodeprocessor.pluginapi
+package dev.reformator.bytecodeprocessor.api
 
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.ModuleNode
@@ -50,8 +50,6 @@ value class BytecodeProcessorContextImpl private constructor(
         } as T
 }
 
-interface Processor {
+fun interface Processor {
     fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext)
-
-    val usedContextKeys: Collection<BytecodeProcessorContext.Key<*>>
 }

@@ -2,94 +2,60 @@
 
 package dev.reformator.stacktracedecoroutinator.runtimesettings
 
+import dev.reformator.stacktracedecoroutinator.runtimesettings.internal.defaultValue
+
 interface DecoroutinatorRuntimeSettingsProvider {
     //Common settings
 
     val enabled: Boolean
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
+        get() = defaultValue()
 
     val recoveryExplicitStacktrace: Boolean
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktrace",
-            "true"
-        ).toBoolean()
+        get() = defaultValue()
 
     val recoveryExplicitStacktraceTimeoutMs: UInt
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.recoveryExplicitStacktraceTimeoutMs",
-            "500"
-        ).toUInt()
+        get() = defaultValue()
 
     val tailCallDeoptimize: Boolean
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.tailCallDeoptimize", "true")
-            .toBoolean()
+        get() = defaultValue()
 
     val methodsNumberThreshold: Int
-        get() = System.getProperty("dev.reformator.stacktracedecoroutinator.methodsNumberThreshold", "50")
-            .toInt()
-
-    val restoreCoroutineStackFrames: Boolean
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.restoreCoroutineStackFrames",
-            "true"
-        ).toBoolean()
+        get() = defaultValue()
 
     val fillUnknownElementsWithClassName: Boolean
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.fillUnknownElementsWithClassName",
-            "false"
-        ).toBoolean()
+        get() = defaultValue()
+
+    val isUsingElementFactoryForBaseContinuationEnabled: Boolean
+        get() = defaultValue()
 
     // JVM Agent settings
 
     val metadataInfoResolveStrategy: DecoroutinatorMetadataInfoResolveStrategy
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.metadataInfoResolveStrategy",
-            DecoroutinatorMetadataInfoResolveStrategy.SYSTEM_RESOURCE_AND_CLASS.name
-        ).let {
-            DecoroutinatorMetadataInfoResolveStrategy.valueOf(it)
-        }
+        get() = defaultValue()
 
     val isBaseContinuationRedefinitionAllowed: Boolean
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.isBaseContinuationRedefinitionAllowed",
-            "true"
-        ).toBoolean()
+        get() = defaultValue()
 
     val isRedefinitionAllowed: Boolean
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.isRedefinitionAllowed",
-            "false"
-        ).toBoolean()
+        get() = defaultValue()
 
     // Embedded Debug Probes settings
 
     val enableCreationStackTraces: Boolean
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.enableCreationStackTraces",
-            "false"
-        ).toBoolean()
+        get() = defaultValue()
 
     val installDebugProbes: Boolean
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.installDebugProbes",
-            "true"
-        ).toBoolean()
+        get() = defaultValue()
 
     // Generator Android settings
 
     val androidGeneratorAttemptsCount: Int
-        get() = System.getProperty(
-            "dev.reformator.stacktracedecoroutinator.androidGeneratorAttemptsCount",
-            "3"
-        ).toInt()
+        get() = defaultValue()
 
     // end
 
     val priority: Int
         get() = 0
-
-    companion object: DecoroutinatorRuntimeSettingsProvider
 }
 
 enum class DecoroutinatorMetadataInfoResolveStrategy {

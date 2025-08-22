@@ -26,13 +26,14 @@ include(
     "gradle-plugin:duplicate-entity-jar-builder",
     "gradle-plugin:android-legacy-tests",
     "gradle-plugin:empty-module-tests",
-    "gradle-plugin:embedded-debug-probes",
+    "gradle-plugin:embedded-debug-probes-stdlib",
+    "gradle-plugin:embedded-debug-probes-xcoroutines",
+    "gradle-plugin:base-continuation-accessor",
     "jvm-agent:tests-ja",
     "jvm-agent:jdk8-tests-ja",
     "jvm:jdk8-tests-j",
     "mh-invoker-android:legacy-tests",
-    "mh-invoker-jvm:jdk8-tests-mij",
-    "base-continuation-accessor"
+    "mh-invoker-jvm:jdk8-tests-mij"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"
@@ -48,7 +49,7 @@ project(":mh-invoker-jvm").name = "stacktrace-decoroutinator-mh-invoker-jvm"
 project(":runtime-settings").name = "stacktrace-decoroutinator-runtime-settings"
 
 includeBuild("_plugins/bytecode-processor")
-includeBuild("_plugins/decoroutinatortest")
+includeBuild("_plugins/gradle-plugin-test")
 includeBuild("_plugins/force-variant-java-version")
 
 includeBuild("_tests/latest-kotlin-gradle-plugin-test")
@@ -56,6 +57,6 @@ includeBuild("_tests/latest-kotlin-kmp-gradle-plugin-test")
 
 pluginManagement {
     includeBuild("_plugins/bytecode-processor")
-    includeBuild("_plugins/decoroutinatortest")
+    includeBuild("_plugins/gradle-plugin-test")
     includeBuild("_plugins/force-variant-java-version")
 }

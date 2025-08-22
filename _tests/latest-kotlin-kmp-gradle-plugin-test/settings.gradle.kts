@@ -1,10 +1,10 @@
 rootProject.name = "latest-kotlin-kmp-gradle-plugin-test"
 
-includeBuild("../../_plugins/decoroutinatortest")
+includeBuild("../../_plugins/gradle-plugin-test")
 includeBuild("../../_plugins/bytecode-processor")
 
 pluginManagement {
-    includeBuild("../../_plugins/decoroutinatortest")
+    includeBuild("../../_plugins/gradle-plugin-test")
     includeBuild("../../_plugins/bytecode-processor")
     repositories {
         google {

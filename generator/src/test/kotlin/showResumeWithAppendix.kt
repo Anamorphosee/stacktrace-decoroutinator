@@ -1,7 +1,7 @@
-import dev.reformator.stacktracedecoroutinator.provider.awakeBaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.baseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.internal.awakeBaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.internal.baseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.internal.prepareBaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.isDecoroutinatorEnabled
-import dev.reformator.stacktracedecoroutinator.provider.prepareBaseContinuationAccessor
 import java.lang.invoke.MethodHandles
 
 class BaseContinuation

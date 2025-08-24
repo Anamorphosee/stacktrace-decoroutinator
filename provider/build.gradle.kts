@@ -26,7 +26,8 @@ dependencies {
 bytecodeProcessor {
     processors = listOf(
         RemoveKotlinStdlibProcessor,
-        GetOwnerClassProcessor
+        GetOwnerClassProcessor,
+        LoadConstantProcessor
     )
 }
 

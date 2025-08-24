@@ -1,4 +1,5 @@
 import dev.reformator.bytecodeprocessor.plugins.*
+import dev.reformator.bytecodeprocessor.plugins.GetOwnerClassProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -20,7 +21,8 @@ dependencies {
 bytecodeProcessor {
     processors = listOf(
         RemoveKotlinStdlibProcessor,
-        GetOwnerClassProcessor
+        GetOwnerClassProcessor,
+        LoadConstantProcessor
     )
 }
 

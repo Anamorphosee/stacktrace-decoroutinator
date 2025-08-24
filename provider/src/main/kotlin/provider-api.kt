@@ -4,8 +4,8 @@
 package dev.reformator.stacktracedecoroutinator.provider
 
 import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
+import dev.reformator.bytecodeprocessor.intrinsics.MethodNameConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import dev.reformator.stacktracedecoroutinator.provider.internal.provider
 import java.lang.invoke.MethodHandle
@@ -33,26 +33,16 @@ annotation class DecoroutinatorTransformed(
 )
 
 val isDecoroutinatorEnabled: Boolean
-    get() = provider.isDecoroutinatorEnabled
+    @MethodNameConstant("isDecoroutinatorEnabledMethodName") get() = provider.isDecoroutinatorEnabled
 
-val baseContinuationAccessor: BaseContinuationAccessor?
-    get() = provider.baseContinuationAccessor
-
-fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor =
-    provider.prepareBaseContinuationAccessor(lookup)
-
-fun awakeBaseContinuation(accessor: BaseContinuationAccessor, baseContinuation: Any, result: Any?) {
-    provider.awakeBaseContinuation(
-        accessor = accessor,
-        baseContinuation = baseContinuation,
-        result = result
-    )
-}
-
+@Suppress("unused")
+@MethodNameConstant("registerTransformedClassMethodName")
 fun registerTransformedClass(lookup: MethodHandles.Lookup) {
     provider.registerTransformedClass(lookup)
 }
 
+@Suppress("unused")
+@MethodNameConstant("getBaseContinuationMethodName")
 fun getBaseContinuation(
     completion: Any?,
     fileName: String?,

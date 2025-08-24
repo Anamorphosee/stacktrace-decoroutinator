@@ -49,7 +49,6 @@ bytecodeProcessor {
         ChangeInvocationsOwnerProcessor,
         SkipInvocationsProcessor,
         MakeStaticProcessor,
-        RemoveKotlinStdlibProcessor,
         LoadConstantProcessor
     )
     initContext {

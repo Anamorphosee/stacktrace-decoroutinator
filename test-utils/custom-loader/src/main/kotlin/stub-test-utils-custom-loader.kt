@@ -4,6 +4,7 @@ package dev.reformator.stacktracedecoroutinator.test
 
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
+import dev.reformator.bytecodeprocessor.intrinsics.ownerMethodName
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 
@@ -23,7 +24,7 @@ class ClassWithSuspendFunctionsStub {
         val lineNumber = currentLineNumber + 1
         check(StackTraceElement(
             ClassWithSuspendFunctionsStub::class.java.name,
-            ::tailCallOptimizedCheck.name,
+            ownerMethodName,
             currentFileName,
             lineNumber
         ))
@@ -34,7 +35,7 @@ class ClassWithSuspendFunctionsStub {
         val lineNumber = currentLineNumber + 1
         check(StackTraceElement(
             ClassWithSuspendFunctionsStub::class.java.name,
-            ::basicCheck.name,
+            ownerMethodName,
             currentFileName,
             lineNumber
         ))

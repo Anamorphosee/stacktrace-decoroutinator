@@ -11,7 +11,8 @@ module dev.reformator.stacktracedecoroutinator.provider {
             dev.reformator.stacktracedecoroutinator.mhinvoker,
             dev.reformator.stacktracedecoroutinator.generator,
             dev.reformator.stacktracedecoroutinator.test.basecontinuationaccessorstub,
-            dev.reformator.stacktracedecoroutinator.jvmagentcommon;
+            dev.reformator.stacktracedecoroutinator.jvmagentcommon,
+            dev.reformator.stacktracedecoroutinator.generator.tests;
 
     uses DecoroutinatorProvider;
 }

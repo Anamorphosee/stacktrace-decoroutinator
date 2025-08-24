@@ -2,12 +2,17 @@
 
 package dev.reformator.stacktracedecoroutinator.generator.internal
 
-import dev.reformator.stacktracedecoroutinator.common.internal.*
+import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
+import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.common.internal.UNKNOWN_LINE_NUMBER
 import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
-import dev.reformator.stacktracedecoroutinator.provider.*
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
+import dev.reformator.stacktracedecoroutinator.provider.internal.providerInternalApiClass
+import dev.reformator.stacktracedecoroutinator.provider.providerApiClass
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -17,7 +22,6 @@ import java.io.InputStream
 import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
-import dev.reformator.stacktracedecoroutinator.provider.baseContinuationAccessor as providerBaseContinuationAccessor
 
 class ClassBodyTransformationStatus(
     val updatedBody: ByteArray?,
@@ -84,6 +88,18 @@ fun transformClassBody(
     )
 }
 
+private val isDecoroutinatorEnabledMethodName: String
+    @LoadConstant("isDecoroutinatorEnabledMethodName") get() = fail()
+
+private val getBaseContinuationAccessorMethodName: String
+    @LoadConstant("getBaseContinuationAccessorMethodName") get() = fail()
+
+private val prepareBaseContinuationAccessorMethodName: String
+    @LoadConstant("prepareBaseContinuationAccessorMethodName") get() = fail()
+
+private val awakeBaseContinuationMethodName: String
+    @LoadConstant("awakeBaseContinuationMethodName") get() = fail()
+
 private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMethods: Boolean) {
     val resumeWithMethod = baseContinuation.methods?.find {
         it.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}" && !it.isStatic
@@ -93,7 +109,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
             Type.getInternalName(providerApiClass),
-            getGetterMethodName(::isDecoroutinatorEnabled.name),
+            isDecoroutinatorEnabledMethodName,
             "()${Type.BOOLEAN_TYPE.descriptor}"
         ))
         val defaultAwakeLabel = LabelNode()
@@ -103,8 +119,8 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         ))
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
-            Type.getInternalName(providerApiClass),
-            getGetterMethodName(::providerBaseContinuationAccessor.name),
+            Type.getInternalName(providerInternalApiClass),
+            getBaseContinuationAccessorMethodName,
             "()${Type.getDescriptor(BaseContinuationAccessor::class.java)}"
         ))
         add(InsnNode(Opcodes.DUP))
@@ -122,8 +138,8 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         ))
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
-            Type.getInternalName(providerApiClass),
-            ::prepareBaseContinuationAccessor.name,
+            Type.getInternalName(providerInternalApiClass),
+            prepareBaseContinuationAccessorMethodName,
             "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})${Type.getDescriptor(BaseContinuationAccessor::class.java)}"
         ))
         add(decoroutinatorAwakeLabel)
@@ -132,8 +148,8 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         add(VarInsnNode(Opcodes.ALOAD, 1))
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
-            Type.getInternalName(providerApiClass),
-            ::awakeBaseContinuation.name,
+            Type.getInternalName(providerInternalApiClass),
+            awakeBaseContinuationMethodName,
             "(${Type.getDescriptor(BaseContinuationAccessor::class.java)}${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
         ))
         add(InsnNode(Opcodes.RETURN))
@@ -316,6 +332,9 @@ private fun ClassNode.getClassTransformationInfo(
     }
 }
 
+private val getBaseContinuationMethodName: String
+    @LoadConstant("getBaseContinuationMethodName") get() = fail()
+
 private fun tailCallDeopt(
     completionVarIndex: Int,
     clazz: ClassNode,
@@ -348,14 +367,14 @@ private fun tailCallDeopt(
                 add(MethodInsnNode(
                     Opcodes.INVOKESTATIC,
                     Type.getInternalName(providerApiClass),
-                    ::getBaseContinuation.name,
-                    "(" +
-                            Type.getDescriptor(Object::class.java) +
-                            Type.getDescriptor(String::class.java) +
-                            Type.getDescriptor(String::class.java) +
-                            Type.getDescriptor(String::class.java) +
-                            Type.INT_TYPE.descriptor +
-                            ")${Type.getDescriptor(Object::class.java)}"
+                    getBaseContinuationMethodName,
+                    "("
+                        + Type.getDescriptor(Object::class.java)
+                        + Type.getDescriptor(String::class.java)
+                        + Type.getDescriptor(String::class.java)
+                        + Type.getDescriptor(String::class.java)
+                        + Type.INT_TYPE.descriptor
+                        + ")${Type.getDescriptor(Object::class.java)}"
                 ))
                 add(TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Continuation::class.java)))
             })
@@ -497,11 +516,14 @@ private fun ClassNode.getOrCreateClinitMethod(): MethodNode =
         methods.add(this)
     }
 
+private val registerTransformedClassMethodName: String
+    @LoadConstant("registerTransformedClassMethodName") get() = fail()
+
 private fun buildCallRegisterLookupInstructions() = InsnList().apply {
     add(MethodInsnNode(
         Opcodes.INVOKESTATIC,
         Type.getInternalName(providerApiClass),
-        getGetterMethodName(::isDecoroutinatorEnabled.name),
+        isDecoroutinatorEnabledMethodName,
         "()${Type.BOOLEAN_TYPE.descriptor}"
     ))
     val disabledLabel = LabelNode()
@@ -518,7 +540,7 @@ private fun buildCallRegisterLookupInstructions() = InsnList().apply {
     add(MethodInsnNode(
         Opcodes.INVOKESTATIC,
         Type.getInternalName(providerApiClass),
-        ::registerTransformedClass.name,
+        registerTransformedClassMethodName,
         "(${Type.getDescriptor(MethodHandles.Lookup::class.java)})V"
     ))
     add(disabledLabel)
@@ -565,6 +587,3 @@ private val ClassNode.classBody: ByteArray
         accept(writer)
         return writer.toByteArray()
     }
-
-private fun getGetterMethodName(propertyName: String): String =
-    if (propertyName.startsWith("is")) propertyName else "get${propertyName[0].uppercase()}${propertyName.substring(1)}"

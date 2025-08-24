@@ -101,7 +101,8 @@ bytecodeProcessor {
     processors = listOf(
         ChangeClassNameProcessor,
         MakeStaticProcessor,
-        GetOwnerClassProcessor
+        GetOwnerClassProcessor,
+        LoadConstantProcessor
     )
 }
 

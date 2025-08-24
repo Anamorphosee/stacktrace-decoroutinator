@@ -7,6 +7,7 @@ import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContext
 import dev.reformator.bytecodeprocessor.api.ProcessingDirectory
 import dev.reformator.bytecodeprocessor.api.Processor
+import dev.reformator.bytecodeprocessor.intrinsics.MethodNameConstant
 import dev.reformator.bytecodeprocessor.plugins.internal.find
 import dev.reformator.bytecodeprocessor.plugins.internal.getParameter
 import dev.reformator.bytecodeprocessor.plugins.internal.isStatic
@@ -71,7 +72,6 @@ object LoadConstantProcessor: Processor {
             }
 
             val key = annotation.getParameter(ClassNameConstant::key.name) as String
-
             context.merge(
                 key = KeyValueContextKey,
                 value = mapOf(key to Type.getObjectType(processingClass.node.name).className)
@@ -79,6 +79,24 @@ object LoadConstantProcessor: Processor {
 
             annotation.setParameter(APPLIED_PARAMETER, true)
             processingClass.markModified()
+        }
+
+        directory.classes.forEach { processingClass ->
+            processingClass.node.methods?.forEach forEachMethod@{ method ->
+                val annotation = method.invisibleAnnotations.find(MethodNameConstant::class.java)
+                    ?: return@forEachMethod
+
+                if (annotation.getParameter(APPLIED_PARAMETER) as Boolean? ?: false) return@forEachMethod
+
+                val key = annotation.getParameter(MethodNameConstant::key.name) as String
+                context.merge(
+                    key = KeyValueContextKey,
+                    value = mapOf(key to method.name)
+                )
+
+                annotation.setParameter(APPLIED_PARAMETER, true)
+                processingClass.markModified()
+            }
         }
 
         val keys = directory.classes.flatMap { processingClass ->

@@ -9,6 +9,7 @@ import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 
 @ChangeClassName(toName = "kotlin.coroutines.jvm.internal.BaseContinuationImpl", deleteAfterChanging = true)
 abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
+    @Suppress("RedundantNullableReturnType")
     val completion: Continuation<Any?>?
         get() { fail() }
 
@@ -21,6 +22,9 @@ abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
     abstract fun invokeSuspend(result: Any?): Any?
 
     open fun releaseIntercepted() { fail() }
+
+    override val callerFrame: CoroutineStackFrame?
+        get() = fail()
 }
 
 @ChangeClassName(

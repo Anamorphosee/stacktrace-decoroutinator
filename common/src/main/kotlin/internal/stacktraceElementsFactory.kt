@@ -42,42 +42,12 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         }
     }
 
-    override fun getStacktraceElements(
-        continuations: Sequence<BaseContinuation>
-    ): Map<BaseContinuation, StackTraceElement> {
-        val elementsByContinuation = mutableMapOf<BaseContinuation, StackTraceElement>()
-        continuations.groupBy { it.javaClass }.forEach { (baseContinuationClass, continuations) ->
-            if (baseContinuationClass == DecoroutinatorContinuationImpl::class.java) {
-                @Suppress("UNCHECKED_CAST")
-                (continuations as List<DecoroutinatorContinuationImpl>).forEach { continuation ->
-                    val element = StackTraceElement(
-                        continuation.className,
-                        continuation.methodName,
-                        continuation.fileName,
-                        continuation.lineNumber
-                    )
-                    elementsByContinuation[continuation] = element
-                }
-            } else {
-                val spec = getBaseContinuationClassSpec(baseContinuationClass.name)
-                val elementsByLabel = spec.getElementsByLabel(baseContinuationClass)
-                if (elementsByLabel != null) {
-                    continuations.forEach { continuation ->
-                        val label = spec.labelExtractor.getLabel(continuation)
-                        val element = elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
-                        elementsByContinuation[continuation] = element
-                    }
-                } else {
-                    continuations.forEach { continuation ->
-                        val element = continuation.getStackTraceElement()
-                        if (element != null) {
-                            elementsByContinuation[continuation] = element
-                        }
-                    }
-                }
-            }
-        }
-        return elementsByContinuation
+    override fun getStacktraceElement(baseContinuation: BaseContinuation): StackTraceElement? {
+        val baseContinuationClass = baseContinuation.javaClass
+        val spec = getBaseContinuationClassSpec(baseContinuationClass.name)
+        val elementsByLabel = spec.getElementsByLabel(baseContinuationClass) ?: return null
+        val label = spec.labelExtractor.getLabel(baseContinuation)
+        return elementsByLabel[if (label == UNKNOWN_LABEL) 0 else label]
     }
 
     override fun getLabelExtractor(continuation: BaseContinuation): StacktraceElementsFactory.LabelExtractor {

@@ -65,4 +65,10 @@ internal class Provider: DecoroutinatorProvider {
             lineNumber = lineNumber
         )
     }
+
+    override val isUsingElementFactoryForBaseContinuationEnabled: Boolean
+        get() = dev.reformator.stacktracedecoroutinator.common.internal.isUsingElementFactoryForBaseContinuationEnabled
+
+    override fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement? =
+        stacktraceElementsFactory.getStacktraceElement(baseContinuation as BaseContinuation)
 }

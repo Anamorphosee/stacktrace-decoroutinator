@@ -100,11 +100,16 @@ private val prepareBaseContinuationAccessorMethodName: String
 private val awakeBaseContinuationMethodName: String
     @LoadConstant("awakeBaseContinuationMethodName") get() = fail()
 
+private val isUsingElementFactoryForBaseContinuationEnabledMethodName: String
+    @LoadConstant("isUsingElementFactoryForBaseContinuationEnabledMethodName") get() = fail()
+
+private val getElementFactoryStacktraceElementMethodName: String
+    @LoadConstant("getElementFactoryStacktraceElementMethodName") get() = fail()
+
 private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMethods: Boolean) {
     val resumeWithMethod = baseContinuation.methods?.find {
         it.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}" && !it.isStatic
     } ?: error("[${BaseContinuation::resumeWith.name}] method is not found")
-
     resumeWithMethod.instructions.insertBefore(resumeWithMethod.instructions.first, InsnList().apply {
         add(MethodInsnNode(
             Opcodes.INVOKESTATIC,
@@ -156,6 +161,36 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         add(defaultAwakeLabel)
         add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
     })
+
+    val getStackTraceElementMethod = baseContinuation.methods?.find {
+        it.desc == "()${Type.getDescriptor(StackTraceElement::class.java)}" && !it.isStatic
+    } ?: error("[${BaseContinuation::getStackTraceElement.name}] method is not found")
+    getStackTraceElementMethod.instructions.insertBefore(
+        getStackTraceElementMethod.instructions.first,
+        InsnList().apply {
+            add(MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                Type.getInternalName(providerInternalApiClass),
+                isUsingElementFactoryForBaseContinuationEnabledMethodName,
+                "()${Type.BOOLEAN_TYPE.descriptor}"
+            ))
+            val defaultLabel = LabelNode()
+            add(JumpInsnNode(
+                Opcodes.IFEQ,
+                defaultLabel
+            ))
+            add(VarInsnNode(Opcodes.ALOAD, 0))
+            add(MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                Type.getInternalName(providerInternalApiClass),
+                getElementFactoryStacktraceElementMethodName,
+                "(${Type.getDescriptor(Object::class.java)})${Type.getDescriptor(StackTraceElement::class.java)}"
+            ))
+            add(InsnNode(Opcodes.ARETURN))
+            add(defaultLabel)
+            add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
+        }
+    )
 
     val visibleAnnotations: MutableList<AnnotationNode> = baseContinuation.visibleAnnotations ?: (mutableListOf<AnnotationNode>().also {
         baseContinuation.visibleAnnotations = it

@@ -18,6 +18,8 @@ interface DecoroutinatorProvider {
         methodName: String,
         lineNumber: Int
     ): Any?
+    val isUsingElementFactoryForBaseContinuationEnabled: Boolean
+    fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement?
 }
 
 internal val provider: DecoroutinatorProvider = ServiceLoader.load(DecoroutinatorProvider::class.java).iterator().next()

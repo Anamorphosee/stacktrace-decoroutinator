@@ -68,7 +68,7 @@ interface VarHandleInvoker {
 }
 
 internal interface StacktraceElementsFactory {
-    fun getStacktraceElements(continuations: Sequence<BaseContinuation>): Map<BaseContinuation, StackTraceElement>
+    fun getStacktraceElement(baseContinuation: BaseContinuation): StackTraceElement?
     fun getLabelExtractor(continuation: BaseContinuation): LabelExtractor
 
     fun interface LabelExtractor {

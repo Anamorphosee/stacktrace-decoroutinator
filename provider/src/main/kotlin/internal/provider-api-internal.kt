@@ -24,11 +24,13 @@ fun awakeBaseContinuation(accessor: BaseContinuationAccessor, baseContinuation: 
     )
 }
 
-//val isUsingElementFactoryForBaseContinuationEnabled: Boolean
-//    get() = provider.isUsingElementFactoryForBaseContinuationEnabled
-//
-//fun getStacktraceElement(baseContinuation: Any): StackTraceElement? =
-//    provider.getStacktraceElement(baseContinuation)
+val isUsingElementFactoryForBaseContinuationEnabled: Boolean
+    @MethodNameConstant("isUsingElementFactoryForBaseContinuationEnabledMethodName")
+    get() = provider.isUsingElementFactoryForBaseContinuationEnabled
+
+@MethodNameConstant("getElementFactoryStacktraceElementMethodName")
+fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement? =
+    provider.getElementFactoryStacktraceElement(baseContinuation)
 
 val providerInternalApiClass: Class<*>
     @GetOwnerClass get() { fail() }

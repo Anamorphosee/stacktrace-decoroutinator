@@ -35,81 +35,54 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
             lock = classesByNameUpdateLock
         ) { ClassSpec() }
 
-    override fun getSpecMethodFactories(
-        elements: Sequence<StackTraceElement>
-    ): Map<StackTraceElement, SpecMethodsFactory> {
-        val factories = SpecMethodsRegistryImpl.getSpecMethodFactories(elements)
-        if (elements.all { it in factories }) return factories
+    override fun getSpecMethodFactory(element: StackTraceElement): SpecMethodsFactory? {
+        SpecMethodsRegistryImpl.getSpecMethodFactory(element)?.let { return it }
 
-        elements
-            .filter { it !in factories }
-            .groupBy { it.className }
-            .forEach { (className, elements) ->
-                val classSpec = getClassSpec(className)
-                elements.groupBy { it.fileName }.forEach { (fileName, elements) ->
-                    fun isRebuildNeeded(): Boolean {
-                        val methodsByName = classSpec[fileName] ?: return true
-                        var result = false
-                        elements.groupBy { it.methodName }.forEach fr@{ (methodName, elements) ->
-                            val method = methodsByName[methodName]
-                            if (method == null) {
-                                result = true
-                                return@fr
-                            }
-                            elements.forEach {
-                                if (it.normalizedLineNumber in method.lineNumbers) {
-                                    factories[it] = method.factory
-                                } else {
-                                    result = true
-                                }
-                            }
-                        }
-                        return result
-                    }
+        val classSpec = getClassSpec(element.className)
 
-                    if (isRebuildNeeded()) {
-                        classSpec.updateLock.withLock {
-                            if (!isRebuildNeeded()) return@withLock
-                            val lineNumbersByMethod = mutableMapOf<String, Set<Int>>()
-                            classSpec[fileName]?.let { methodsByName ->
-                                methodsByName.forEach { (methodName, method) ->
-                                    lineNumbersByMethod[methodName] = method.lineNumbers.toSet()
-                                }
-                            }
-                            elements.groupBy { it.methodName }.forEach { (methodName, elements) ->
-                                lineNumbersByMethod.compute(methodName) { _, lineNumbers ->
-                                    buildSet {
-                                        if (lineNumbers != null) addAll(lineNumbers)
-                                        elements.forEach { add(it.normalizedLineNumber) }
-                                    }
-                                }
-                            }
-                            classSpec.revision++
-                            val factoriesByMethod = generateSpecMethodFactories(
-                                className = className,
-                                classRevision = classSpec.revision,
-                                fileName = fileName,
-                                lineNumbersByMethod = lineNumbersByMethod
-                            )
-                            if (factoriesByMethod != null) {
-                                assert { factoriesByMethod.keys == lineNumbersByMethod.keys }
-                                classSpec[fileName] =
-                                    factoriesByMethod.mapValuesCompact(methodsNumberThreshold) { (methodName, specMethodsFactory) ->
-                                        MethodSpec(
-                                            factory = specMethodsFactory,
-                                            lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
-                                        )
-                                    }
-                                assert(!isRebuildNeeded())
-                            } else {
-                                classSpec.revision--
-                            }
-                        }
-                    }
+        fun getSpecMethodFactory(): SpecMethodsFactory? {
+            val methodsByName = classSpec[element.fileName] ?: return null
+            val methodSpec = methodsByName[element.methodName] ?: return null
+            if (element.normalizedLineNumber !in methodSpec.lineNumbers) return null
+            return methodSpec.factory
+        }
+        getSpecMethodFactory()?.let { return it }
+
+        classSpec.updateLock.withLock {
+            getSpecMethodFactory()?.let { return it }
+
+            val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
+            classSpec[element.fileName]?.let { methodsByName ->
+                methodsByName.forEach { (methodName, method) ->
+                    lineNumbersByMethod[methodName] = method.lineNumbers.toMutableSet()
                 }
             }
+            lineNumbersByMethod.getOrPut(element.methodName) {
+                mutableSetOf(UNKNOWN_LINE_NUMBER)
+            }.add(element.normalizedLineNumber)
 
-        return factories
+            classSpec.revision++
+            val factoriesByMethod = generateSpecMethodFactories(
+                className = element.className,
+                classRevision = classSpec.revision,
+                fileName = element.fileName,
+                lineNumbersByMethod = lineNumbersByMethod
+            ) ?: run {
+                classSpec.revision--
+                return null
+            }
+            assert { factoriesByMethod.keys == lineNumbersByMethod.keys }
+
+            classSpec[element.fileName] =
+                factoriesByMethod.mapValuesCompact(methodsNumberThreshold) { (methodName, specMethodsFactory) ->
+                    MethodSpec(
+                        factory = specMethodsFactory,
+                        lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
+                    )
+                }
+        }
+
+        return getSpecMethodFactory()!!
     }
 
     abstract fun generateSpecMethodFactories(
@@ -166,27 +139,12 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             notSetValue = ClassSpec.notSet
         )
 
-    override fun getSpecMethodFactories(
-        elements: Sequence<StackTraceElement>
-    ): MutableMap<StackTraceElement, SpecMethodsFactory> {
-        val specMethodFactoriesByElement = mutableMapOf<StackTraceElement, SpecMethodsFactory>()
-        elements.groupBy { it.className }.forEach { (className, elements) ->
-            val classSpec = getClassSpec(className)
-            if (classSpec != null) {
-                elements.asSequence()
-                    .filter { it.fileName == classSpec.fileName }
-                    .groupBy { it.methodName }
-                    .forEach { (methodName, elements) ->
-                        val method = classSpec.methodsByName[methodName]
-                        if (method != null) {
-                            elements.asSequence()
-                                .filter { it.normalizedLineNumber in method.lineNumbers }
-                                .forEach { specMethodFactoriesByElement[it] = method }
-                        }
-                    }
-            }
-        }
-        return specMethodFactoriesByElement
+    override fun getSpecMethodFactory(element: StackTraceElement): SpecMethodsFactory? {
+        val classSpec = getClassSpec(element.className) ?: return null
+        if (classSpec.fileName != element.fileName) return null
+        val methodSpec = classSpec.methodsByName[element.methodName] ?: return null
+        if (element.normalizedLineNumber !in methodSpec.lineNumbers) return null
+        return methodSpec
     }
 
     init {

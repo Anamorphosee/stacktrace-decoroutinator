@@ -83,14 +83,11 @@ private fun BaseContinuation.callSpecMethods(
     stacktraceElements: List<StackTraceElement?>,
     result: Any?
 ): Any? {
-    val specFactories = specMethodsRegistry.getSpecMethodFactories(
-        elements = stacktraceElements.asSequence().drop(1).filterNotNull()
-    )
     var specAndMethodHandle: SpecAndMethodHandle? = null
     var baseContinuation: BaseContinuation? = this
     (1 .. stacktraceElements.lastIndex).forEach { index ->
         val element = stacktraceElements[index]
-        val factory = element?.let { specFactories[it] }
+        val factory = element?.let { specMethodsRegistry.getSpecMethodFactory(it) }
         @Suppress("IfThenToElvis")
         specAndMethodHandle = if (factory != null) {
             factory.getSpecAndMethodHandle(

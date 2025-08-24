@@ -11,7 +11,7 @@ import java.lang.invoke.MethodHandle
 import java.lang.invoke.VarHandle
 
 fun interface SpecMethodsRegistry {
-    fun getSpecMethodFactories(elements: Sequence<StackTraceElement>): Map<StackTraceElement, SpecMethodsFactory>
+    fun getSpecMethodFactory(element: StackTraceElement): SpecMethodsFactory?
 }
 
 data class SpecAndMethodHandle(

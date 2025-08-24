@@ -21,7 +21,6 @@ import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.nio.ByteBuffer
-import java.util.concurrent.CopyOnWriteArrayList
 
 private val androidGeneratorAttemptsCount =
     getRuntimeSettingsValue({ androidGeneratorAttemptsCount }) {
@@ -67,10 +66,10 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                 return@repeat
             }
             val result = run {
+                @Suppress("NewApi") val lookup = MethodHandles.publicLookup()
                 lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
                     val handle = try {
-                        @Suppress("NewApi")
-                        MethodHandles.publicLookup().findStatic(clazz, methodName, specMethodType)
+                        @Suppress("NewApi") lookup.findStatic(clazz, methodName, specMethodType)
                     // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
                     } catch (e: NoSuchMethodException) {
                         Log.w(LOG_TAG, e)
@@ -80,6 +79,8 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                         Log.w(LOG_TAG, e)
                         return@repeat
                     }
+                    // https://issuetracker.google.com/issues/366474683
+                    @Suppress("NewApi") lookup.revealDirect(handle)
                     SpecMethodsFactory { accessor, element, nextContinuation, nextSpec ->
                         ifAssertionEnabled {
                             check(element.className == className)
@@ -100,15 +101,11 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                     }
                 }
             }
-            // https://issuetracker.google.com/issues/366474683
-            loaders.add(loader)
             return result
         }
         Log.w(LOG_TAG, "Failed to generate spec methods for class [$className] after $androidGeneratorAttemptsCount attempts")
         return null
     }
-
-    private val loaders: MutableCollection<ClassLoader> = CopyOnWriteArrayList()
 }
 
 private fun buildClassLoader(

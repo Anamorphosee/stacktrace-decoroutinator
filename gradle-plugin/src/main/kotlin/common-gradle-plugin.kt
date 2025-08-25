@@ -31,7 +31,7 @@ internal object DecoroutinatorTransformedState {
 }
 
 internal val decoroutinatorTransformedStateAttribute: Attribute<String> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.transformedState2",
+    "dev.reformator.stacktracedecoroutinator.transformedState3",
     String::class.java
 )
 

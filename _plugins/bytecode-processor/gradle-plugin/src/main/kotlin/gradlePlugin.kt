@@ -142,7 +142,9 @@ class BytecodeProcessorPlugin : Plugin<Project> {
                             context = context,
                             skipUpdate = extension.skipUpdate
                         )
-                        context.write(contextFile.asFile)
+                        val file = contextFile.asFile
+                        file.delete()
+                        context.write(file)
                     }
                 }
                 tasks.withType(AbstractCompile::class.java) { task ->

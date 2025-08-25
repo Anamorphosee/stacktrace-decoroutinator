@@ -82,7 +82,6 @@ internal val defaultArtifactTypes = setOf(
     ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
     ArtifactTypeDefinition.ZIP_TYPE,
     "aar",
-    "android-classes-jar",
     "android-classes-directory"
 )
 

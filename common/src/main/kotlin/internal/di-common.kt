@@ -55,7 +55,7 @@ internal val fillUnknownElementsWithClassName =
     enabled && getRuntimeSettingsValue({ fillUnknownElementsWithClassName }) {
         System.getProperty(
             "dev.reformator.stacktracedecoroutinator.fillUnknownElementsWithClassName",
-            "false"
+            "true"
         ).toBoolean()
     }
 

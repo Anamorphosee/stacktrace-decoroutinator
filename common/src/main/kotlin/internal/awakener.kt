@@ -7,6 +7,7 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics.toResult
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 import kotlin.math.max
 
 internal fun BaseContinuation.awake(accessor: BaseContinuationAccessor, result: Any?) {
@@ -56,13 +57,27 @@ private val boundaryStacktraceElement =
 
 private fun BaseContinuation.getStacktraceElements(): List<StackTraceElement?> =
     buildList {
-        add(getStackTraceElement())
+        add(getNormalizedStackTraceElement())
         var frame = callerFrame
         while (frame != null) {
-            add(frame.getStackTraceElement())
+            add(frame.getNormalizedStackTraceElement())
             frame = frame.callerFrame
         }
     }
+
+private fun CoroutineStackFrame.getNormalizedStackTraceElement(): StackTraceElement? {
+    val element = getStackTraceElement()
+    return when {
+        element != null -> element
+        fillUnknownElementsWithClassName -> StackTraceElement(
+            javaClass.name,
+            unknown,
+            null,
+            UNKNOWN_LINE_NUMBER
+        )
+        else -> null
+    }
+}
 
 private fun BaseContinuation.stdlibAwake(accessor: BaseContinuationAccessor, result: Any?) {
     var newResult = result

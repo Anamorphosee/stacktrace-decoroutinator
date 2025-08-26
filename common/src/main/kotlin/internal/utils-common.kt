@@ -19,7 +19,7 @@ import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
 const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 
-const val UNKNOWN_LINE_NUMBER = 0
+const val UNKNOWN_LINE_NUMBER = -1
 
 class DecoroutinatorSpecImpl(
     private val accessor: BaseContinuationAccessor,

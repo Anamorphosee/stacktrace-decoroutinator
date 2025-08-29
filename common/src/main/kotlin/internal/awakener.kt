@@ -11,12 +11,14 @@ import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 import kotlin.math.max
 
 internal fun BaseContinuation.awake(accessor: BaseContinuationAccessor, result: Any?) {
-    val stacktraceElements = getStacktraceElements()
+    val isRecoveryExplicitStacktraceNeeded = recoveryExplicitStacktrace && result.toResult.isFailure
 
-    if (recoveryExplicitStacktrace && result.toResult.isFailure) {
+    val stacktraceElements = if (isRecoveryExplicitStacktraceNeeded) getStacktraceElements() else null
+
+    if (isRecoveryExplicitStacktraceNeeded) {
         recoveryExplicitStacktrace(
             exception = (result as FailureResult).exception,
-            stacktraceElements = stacktraceElements
+            stacktraceElements = stacktraceElements!!
         )
     }
 
@@ -95,14 +97,26 @@ private fun BaseContinuation.stdlibAwake(accessor: BaseContinuationAccessor, res
 
 private fun BaseContinuation.callSpecMethods(
     accessor: BaseContinuationAccessor,
-    stacktraceElements: List<StackTraceElement?>,
+    stacktraceElements: List<StackTraceElement?>?,
     result: Any?
 ): Any? {
     var specAndMethodHandle: SpecAndMethodHandle? = null
     var baseContinuation: BaseContinuation? = this
-    (1 .. stacktraceElements.lastIndex).forEach { index ->
-        val element = stacktraceElements[index]
+    var index = 1
+    var frame: CoroutineStackFrame? = callerFrame
+    while (true) {
+        val element = if (stacktraceElements != null) {
+            if (index == stacktraceElements.size) break
+            stacktraceElements[index++]
+        } else {
+            if (frame == null) break
+            val element = frame.getNormalizedStackTraceElement()
+            frame = frame.callerFrame
+            element
+        }
+
         val factory = element?.let { specMethodsRegistry.getSpecMethodFactory(it) }
+
         @Suppress("IfThenToElvis")
         specAndMethodHandle = if (factory != null) {
             factory.getSpecAndMethodHandle(
@@ -122,6 +136,7 @@ private fun BaseContinuation.callSpecMethods(
                 )
             )
         }
+
         baseContinuation = baseContinuation?.completion as? BaseContinuation
     }
 

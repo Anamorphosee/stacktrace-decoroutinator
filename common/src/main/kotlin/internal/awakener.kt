@@ -5,7 +5,9 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.FailureResult
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.toResult
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
+import java.lang.invoke.MethodHandle
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 import kotlin.math.max
@@ -100,7 +102,8 @@ private fun BaseContinuation.callSpecMethods(
     stacktraceElements: List<StackTraceElement?>?,
     result: Any?
 ): Any? {
-    var specAndMethodHandle: SpecAndMethodHandle? = null
+    var spec: DecoroutinatorSpec? = null
+    var specMethod: MethodHandle? = null
     var baseContinuation: BaseContinuation? = this
     var index = 1
     var frame: CoroutineStackFrame? = callerFrame
@@ -115,36 +118,24 @@ private fun BaseContinuation.callSpecMethods(
             element
         }
 
-        val factory = element?.let { specMethodsRegistry.getSpecMethodFactory(it) }
-
         @Suppress("IfThenToElvis")
-        specAndMethodHandle = if (factory != null) {
-            factory.getSpecAndMethodHandle(
-                accessor = accessor,
-                element = element,
-                nextSpec = specAndMethodHandle,
-                nextContinuation = baseContinuation
-            )
-        } else {
-            SpecAndMethodHandle(
-                specMethodHandle = methodHandleInvoker.unknownSpecMethodHandle,
-                spec = DecoroutinatorSpecImpl(
-                    accessor = accessor,
-                    lineNumber = UNKNOWN_LINE_NUMBER,
-                    nextSpecAndItsMethod = specAndMethodHandle,
-                    nextContinuation = baseContinuation
-                )
-            )
-        }
+        spec = DecoroutinatorSpecImpl(
+            accessor = accessor,
+            lineNumber = if (element == null) UNKNOWN_LINE_NUMBER else element.normalizedLineNumber,
+            _nextSpec = spec,
+            _nextSpecHandle = specMethod,
+            nextContinuation = baseContinuation
+        )
+        specMethod = element?.let { specMethodsFactory.getSpecMethodHandle(it) }
+            ?: methodHandleInvoker.unknownSpecMethodHandle
 
         baseContinuation = baseContinuation?.completion as? BaseContinuation
     }
 
-    val newResult = if (specAndMethodHandle != null) {
-        @Suppress("UNNECESSARY_NOT_NULL_ASSERTION") val specAndMethodHandleCopy = specAndMethodHandle!!
+    val newResult = if (spec != null) {
         val newResult = methodHandleInvoker.callSpecMethod(
-            handle = specAndMethodHandleCopy.specMethodHandle,
-            spec = specAndMethodHandleCopy.spec,
+            handle = specMethod!!,
+            spec = spec,
             result = result
         )
         if (newResult === COROUTINE_SUSPENDED) return newResult

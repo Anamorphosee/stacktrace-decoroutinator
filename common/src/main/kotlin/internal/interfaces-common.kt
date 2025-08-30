@@ -4,28 +4,13 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
-import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.VarHandle
 
-fun interface SpecMethodsRegistry {
-    fun getSpecMethodFactory(element: StackTraceElement): SpecMethodsFactory?
-}
-
-data class SpecAndMethodHandle(
-    val specMethodHandle: MethodHandle,
-    val spec: DecoroutinatorSpec
-)
-
 fun interface SpecMethodsFactory {
-    fun getSpecAndMethodHandle(
-        accessor: BaseContinuationAccessor,
-        element: StackTraceElement,
-        nextContinuation: BaseContinuation?,
-        nextSpec: SpecAndMethodHandle?
-    ): SpecAndMethodHandle
+    fun getSpecMethodHandle(element: StackTraceElement): MethodHandle?
 }
 
 data class TransformationMetadata(

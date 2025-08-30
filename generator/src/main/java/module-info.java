@@ -1,6 +1,6 @@
 import dev.reformator.stacktracedecoroutinator.common.internal.AnnotationMetadataResolver;
-import dev.reformator.stacktracedecoroutinator.generator.internal.GeneratorSpecMethodsRegistry;
-import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsRegistry;
+import dev.reformator.stacktracedecoroutinator.generator.internal.GeneratorSpecMethodsFactory;
+import dev.reformator.stacktracedecoroutinator.common.internal.SpecMethodsFactory;
 import dev.reformator.stacktracedecoroutinator.generator.internal.AnnotationMetadataResolverImpl;
 
 module dev.reformator.stacktracedecoroutinator.generator {
@@ -16,6 +16,6 @@ module dev.reformator.stacktracedecoroutinator.generator {
             dev.reformator.stacktracedecoroutinator.jvmagentcommon,
             dev.reformator.stacktracedecoroutinator.generator.tests;
 
-    provides SpecMethodsRegistry with GeneratorSpecMethodsRegistry;
+    provides SpecMethodsFactory with GeneratorSpecMethodsFactory;
     provides AnnotationMetadataResolver with AnnotationMetadataResolverImpl;
 }

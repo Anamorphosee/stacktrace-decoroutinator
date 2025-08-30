@@ -90,9 +90,9 @@ private val _stacktraceElementsFactory: StacktraceElementsFactory? =
     if (enabled) StacktraceElementsFactoryImpl() else null
 
 @Suppress("ObjectPropertyName")
-private val _specMethodsRegistry: SpecMethodsRegistry? =
+private val _specMethodsFactory: SpecMethodsFactory? =
     if (enabled) {
-        loadService<SpecMethodsRegistry>() ?: SpecMethodsRegistryImpl
+        loadService<SpecMethodsFactory>() ?: SpecMethodsFactoryImpl
     } else {
         null
     }
@@ -121,8 +121,8 @@ val baseContinuationAccessorProvider: BaseContinuationAccessorProvider
 internal val stacktraceElementsFactory: StacktraceElementsFactory
     get() = _stacktraceElementsFactory!!
 
-internal val specMethodsRegistry: SpecMethodsRegistry
-    get() = _specMethodsRegistry!!
+internal val specMethodsFactory: SpecMethodsFactory
+    get() = _specMethodsFactory!!
 
 internal val varHandleInvoker: VarHandleInvoker
     get() = _varHandleInvoker!!

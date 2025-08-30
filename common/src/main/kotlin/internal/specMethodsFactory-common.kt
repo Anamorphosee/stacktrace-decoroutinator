@@ -2,9 +2,7 @@
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
-import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
-import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -25,7 +23,7 @@ val resumeNextMethodName: String = DecoroutinatorSpec::class.java.methods
     .find { it.returnType == Object::class.java && it.parameterCount == 1 }!!
     .name
 
-abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
+abstract class BaseSpecMethodsFactory: SpecMethodsFactory {
     private val classesByName: MutableMap<String, ClassSpec> = HashMap()
     private val classesByNameUpdateLock = ReentrantLock()
 
@@ -35,21 +33,21 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
             lock = classesByNameUpdateLock
         ) { ClassSpec() }
 
-    override fun getSpecMethodFactory(element: StackTraceElement): SpecMethodsFactory? {
-        SpecMethodsRegistryImpl.getSpecMethodFactory(element)?.let { return it }
+    override fun getSpecMethodHandle(element: StackTraceElement): MethodHandle? {
+        SpecMethodsFactoryImpl.getSpecMethodHandle(element)?.let { return it }
 
         val classSpec = getClassSpec(element.className)
 
-        fun getSpecMethodFactory(): SpecMethodsFactory? {
+        fun getMethodHandle(): MethodHandle? {
             val methodsByName = classSpec[element.fileName] ?: return null
             val methodSpec = methodsByName[element.methodName] ?: return null
             if (element.normalizedLineNumber !in methodSpec.lineNumbers) return null
-            return methodSpec.factory
+            return methodSpec.handle
         }
-        getSpecMethodFactory()?.let { return it }
+        getMethodHandle()?.let { return it }
 
         classSpec.updateLock.withLock {
-            getSpecMethodFactory()?.let { return it }
+            getMethodHandle()?.let { return it }
 
             val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
             classSpec[element.fileName]?.let { methodsByName ->
@@ -62,7 +60,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
             }.add(element.normalizedLineNumber)
 
             classSpec.revision++
-            val factoriesByMethod = generateSpecMethodFactories(
+            val factoriesByMethod = generateSpecMethodHandles(
                 className = element.className,
                 classRevision = classSpec.revision,
                 fileName = element.fileName,
@@ -74,26 +72,26 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
             assert { factoriesByMethod.keys == lineNumbersByMethod.keys }
 
             classSpec[element.fileName] =
-                factoriesByMethod.mapValuesCompact(methodsNumberThreshold) { (methodName, specMethodsFactory) ->
+                factoriesByMethod.mapValuesCompact(methodsNumberThreshold) { (methodName, handle) ->
                     MethodSpec(
-                        factory = specMethodsFactory,
+                        handle = handle,
                         lineNumbers = lineNumbersByMethod[methodName]!!.toIntArray()
                     )
                 }
         }
 
-        return getSpecMethodFactory()!!
+        return getMethodHandle()!!
     }
 
-    abstract fun generateSpecMethodFactories(
+    abstract fun generateSpecMethodHandles(
         className: String,
         classRevision: Int,
         fileName: String?,
         lineNumbersByMethod: Map<String, Set<Int>>
-    ): Map<String, SpecMethodsFactory>?
+    ): Map<String, MethodHandle>?
 
     private class MethodSpec(
-        val factory: SpecMethodsFactory,
+        val handle: MethodHandle,
         val lineNumbers: IntArray
     )
 
@@ -119,7 +117,7 @@ abstract class BaseSpecMethodsRegistry: SpecMethodsRegistry {
     }
 }
 
-internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
+internal object SpecMethodsFactoryImpl: SpecMethodsFactory {
     private val classSpecsByName: MutableMap<String, ClassSpec> = HashMap()
     private val classSpecsByNameUpdateLock = ReentrantLock()
 
@@ -139,12 +137,12 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             notSetValue = ClassSpec.notSet
         )
 
-    override fun getSpecMethodFactory(element: StackTraceElement): SpecMethodsFactory? {
+    override fun getSpecMethodHandle(element: StackTraceElement): MethodHandle? {
         val classSpec = getClassSpec(element.className) ?: return null
         if (classSpec.fileName != element.fileName) return null
         val methodSpec = classSpec.methodsByName[element.methodName] ?: return null
         if (element.normalizedLineNumber !in methodSpec.lineNumbers) return null
-        return methodSpec
+        return methodSpec.handle
     }
 
     init {
@@ -156,31 +154,8 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
 
     private class MethodSpec(
         val lineNumbers: IntArray,
-        val specMethod: MethodHandle
-    ): SpecMethodsFactory {
-        override fun getSpecAndMethodHandle(
-            accessor: BaseContinuationAccessor,
-            element: StackTraceElement,
-            nextContinuation: BaseContinuation?,
-            nextSpec: SpecAndMethodHandle?
-        ): SpecAndMethodHandle {
-            ifAssertionEnabled {
-                val clazz = getClassSpec(element.className)!!
-                check(clazz.fileName == element.fileName)
-                check(clazz.methodsByName[element.methodName] == this)
-                check(element.normalizedLineNumber in lineNumbers)
-            }
-            return SpecAndMethodHandle(
-                specMethodHandle = specMethod,
-                spec = DecoroutinatorSpecImpl(
-                    accessor = accessor,
-                    lineNumber = element.normalizedLineNumber,
-                    nextSpecAndItsMethod = nextSpec,
-                    nextContinuation = nextContinuation
-                )
-            )
-        }
-    }
+        val handle: MethodHandle
+    )
 
     private fun register(spec: TransformedClassesRegistry.TransformedClassSpec) {
         if (spec.skipSpecMethods) return
@@ -188,7 +163,7 @@ internal object SpecMethodsRegistryImpl: SpecMethodsRegistry {
             val specMethod = spec.lookup.findStatic(spec.transformedClass, methodName, specMethodType)
             MethodSpec(
                 lineNumbers = lineNumbers,
-                specMethod = specMethod
+                handle = specMethod
             )
         }
         val classSpec = ClassSpec(

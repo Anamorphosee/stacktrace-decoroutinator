@@ -17,6 +17,7 @@ import dev.reformator.stacktracedecoroutinator.common.internal.*
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.runtimesettings.internal.getRuntimeSettingsValue
 import java.io.IOException
+import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -32,19 +33,19 @@ private val androidGeneratorAttemptsCount =
 
 private const val LOG_TAG = "Decoroutinator"
 
-internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
+internal class AndroidSpecMethodsFactory: BaseSpecMethodsFactory() {
     init {
         //assert the platform
         @Suppress("NewApi")
         Class.forName(InMemoryDexClassLoader::class.java.name)
     }
 
-    override fun generateSpecMethodFactories(
+    override fun generateSpecMethodHandles(
         className: String,
         classRevision: Int,
         fileName: String?,
         lineNumbersByMethod: Map<String, Set<Int>>
-    ): Map<String, SpecMethodsFactory>? {
+    ): Map<String, MethodHandle>? {
         repeat(androidGeneratorAttemptsCount) {
             val loader = try {
                 buildClassLoader(
@@ -67,7 +68,7 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
             }
             val result = run {
                 @Suppress("NewApi") val lookup = MethodHandles.publicLookup()
-                lineNumbersByMethod.mapValues { (methodName, lineNumbers) ->
+                lineNumbersByMethod.mapValues { (methodName, _) ->
                     val handle = try {
                         @Suppress("NewApi") lookup.findStatic(clazz, methodName, specMethodType)
                     // https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/30#issuecomment-2346066638
@@ -79,26 +80,11 @@ internal class AndroidSpecMethodsRegistry: BaseSpecMethodsRegistry() {
                         Log.w(LOG_TAG, e)
                         return@repeat
                     }
+
                     // https://issuetracker.google.com/issues/366474683
                     @Suppress("NewApi") lookup.revealDirect(handle)
-                    SpecMethodsFactory { accessor, element, nextContinuation, nextSpec ->
-                        ifAssertionEnabled {
-                            check(element.className == className)
-                            check(element.fileName == fileName)
-                            check(element.methodName == methodName)
-                            check(element.normalizedLineNumber in lineNumbers)
-                        }
-                        val spec = DecoroutinatorSpecImpl(
-                            accessor = accessor,
-                            lineNumber = element.normalizedLineNumber,
-                            nextSpecAndItsMethod = nextSpec,
-                            nextContinuation = nextContinuation
-                        )
-                        SpecAndMethodHandle(
-                            specMethodHandle = handle,
-                            spec = spec
-                        )
-                    }
+
+                    handle
                 }
             }
             return result

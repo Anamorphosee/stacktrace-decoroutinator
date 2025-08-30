@@ -21,20 +21,21 @@ const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseCon
 
 const val UNKNOWN_LINE_NUMBER = -1
 
-class DecoroutinatorSpecImpl(
+internal class DecoroutinatorSpecImpl(
     private val accessor: BaseContinuationAccessor,
     override val lineNumber: Int,
-    private val nextSpecAndItsMethod: SpecAndMethodHandle?,
+    private val _nextSpec: DecoroutinatorSpec?,
+    private val _nextSpecHandle: MethodHandle?,
     private val nextContinuation: BaseContinuation?
 ): DecoroutinatorSpec {
     override val isLastSpec: Boolean
-        get() = nextSpecAndItsMethod == null
+        get() = _nextSpec == null
 
     override val nextSpecHandle: MethodHandle
-        get() = nextSpecAndItsMethod!!.specMethodHandle
+        get() = _nextSpecHandle!!
 
     override val nextSpec: DecoroutinatorSpec
-        get() = nextSpecAndItsMethod!!.spec
+        get() = _nextSpec!!
 
     override fun resumeNext(result: Any?): Any? =
         if (nextContinuation != null && result !== COROUTINE_SUSPENDED) {
@@ -268,5 +269,5 @@ internal inline fun BaseContinuation.callInvokeSuspend(
     return newResult
 }
 
-val StackTraceElement.normalizedLineNumber: Int
+internal val StackTraceElement.normalizedLineNumber: Int
     get() = if (lineNumber < 0) UNKNOWN_LINE_NUMBER else lineNumber

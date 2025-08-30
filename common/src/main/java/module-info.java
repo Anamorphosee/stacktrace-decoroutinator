@@ -22,7 +22,7 @@ module dev.reformator.stacktracedecoroutinator.common {
 
     provides DecoroutinatorProvider with Provider;
 
-    uses SpecMethodsRegistry;
+    uses SpecMethodsFactory;
     uses AnnotationMetadataResolver;
     uses MethodHandleInvoker;
     uses VarHandleInvoker;

@@ -158,22 +158,26 @@ internal class DecoroutinatorContinuationImpl(
 
 internal fun <K: Any, V: Any> MutableMap<K, V>.optimisticLockGet(key: K, notSetValue: V, lock: Lock): V? {
     val result = try {
-        get(key)
+        this[key]
     } catch (_: ConcurrentModificationException) { null } ?: lock.withLock {
-        get(key)?.let { return@withLock it }
-        set(key, notSetValue)
+        this[key]?.let { return@withLock it }
+        this[key] = notSetValue
         notSetValue
     }
     return if (result === notSetValue) null else result
 }
 
-internal inline fun <K: Any, V: Any> MutableMap<K, V>.optimisticLockGetOrPut(key: K, lock: Lock, generator: () -> V): V =
+internal inline fun <K: Any, V: Any> MutableMap<K, V>.optimisticLockGetOrPut(
+    key: K,
+    lock: Lock,
+    generator: () -> V
+): V =
     try {
-        get(key)
+        this[key]
     } catch (_: ConcurrentModificationException) { null } ?: lock.withLock {
-        get(key)?.let { return@withLock it }
+        this[key]?.let { return@withLock it }
         val newValue = generator()
-        set(key, newValue)
+        this[key] = newValue
         newValue
     }
 
@@ -196,7 +200,7 @@ internal class CompactMap<K, V>: AbstractMutableMap<K, V>() {
                 return oldValue
             }
         }
-        _entries = _entries + Entry(key, value)
+        _entries += Entry(key, value)
         return null
     }
 

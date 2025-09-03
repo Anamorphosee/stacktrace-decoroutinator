@@ -8,6 +8,7 @@ import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import java.lang.invoke.MethodHandle
+import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 import kotlin.math.max
@@ -75,7 +76,7 @@ private fun CoroutineStackFrame.getNormalizedStackTraceElement(): StackTraceElem
         element != null -> element
         fillUnknownElementsWithClassName -> StackTraceElement(
             javaClass.name,
-            unknown,
+            "resumeWith",
             null,
             UNKNOWN_LINE_NUMBER
         )

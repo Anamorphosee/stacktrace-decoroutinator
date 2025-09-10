@@ -8,6 +8,7 @@ import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import java.lang.invoke.MethodHandle
+import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 import kotlin.math.max
@@ -32,23 +33,11 @@ internal fun BaseContinuation.awake(accessor: BaseContinuationAccessor, result: 
         return
     }
 
-    val newResult = callSpecMethods(
+    callSpecMethods(
         accessor = accessor,
-        stacktraceElements = stacktraceElements,
+        elements = stacktraceElements,
         result = result
     )
-    if (newResult === COROUTINE_SUSPENDED) return
-
-    var baseContinuation = this
-    while (true) {
-        val nextContinuation = baseContinuation.completion!!
-        if (nextContinuation is BaseContinuation) {
-            baseContinuation = nextContinuation
-        } else {
-            nextContinuation.resumeWith(Result.success(newResult))
-            break
-        }
-    }
 }
 
 @Suppress("MayBeConstant", "RedundantSuppression")
@@ -69,9 +58,14 @@ private fun BaseContinuation.getStacktraceElements(): List<StackTraceElement?> =
         }
     }
 
-private fun CoroutineStackFrame.getNormalizedStackTraceElement(): StackTraceElement? {
-    val element = getStackTraceElement()
-    return when {
+private fun CoroutineStackFrame.getNormalizedStackTraceElement(): StackTraceElement? =
+    getNormalizedStackTraceElement(getStackTraceElement())
+
+private fun BaseContinuation.getNormalizedStackTraceElement(): StackTraceElement? =
+    getNormalizedStackTraceElement(getStackTraceElement())
+
+private fun Any.getNormalizedStackTraceElement(element: StackTraceElement?): StackTraceElement? =
+    when {
         element != null -> element
         fillUnknownElementsWithClassName -> StackTraceElement(
             javaClass.name,
@@ -81,7 +75,6 @@ private fun CoroutineStackFrame.getNormalizedStackTraceElement(): StackTraceElem
         )
         else -> null
     }
-}
 
 private fun BaseContinuation.stdlibAwake(accessor: BaseContinuationAccessor, result: Any?) {
     var newResult = result
@@ -99,23 +92,47 @@ private fun BaseContinuation.stdlibAwake(accessor: BaseContinuationAccessor, res
 
 private fun BaseContinuation.callSpecMethods(
     accessor: BaseContinuationAccessor,
-    stacktraceElements: List<StackTraceElement?>?,
+    elements: List<StackTraceElement?>?,
     result: Any?
-): Any? {
+) {
     var spec: DecoroutinatorSpec? = null
     var specMethod: MethodHandle? = null
-    var baseContinuation: BaseContinuation? = this
-    var index = 1
-    var frame: CoroutineStackFrame? = callerFrame
+    var baseContinuation: BaseContinuation? = this //next
+    var elementIndex = 1
+    var frame: CoroutineStackFrame? = null //current
+    var completion: Continuation<Any?> = this
     while (true) {
-        val element = if (stacktraceElements != null) {
-            if (index == stacktraceElements.size) break
-            stacktraceElements[index++]
+        val currentBaseContinuation = baseContinuation
+        val element = if (elements != null) {
+            if (elementIndex == elements.size) {
+                if (currentBaseContinuation != null) {
+                    completion = currentBaseContinuation.completion!!
+                }
+                break
+            } else {
+                if (currentBaseContinuation != null) {
+                    completion = currentBaseContinuation.completion!!
+                    baseContinuation = completion as? BaseContinuation
+                }
+                elements[elementIndex++]
+            }
+        } else if (currentBaseContinuation != null) {
+            val currentCompletion = currentBaseContinuation.completion!!
+            if (currentCompletion is BaseContinuation) {
+                baseContinuation = currentCompletion
+                currentCompletion.getNormalizedStackTraceElement()
+            } else {
+                completion = currentCompletion
+                if (currentCompletion is CoroutineStackFrame) {
+                    baseContinuation = null
+                    frame = currentCompletion.callerFrame
+                    currentCompletion.getNormalizedStackTraceElement()
+                } else break
+            }
         } else {
-            if (frame == null) break
-            val element = frame.getNormalizedStackTraceElement()
-            frame = frame.callerFrame
-            element
+            val currentFrame = frame ?: break
+            frame = currentFrame.callerFrame
+            currentFrame.getNormalizedStackTraceElement()
         }
 
         @Suppress("IfThenToElvis")
@@ -124,32 +141,33 @@ private fun BaseContinuation.callSpecMethods(
             lineNumber = if (element == null) UNKNOWN_LINE_NUMBER else element.normalizedLineNumber,
             _nextSpec = spec,
             _nextSpecHandle = specMethod,
-            nextContinuation = baseContinuation
+            nextContinuation = currentBaseContinuation
         )
         specMethod = element?.let { specMethodsFactory.getSpecMethodHandle(it) }
             ?: methodHandleInvoker.unknownSpecMethodHandle
-
-        baseContinuation = baseContinuation?.completion as? BaseContinuation
     }
 
-    val newResult = if (spec != null) {
-        val newResult = methodHandleInvoker.callSpecMethod(
+    val specResult = if (spec != null) {
+        val specResult = methodHandleInvoker.callSpecMethod(
             handle = specMethod!!,
             spec = spec,
             result = result
         )
-        if (newResult === COROUTINE_SUSPENDED) return newResult
-        newResult
+        if (specResult === COROUTINE_SUSPENDED) return
+        specResult
     } else {
         result
     }
 
-    return if (baseContinuation != null) {
-        @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
-        baseContinuation!!.callInvokeSuspend(accessor, newResult)
+    val baseContinuationResult = if (baseContinuation != null) {
+        val baseContinuationResult = baseContinuation.callInvokeSuspend(accessor, specResult)
+        if (baseContinuationResult === COROUTINE_SUSPENDED) return
+        baseContinuationResult
     } else {
-        newResult
+        specResult
     }
+
+    completion.resumeWith(Result.success(baseContinuationResult))
 }
 
 private fun boundaryStackTraceElement(time: UInt): StackTraceElement =

@@ -83,7 +83,9 @@ open class RuntimeTest {
         }
     }
 
-    class CustomEx(message: String): Exception(message)
+    class CustomEx(): Exception() {
+        var rethrow = false
+    }
 
     @Junit4Test @Junit5Test
     fun resumeDoubleException() {
@@ -98,10 +100,11 @@ open class RuntimeTest {
                     resumeMethodName = ownerMethodName
                     firstResumeLineNumber = currentLineNumber + 1
                     suspendCoroutineUninterceptedOrReturn { cont ->
-                        cont.resumeWithException(CustomEx("test"))
+                        cont.resumeWithException(CustomEx())
                         COROUTINE_SUSPENDED
                     }
                 } catch (e: CustomEx) {
+                    e.rethrow = true
                     secondResumeLineNumber = currentLineNumber + 1
                     suspendCoroutineUninterceptedOrReturn { cont ->
                         cont.resumeWithException(e)
@@ -110,6 +113,7 @@ open class RuntimeTest {
                 }
             }
         } catch (e: CustomEx) {
+            assertTrue(e.rethrow)
             val trace = e.stackTrace
             val secondResumeTraceStart = trace.getNextBoundaryIndex() + 1
             trace.checkStacktrace(
@@ -137,9 +141,9 @@ open class RuntimeTest {
     private fun Array<StackTraceElement>.getNextBoundaryIndex(startIndex: Int = 0): Int {
         for (i in startIndex .. lastIndex) {
             val fileName = this[i].fileName
-            if (fileName != null && fileName.startsWith("decoroutinator-boundary-")) return i
+            if (fileName == "decoroutinator-boundary") return i
         }
-        return -1
+        error("not found")
     }
 
     @Junit4Test @Junit5Test

@@ -167,7 +167,7 @@ private fun BaseContinuation.callSpecMethods(
         specResult
     }
 
-    completion.resumeWith(Result.success(baseContinuationResult))
+    completion.resumeWith(baseContinuationResult.toResult)
 }
 
 private fun boundaryStackTraceElement(time: UInt): StackTraceElement =

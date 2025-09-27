@@ -339,11 +339,27 @@ interface InterfaceWithDefaultMethod {
 open class TailCallDeoptimizeTest {
     fun basic() = runBlocking {
         tailCallDeoptimizeBasicRec(recDepth)
+        tailCallDeoptF1()
     }
 
     fun interfaceWithDefaultMethodImpl() = runBlocking {
         object: InterfaceWithDefaultImplMethod {}.defaultImpl()
     }
+}
+
+val tailCallDeoptF1CallF2LineNumber = currentLineNumber + 2
+suspend fun tailCallDeoptF1() {
+    tailCallDeoptF2()
+}
+
+suspend fun tailCallDeoptF2() {
+    yield()
+    checkStacktrace(StackTraceElement(
+        ownerClassName,
+        ::tailCallDeoptF1.name,
+        currentFileName,
+        tailCallDeoptF1CallF2LineNumber
+    ))
 }
 
 open class CustomClassLoaderTest {

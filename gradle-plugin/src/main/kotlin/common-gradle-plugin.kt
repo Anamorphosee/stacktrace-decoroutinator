@@ -166,7 +166,7 @@ private fun DecoroutinatorPluginExtension.setupLowLevelDependencyConfig(project:
     }
     val jvmMainConfigs = when {
         isKmp -> setOf("desktopMainImplementation", "androidUnitTestImplementation")
-        isAndroid -> emptySet()
+        isAndroid -> setOf(".*UnitTestImplementation", "unitTestImplementation")
         else -> setOf("implementation")
     }
     val androidConfigs = if (androidTestsOnly) androidTestConfigs else androidMainConfigs

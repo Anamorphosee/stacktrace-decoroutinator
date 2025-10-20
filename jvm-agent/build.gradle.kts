@@ -80,7 +80,7 @@ publishing {
             pom {
                 name.set("Stacktrace-decoroutinator JVM agent.")
                 description.set("JVM agent for recovering stack trace in exceptions thrown in Kotlin coroutines.")
-                url.set("https://stacktracedecoroutinator.reformator.dev")
+                url.set("https://github.com/Anamorphosee/stacktrace-decoroutinator")
                 licenses {
                     license {
                         name.set("The Apache License, Version 2.0")

@@ -106,11 +106,9 @@ kotlin {
 
 val kotlinSources = sourceSets.main.get().kotlin
 val resourcesSources = sourceSets.main.get().resources
-kotlinSources.srcDirs("../../common/src/main/kotlin")
-resourcesSources.srcDirs("../../common/src/main/resources")
-kotlinSources.srcDirs("../../generator/src/main/kotlin")
-resourcesSources.srcDirs("../../generator/src/main/resources")
 kotlinSources.srcDirs("../../gradle-plugin/src/main/kotlin")
+kotlinSources.srcDirs("../../class-transformer/src/main/kotlin")
+kotlinSources.srcDirs("../../spec-method-builder/src/main/kotlin")
 
 
 gradlePlugin {

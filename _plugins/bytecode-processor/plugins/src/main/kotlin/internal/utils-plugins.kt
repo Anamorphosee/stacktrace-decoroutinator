@@ -53,9 +53,7 @@ internal fun ClassNode.getOrCreateClinit(): MethodNode =
     }
 
 internal fun Class<*>.readAsm(): ClassNode =
-    classLoader.getResourceAsStream(
-        name.replace('.', '/') + ".class"
-    )!!.use {
+    classLoader.getResourceAsStream(name.internalName + ".class")!!.use {
         val classReader = ClassReader(it)
         val classNode = ClassNode(Opcodes.ASM9)
         classReader.accept(classNode, 0)

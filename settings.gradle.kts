@@ -2,7 +2,7 @@ rootProject.name = "stacktrace-decoroutinator"
 include(
     "provider",
     "common",
-    "generator",
+    "generator-jvm",
     "gradle-plugin",
     "jvm-agent-common",
     "jvm",
@@ -12,6 +12,8 @@ include(
     "mh-invoker-android",
     "mh-invoker-jvm",
     "runtime-settings",
+    "class-transformer",
+    "spec-method-builder",
 
     "intrinsics",
     "test-utils",
@@ -19,7 +21,7 @@ include(
     "test-utils:base-continuation-accessor-reflect-stub",
     "test-utils-jvm",
     "test-utils:custom-loader",
-    "generator:jdk8-tests-g",
+    "generator-jvm:jdk8-tests-g",
     "gradle-plugin:tests-gp",
     "gradle-plugin:android-tests",
     "gradle-plugin:jdk8-tests-gp",
@@ -33,11 +35,12 @@ include(
     "jvm-agent:jdk8-tests-ja",
     "jvm:jdk8-tests-j",
     "mh-invoker-android:legacy-tests",
-    "mh-invoker-jvm:jdk8-tests-mij"
+    "mh-invoker-jvm:jdk8-tests-mij",
+    "jvm-agent-common:suspend-class-stub"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"
-project(":generator").name = "stacktrace-decoroutinator-generator"
+project(":generator-jvm").name = "stacktrace-decoroutinator-generator-jvm"
 project(":gradle-plugin").name = "stacktrace-decoroutinator-gradle-plugin"
 project(":jvm-agent-common").name = "stacktrace-decoroutinator-jvm-agent-common"
 project(":jvm").name = "stacktrace-decoroutinator-jvm"
@@ -47,6 +50,8 @@ project(":mh-invoker").name = "stacktrace-decoroutinator-mh-invoker"
 project(":mh-invoker-android").name = "stacktrace-decoroutinator-mh-invoker-android"
 project(":mh-invoker-jvm").name = "stacktrace-decoroutinator-mh-invoker-jvm"
 project(":runtime-settings").name = "stacktrace-decoroutinator-runtime-settings"
+project(":class-transformer").name = "stacktrace-decoroutinator-class-transformer"
+project(":spec-method-builder").name = "stacktrace-decoroutinator-spec-method-builder"
 
 includeBuild("_plugins/bytecode-processor")
 includeBuild("_plugins/gradle-plugin-test")

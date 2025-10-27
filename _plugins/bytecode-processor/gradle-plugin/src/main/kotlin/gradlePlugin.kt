@@ -54,18 +54,15 @@ open class BytecodeProcessorPluginExtension {
     var processors: Collection<Processor> = emptyList()
     var skipUpdate = false
     fun initContext(action: BytecodeProcessorContext.() -> Unit) {
-        initialContext.action()
+        initContextTasks.add(action)
     }
 
-    internal val initialContext = MapperBytecodeProcessorContext()
+    internal val initContextTasks = mutableListOf<BytecodeProcessorContext.() -> Unit>()
 }
 
 abstract class BytecodeProcessorMergeContextsTask @Inject constructor(
-    private val initialContext: MapperBytecodeProcessorContext
+    private val contextModifier: (MapperBytecodeProcessorContext.() -> Unit)
 ): DefaultTask() {
-    @Suppress("unused")
-    constructor(): this(MapperBytecodeProcessorContext.empty)
-
     @get:OutputFile
     abstract val mergedContextsFile: RegularFileProperty
 
@@ -74,16 +71,19 @@ abstract class BytecodeProcessorMergeContextsTask @Inject constructor(
 
     @TaskAction
     fun action() {
-        val context = initialContext.copy()
+        val context = MapperBytecodeProcessorContext()
         contextFilesToMerge.forEach { file ->
             if (file.exists()) {
                 val fileContext = MapperBytecodeProcessorContext.read(file)
                 context.merge(fileContext)
             }
         }
+        context.contextModifier()
         context.write(mergedContextsFile.get().asFile)
     }
 }
+
+abstract class BytecodeProcessorMergeContextsNoModifierTask(): BytecodeProcessorMergeContextsTask({ })
 
 @Suppress("unused")
 class BytecodeProcessorPlugin : Plugin<Project> {
@@ -93,17 +93,17 @@ class BytecodeProcessorPlugin : Plugin<Project> {
             val loadDependentProjectsTask = tasks.register(
                 INIT_TASK_NAME,
                 BytecodeProcessorMergeContextsTask::class.java,
-                extension.initialContext
+                *arrayOf({ context: MapperBytecodeProcessorContext ->
+                    extension.initContextTasks.forEach { context.it() }
+                })
             )
             loadDependentProjectsTask.configure { task ->
                 task.mergedContextsFile.set(bytecodeProcessorDirectory.get().file("initialContext.json"))
             }
             val mergeContextsTask = tasks.register(
                 MERGE_CONTEXTS_TASK_NAME,
-                BytecodeProcessorMergeContextsTask::class.java,
-                MapperBytecodeProcessorContext.empty
-            )
-            mergeContextsTask.configure { task ->
+                BytecodeProcessorMergeContextsNoModifierTask::class.java
+            ) { task ->
                 task.mergedContextsFile.set(bytecodeProcessorDirectory.get().file("mergedContext.json"))
             }
             afterEvaluate { _ ->
@@ -305,13 +305,13 @@ private object MapAsArrayModule: SimpleModule() {
 }
 
 
-class MapperBytecodeProcessorContext private constructor(
+@JvmInline
+value class MapperBytecodeProcessorContext private constructor(
     private val root: MutableMap<String, List<JsonNode>>
 ): BytecodeProcessorContext {
     constructor(): this(hashMapOf())
 
     companion object {
-        val empty = MapperBytecodeProcessorContext()
         private val rootTypeRef = object: TypeReference<MutableMap<String, List<JsonNode>>>() { }
 
         fun read(from: File): MapperBytecodeProcessorContext {
@@ -343,9 +343,6 @@ class MapperBytecodeProcessorContext private constructor(
     fun write(to: File) {
         objectMapper.writeValue(to, root)
     }
-
-    fun copy(): MapperBytecodeProcessorContext =
-        MapperBytecodeProcessorContext(HashMap(root))
 
     fun merge(context: MapperBytecodeProcessorContext) {
         context.root.forEach { (keyId, otherValues) ->

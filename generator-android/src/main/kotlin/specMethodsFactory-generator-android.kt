@@ -15,6 +15,7 @@ import com.android.dx.rop.type.Type
 import dalvik.system.InMemoryDexClassLoader
 import dev.reformator.stacktracedecoroutinator.common.internal.*
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import dev.reformator.stacktracedecoroutinator.runtimesettings.internal.getRuntimeSettingsValue
 import java.io.IOException
 import java.lang.invoke.MethodHandle

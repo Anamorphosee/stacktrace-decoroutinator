@@ -2,26 +2,13 @@
 
 package dev.reformator.stacktracedecoroutinator.common.internal
 
+import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-val specLineNumberMethodName: String = DecoroutinatorSpec::class.java.methods
-    .find { it.returnType == Int::class.javaPrimitiveType }!!
-    .name
-val isLastSpecMethodName: String = DecoroutinatorSpec::class.java.methods
-    .find { it.returnType == Boolean::class.javaPrimitiveType }!!
-    .name
-val nextSpecHandleMethodName: String = DecoroutinatorSpec::class.java.methods
-    .find { it.returnType == MethodHandle::class.java }!!
-    .name
-val nextSpecMethodName: String = DecoroutinatorSpec::class.java.methods
-    .find { it.returnType == DecoroutinatorSpec::class.java }!!
-    .name
-val resumeNextMethodName: String = DecoroutinatorSpec::class.java.methods
-    .find { it.returnType == Object::class.java && it.parameterCount == 1 }!!
-    .name
+
 
 abstract class BaseSpecMethodsFactory: SpecMethodsFactory {
     private val classesByName: MutableMap<String, ClassSpec> = HashMap()

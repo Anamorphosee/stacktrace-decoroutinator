@@ -7,8 +7,10 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics._Assertions
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.createFailure
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineResumed
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
+import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
 import java.util.ServiceLoader
@@ -16,10 +18,6 @@ import java.util.concurrent.locks.Lock
 import kotlin.concurrent.withLock
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
-
-const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
-
-const val UNKNOWN_LINE_NUMBER = -1
 
 internal class DecoroutinatorSpecImpl(
     private val accessor: BaseContinuationAccessor,
@@ -130,7 +128,7 @@ internal inline fun <reified T: Any> loadMandatoryService(): T =
     loadMandatoryService(T::class.java)
 
 internal fun Class<*>.getBodyStream(loader: ClassLoader): InputStream? =
-    loader.getResourceAsStream(name.replace('.', '/') + ".class")
+    loader.getResourceAsStream(name.internalName + ".class")
 
 internal fun Class<*>.getBodyStream(): InputStream? =
     classLoader?.let { getBodyStream(it) }

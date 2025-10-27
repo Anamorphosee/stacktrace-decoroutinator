@@ -23,11 +23,14 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(libs.byte.buddy.agent)
 
-    testImplementation(project(":stacktrace-decoroutinator-provider"))
+    compileOnly(project(":intrinsics"))
+
     testImplementation(kotlin("test"))
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))
     testImplementation(libs.kotlinx.coroutines.jdk8.build)
+
+    testCompileOnly(project(":intrinsics"))
 }
 
 tasks.test {

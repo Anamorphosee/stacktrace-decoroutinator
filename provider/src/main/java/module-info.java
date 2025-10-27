@@ -9,10 +9,12 @@ module dev.reformator.stacktracedecoroutinator.provider {
             kotlin.stdlib,
             dev.reformator.stacktracedecoroutinator.common,
             dev.reformator.stacktracedecoroutinator.mhinvoker,
-            dev.reformator.stacktracedecoroutinator.generator,
+            dev.reformator.stacktracedecoroutinator.generatorjvm,
             dev.reformator.stacktracedecoroutinator.test.basecontinuationaccessorstub,
             dev.reformator.stacktracedecoroutinator.jvmagentcommon,
-            dev.reformator.stacktracedecoroutinator.generator.tests;
+            dev.reformator.stacktracedecoroutinator.generator.tests,
+            dev.reformator.stacktracedecoroutinator.specmethodbuilder,
+            dev.reformator.stacktracedecoroutinator.classtransformer;
 
     uses DecoroutinatorProvider;
 }

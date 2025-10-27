@@ -30,7 +30,7 @@ subprojects {
 nmcp {
     publishAggregation {
         project(":stacktrace-decoroutinator-common")
-        project(":stacktrace-decoroutinator-generator")
+        project(":stacktrace-decoroutinator-generator-jvm")
         project(":stacktrace-decoroutinator-generator-android")
         project(":stacktrace-decoroutinator-gradle-plugin")
         project(":stacktrace-decoroutinator-jvm")

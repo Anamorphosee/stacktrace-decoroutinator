@@ -1,5 +1,3 @@
-import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
@@ -27,7 +25,7 @@ abstract class Transform: TransformAction<TransformParameters.None> {
                         output.putNextEntry(ZipEntry(entry.name).apply {
                             method = ZipEntry.DEFLATED
                         })
-                        if (entry.name == BASE_CONTINUATION_CLASS_NAME.replace('.', '/') + ".class") {
+                        if (entry.name == BASE_CONTINUATION_CLASS_NAME.internalName + ".class") {
                             output.write(input.getInputStream(entry).use {
                                 transformClassBody(
                                     classBody = it,
@@ -63,7 +61,7 @@ dependencies {
     })
 
 
-    testRuntimeOnly(project(":stacktrace-decoroutinator-generator"))
+    testRuntimeOnly(project(":stacktrace-decoroutinator-generator-jvm"))
     testRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker-jvm"))
 
     testImplementation(kotlin("test"))

@@ -5,6 +5,7 @@ package dev.reformator.stacktracedecoroutinator.gradleplugin
 
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import org.objectweb.asm.tree.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.artifacts.transform.InputArtifact
@@ -50,7 +51,7 @@ private inline fun Artifact.processArtifact(
                                 moduleInfo.module.uses = uses
                                 uses
                             }
-                            uses.add(DEBUG_PROBES_PROVIDER_CLASS_NAME.className2InternalName)
+                            uses.add(DEBUG_PROBES_PROVIDER_CLASS_NAME.internalName)
                             newArtifact.addFile(path, moduleInfo.classBody.inputStream())
                             return true
                         }
@@ -79,8 +80,8 @@ private inline fun Artifact.processArtifact(
                                 provides
                             }
                             provides.add(ModuleProvideNode(
-                                DEBUG_PROBES_PROVIDER_CLASS_NAME.className2InternalName,
-                                listOf(DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME.className2InternalName)
+                                DEBUG_PROBES_PROVIDER_CLASS_NAME.internalName,
+                                listOf(DEBUG_PROBES_PROVIDER_IMPL_CLASS_NAME.internalName)
                             ))
                             moduleInfo.module.addRequiresModule("dev.reformator.stacktracedecoroutinator.runtimesettings")
                             newArtifact.addFile(path, moduleInfo.classBody.inputStream())

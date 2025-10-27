@@ -5,11 +5,12 @@ package dev.reformator.stacktracedecoroutinator.gradleplugin
 
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
-import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.generator.internal.PROVIDER_MODULE_NAME
-import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
-import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.getDebugMetadataInfoFromClassBody
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.transformClassBody
+import dev.reformator.stacktracedecoroutinator.intrinsics.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.intrinsics.PROVIDER_MODULE_NAME
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
+import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
@@ -225,7 +226,7 @@ internal fun Artifact.transform(
                             }
                             provides.add(ModuleProvideNode(
                                 Type.getInternalName(BaseContinuationAccessorProvider::class.java),
-                                listOf(baseContinuationAccessorImplClassName.className2InternalName)
+                                listOf(baseContinuationAccessorImplClassName.internalName)
                             ))
                         }
                         node.classBody

@@ -3,7 +3,7 @@
 
 package dev.reformator.stacktracedecoroutinator.gradleplugin
 
-import dev.reformator.stacktracedecoroutinator.generator.internal.PROVIDER_MODULE_NAME
+import dev.reformator.stacktracedecoroutinator.intrinsics.PROVIDER_MODULE_NAME
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep

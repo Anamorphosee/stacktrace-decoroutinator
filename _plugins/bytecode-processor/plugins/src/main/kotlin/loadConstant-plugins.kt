@@ -62,6 +62,10 @@ object LoadConstantProcessor: Processor {
         context.merge(KeyValueContextKey, valuesByKeys)
     }
 
+    fun getValue(context: BytecodeProcessorContext, key: String): String? {
+        return context[KeyValueContextKey][key]
+    }
+
     override fun process(directory: ProcessingDirectory, context: BytecodeProcessorContext) {
         directory.classes.forEach { processingClass ->
             val annotation = processingClass.node.invisibleAnnotations.find(ClassNameConstant::class.java)

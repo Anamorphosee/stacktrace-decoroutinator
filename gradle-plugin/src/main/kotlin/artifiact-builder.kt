@@ -214,10 +214,6 @@ internal val String.className2ArtifactPath: ArtifactPath
         }
     }
 
-
-internal val String.className2InternalName: String
-    get() = replace('.', '/')
-
 internal fun getClassNode(classBody: InputStream): ClassNode? {
     return try {
         val classReader = ClassReader(classBody)

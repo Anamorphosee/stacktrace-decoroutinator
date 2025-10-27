@@ -10,6 +10,7 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.FieldInsnNode
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.MethodInsnNode
+import java.util.Objects
 import kotlin.jvm.internal.Intrinsics
 import kotlin.reflect.KFunction
 
@@ -24,30 +25,35 @@ object RemoveKotlinStdlibProcessor: Processor {
                         if (
                             instruction.opcode == Opcodes.INVOKESTATIC
                             && instruction.owner == Type.getInternalName(Intrinsics::class.java)
-                            && instruction.name in intrinsicCheckNotNullWithMessageMethodNames
-                            && instruction.desc == "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(String::class.java)})V"
                         ) {
-                            method.instructions.insert(instruction, InsnNode(Opcodes.POP2))
-                            method.instructions.remove(instruction)
-                            clazz.markModified()
-                        } else if (
-                            instruction.opcode == Opcodes.INVOKESTATIC
-                            && instruction.owner == Type.getInternalName(Intrinsics::class.java)
-                            && instruction.name in intrinsicThrowWithMessageMethodNames
-                            && instruction.desc == "(${Type.getDescriptor(String::class.java)})V"
-                        ) {
-                            method.instructions.insert(instruction, InsnNode(Opcodes.POP))
-                            method.instructions.remove(instruction)
-                            clazz.markModified()
-                        } else if (
-                            instruction.opcode == Opcodes.INVOKESTATIC
-                            && instruction.owner == Type.getInternalName(Intrinsics::class.java)
-                            && instruction.name == run { val x: (Any) -> Unit = Intrinsics::checkNotNull; x as KFunction<*> }.name
-                            && instruction.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
-                        ) {
-                            method.instructions.insert(instruction, InsnNode(Opcodes.POP))
-                            method.instructions.remove(instruction)
-                            clazz.markModified()
+                            if (
+                                instruction.name in intrinsicCheckNotNullWithMessageMethodNames
+                                && instruction.desc == "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(String::class.java)})V"
+                            ) {
+                                method.instructions.insert(instruction, InsnNode(Opcodes.POP2))
+                                method.instructions.remove(instruction)
+                                clazz.markModified()
+                            } else if (
+                                instruction.name in intrinsicThrowWithMessageMethodNames
+                                && instruction.desc == "(${Type.getDescriptor(String::class.java)})V"
+                            ) {
+                                method.instructions.insert(instruction, InsnNode(Opcodes.POP))
+                                method.instructions.remove(instruction)
+                                clazz.markModified()
+                            } else if (
+                                instruction.name == run { val x: (Any) -> Unit = Intrinsics::checkNotNull; x as KFunction<*> }.name
+                                && instruction.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}"
+                            ) {
+                                method.instructions.insert(instruction, InsnNode(Opcodes.POP))
+                                method.instructions.remove(instruction)
+                                clazz.markModified()
+                            } else if (
+                                instruction.name == run { val x: (Any?, Any?) -> Boolean = Intrinsics::areEqual; x as KFunction<*> }.name
+                                && instruction.desc == "(${Type.getDescriptor(Object::class.java)}${Type.getDescriptor(Object::class.java)})${Type.BOOLEAN_TYPE.descriptor}"
+                            ) {
+                                instruction.owner = Type.getInternalName(Objects::class.java)
+                                instruction.name = Objects::equals.name
+                            }
                         }
                     } else if (instruction is FieldInsnNode) {
                         if (

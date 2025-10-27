@@ -433,7 +433,7 @@ interface InterfaceWithDefaultImplMethod {
     suspend fun defaultImpl() {
         val lineNumber = currentLineNumber + 1
         suspendFun(StackTraceElement(
-            InterfaceWithDefaultImplMethod::class.java.typeName,
+            InterfaceWithDefaultImplMethod::class.java.name,
             ownerMethodName,
             currentFileName,
             lineNumber

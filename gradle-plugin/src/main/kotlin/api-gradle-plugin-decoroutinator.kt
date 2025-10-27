@@ -27,7 +27,7 @@ fun DependencyHandler.decoroutinatorCommon(): Any =
 
 @Suppress("UnusedReceiverParameter")
 fun DependencyHandler.decoroutinatorJvmRuntime(): Any =
-    "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator:$projectVersionIntrinsic"
+    "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-jvm:$projectVersionIntrinsic"
 
 @Suppress("UnusedReceiverParameter")
 fun DependencyHandler.decoroutinatorAndroidRuntime(): Any =

@@ -7,11 +7,9 @@ module dev.reformator.stacktracedecoroutinator.jvmagentcommon {
 
     requires kotlin.stdlib;
     requires dev.reformator.stacktracedecoroutinator.runtimesettings;
-    requires dev.reformator.stacktracedecoroutinator.common;
-    requires dev.reformator.stacktracedecoroutinator.generator;
     requires dev.reformator.stacktracedecoroutinator.provider;
     requires java.instrument;
-    requires org.objectweb.asm;
+    requires dev.reformator.stacktracedecoroutinator.classtransformer;
 
     exports dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal to
             dev.reformator.stacktracedecoroutinator.jvm;

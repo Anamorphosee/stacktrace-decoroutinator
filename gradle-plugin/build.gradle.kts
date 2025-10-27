@@ -50,7 +50,7 @@ dependencies {
     compileOnly(project(":intrinsics"))
 
     implementation(project(":stacktrace-decoroutinator-common"))
-    implementation(project(":stacktrace-decoroutinator-generator"))
+    implementation(project(":stacktrace-decoroutinator-class-transformer"))
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.kotlin.gradle.plugin.api)
     implementation(libs.asm.utils)
@@ -96,7 +96,7 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
 
 bytecodeProcessor {
     dependentProjects = listOf(
-        project(":stacktrace-decoroutinator-generator"),
+        project(":stacktrace-decoroutinator-generator-jvm"),
         project(":gradle-plugin:base-continuation-accessor")
     )
     processors = listOf(LoadConstantProcessor)

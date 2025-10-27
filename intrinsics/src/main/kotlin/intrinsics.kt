@@ -7,6 +7,10 @@ import dev.reformator.bytecodeprocessor.intrinsics.fail
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 
+const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
+const val UNKNOWN_LINE_NUMBER = -1
+const val PROVIDER_MODULE_NAME = "dev.reformator.stacktracedecoroutinator.provider"
+
 @ChangeClassName(toName = "kotlin.coroutines.jvm.internal.BaseContinuationImpl", deleteAfterChanging = true)
 abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
     @Suppress("RedundantNullableReturnType")

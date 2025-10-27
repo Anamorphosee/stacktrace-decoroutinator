@@ -1,8 +1,6 @@
 import dev.reformator.bytecodeprocessor.api.BytecodeProcessorContextImpl
 import dev.reformator.bytecodeprocessor.api.applyBytecodeProcessors
 import dev.reformator.bytecodeprocessor.plugins.*
-import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.gradle.kotlin.dsl.named
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
@@ -60,7 +58,7 @@ dependencies {
     testImplementation(project(":stacktrace-decoroutinator-provider"))
     testImplementation(project(":test-utils"))
     testImplementation(project(":test-utils-jvm"))
-    testRuntimeOnly(project(":stacktrace-decoroutinator-generator"))
+    testRuntimeOnly(project(":stacktrace-decoroutinator-generator-jvm"))
     testRuntimeOnly(project(":test-utils:base-continuation-accessor-stub"))
 }
 
@@ -171,7 +169,7 @@ abstract class Transform: TransformAction<TransformParameters.None> {
                         output.putNextEntry(ZipEntry(entry.name).apply {
                             method = ZipEntry.DEFLATED
                         })
-                        if (entry.name == BASE_CONTINUATION_CLASS_NAME.replace('.', '/') + ".class") {
+                        if (entry.name == BASE_CONTINUATION_CLASS_NAME.internalName + ".class") {
                             output.write(input.getInputStream(entry).use {
                                 transformClassBody(
                                     classBody = it,

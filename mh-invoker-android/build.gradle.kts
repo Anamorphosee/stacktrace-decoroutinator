@@ -1,6 +1,4 @@
 import dev.reformator.bytecodeprocessor.plugins.*
-import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.util.Base64
@@ -56,7 +54,7 @@ abstract class Transform: TransformAction<TransformParameters.None> {
                         output.putNextEntry(ZipEntry(entry.name).apply {
                             method = ZipEntry.DEFLATED
                         })
-                        if (entry.name == BASE_CONTINUATION_CLASS_NAME.replace('.', '/') + ".class") {
+                        if (entry.name == BASE_CONTINUATION_CLASS_NAME.internalName + ".class") {
                             output.write(input.getInputStream(entry).use {
                                 transformClassBody(
                                     classBody = it,

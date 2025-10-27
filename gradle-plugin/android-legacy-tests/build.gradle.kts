@@ -48,7 +48,7 @@ dependencies {
     runtimeOnly(project(":stacktrace-decoroutinator-generator-android"))
     runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
     runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker-jvm"))
-    runtimeOnly(project(":stacktrace-decoroutinator-generator"))
+    runtimeOnly(project(":stacktrace-decoroutinator-generator-jvm"))
 
     androidTestImplementation(libs.junit4)
     androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)

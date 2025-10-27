@@ -20,7 +20,8 @@ internal class RegularMethodHandleInvoker: MethodHandleInvoker {
     override fun callSpecMethod(handle: MethodHandle, spec: DecoroutinatorSpec, result: Any?): Any? =
         handle.invokeExact(spec, result)
 
-    override val unknownSpecMethodClass: Class<*> = unknownSpecClass
+    override val unknownSpecMethodClass: Class<*>
+        get() = unknownSpecClass
 
     override val supportsVarHandle: Boolean =
         try {

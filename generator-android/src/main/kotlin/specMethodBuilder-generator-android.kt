@@ -13,12 +13,13 @@ import com.android.dx.rop.cst.*
 import com.android.dx.rop.type.StdTypeList
 import com.android.dx.rop.type.Type
 import com.android.dx.util.IntList
-import dev.reformator.stacktracedecoroutinator.common.internal.isLastSpecMethodName
-import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecHandleMethodName
-import dev.reformator.stacktracedecoroutinator.common.internal.nextSpecMethodName
-import dev.reformator.stacktracedecoroutinator.common.internal.resumeNextMethodName
-import dev.reformator.stacktracedecoroutinator.common.internal.specLineNumberMethodName
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
+import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
+import dev.reformator.stacktracedecoroutinator.provider.internal.isLastSpecMethodName
+import dev.reformator.stacktracedecoroutinator.provider.internal.nextSpecHandleMethodName
+import dev.reformator.stacktracedecoroutinator.provider.internal.nextSpecMethodName
+import dev.reformator.stacktracedecoroutinator.provider.internal.resumeNextMethodName
+import dev.reformator.stacktracedecoroutinator.provider.internal.specLineNumberMethodName
 import java.lang.StringBuilder
 import java.lang.invoke.MethodHandle
 import java.lang.reflect.Modifier
@@ -79,9 +80,6 @@ internal fun buildSpecMethod(
         StdTypeList.EMPTY
     )
 }
-
-internal val String.internalName: String
-    get() = replace('.', '/')
 
 private val specClass = Type.internClassName(DecoroutinatorSpec::class.java.name.internalName)
 @Suppress("NewApi")

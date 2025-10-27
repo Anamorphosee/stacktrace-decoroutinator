@@ -35,7 +35,10 @@ tasks.named<ShadowJar>("shadowJar") {
         ))
     }
     archiveClassifier.set("")
-    relocate("org.objectweb.asm", "dev.reformator.stacktracedecoroutinator.asmrepack")
+    relocate("org.objectweb.asm", "dev.reformator.stacktracedecoroutinator.jvmagent.asmrepack")
+    relocate("dev.reformator.kmetarepack", "dev.reformator.stacktracedecoroutinator.jvmagent.kmetarepack")
+    exclude("META-INF/*.kotlin_module")
+    mergeServiceFiles()
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 

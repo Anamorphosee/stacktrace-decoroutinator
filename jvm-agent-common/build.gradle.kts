@@ -4,6 +4,7 @@ import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
 import org.gradle.kotlin.dsl.named
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.util.Base64
 
 plugins {
@@ -27,19 +28,22 @@ dependencies {
 
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-runtime-settings"))
-    implementation(project(":stacktrace-decoroutinator-common"))
-    implementation(project(":stacktrace-decoroutinator-generator"))
+    implementation(project(":stacktrace-decoroutinator-class-transformer"))
     implementation(libs.asm.utils)
 
     runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
+    runtimeOnly(project(":stacktrace-decoroutinator-generator-jvm"))
+
+    testCompileOnly(project(":intrinsics"))
 
     testImplementation(kotlin("test"))
 }
 
 bytecodeProcessor {
     dependentProjects = listOf(
-        project(":stacktrace-decoroutinator-generator"),
-        project(":gradle-plugin:base-continuation-accessor")
+        project(":stacktrace-decoroutinator-provider"),
+        project(":gradle-plugin:base-continuation-accessor"),
+        project(":jvm-agent-common:suspend-class-stub")
     )
     processors = listOf(
         GetOwnerClassProcessor,
@@ -51,15 +55,29 @@ bytecodeProcessor {
 val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
     val baseContinuationAccessorJarTask =
         project(":gradle-plugin:base-continuation-accessor").tasks.named<Jar>("jar")
-    dependsOn(baseContinuationAccessorJarTask)
+    val suspendClassStubCompileTask =
+        project(":jvm-agent-common:suspend-class-stub").tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(baseContinuationAccessorJarTask, suspendClassStubCompileTask)
     doLast {
         val baseContinuationAccessorJarBody = baseContinuationAccessorJarTask.get().archiveFile.get().asFile.readBytes()
         bytecodeProcessor {
             initContext {
                 val base64Encoder = Base64.getEncoder()
+                val jvmAgentCommonSuspendClassBody = run {
+                    val className =
+                        LoadConstantProcessor.getValue(this, "jvmAgentCommonSuspendClassName")!!
+                    val classNameComponents = className.split('.')
+                    var dir = suspendClassStubCompileTask.get().destinationDirectory.get()
+                    for (i in 0 until classNameComponents.lastIndex) {
+                        dir = dir.dir(classNameComponents[i])
+                    }
+                    dir.file("${classNameComponents.last()}.class").asFile.readBytes()
+                }
                 LoadConstantProcessor.addValues(this, mapOf(
                     "baseContinuationAccessorJarBase64"
-                            to base64Encoder.encodeToString(baseContinuationAccessorJarBody)
+                            to base64Encoder.encodeToString(baseContinuationAccessorJarBody),
+                    "jvmAgentCommonSuspendClassBodyBase64"
+                            to base64Encoder.encodeToString(jvmAgentCommonSuspendClassBody)
                 ))
             }
         }

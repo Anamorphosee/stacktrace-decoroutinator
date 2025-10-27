@@ -2,40 +2,35 @@
 
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal
 
-import dev.reformator.stacktracedecoroutinator.common.internal.BASE_CONTINUATION_CLASS_NAME
-import dev.reformator.stacktracedecoroutinator.generator.internal.ClassBodyTransformationStatus
-import dev.reformator.stacktracedecoroutinator.generator.internal.DebugMetadataInfo
-import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClass
-import dev.reformator.stacktracedecoroutinator.generator.internal.getDebugMetadataInfoFromClassBody
-import dev.reformator.stacktracedecoroutinator.generator.internal.getResourceAsStream
-import dev.reformator.stacktracedecoroutinator.generator.internal.loadResource
-import dev.reformator.stacktracedecoroutinator.generator.internal.needTransformation
-import dev.reformator.stacktracedecoroutinator.generator.internal.transformClassBody
+import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
+import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.bytecodeprocessor.intrinsics.ownerClass
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.ClassBodyTransformationStatus
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.DebugMetadataInfo
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.getDebugMetadataInfoFromClass
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.getDebugMetadataInfoFromClassBody
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.needTransformation
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.transformClassBody
+import dev.reformator.stacktracedecoroutinator.intrinsics.BASE_CONTINUATION_CLASS_NAME
+import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import dev.reformator.stacktracedecoroutinator.provider.providerApiClass
 import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorMetadataInfoResolveStrategy
-import org.objectweb.asm.Type
 import java.io.ByteArrayInputStream
 import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
 import java.security.ProtectionDomain
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.suspendCoroutine
+import java.util.Base64
 
 fun addDecoroutinatorTransformer(inst: Instrumentation) {
     val transformer = DecoroutinatorClassFileTransformer(inst)
-    Class.forName(Continuation::class.java.name)
-    Class.forName(providerApiClass.name)
-    Class.forName(diClass.name)
-    inst.addTransformer(transformer, inst.isRetransformClassesSupported)
-    Class.forName(BASE_CONTINUATION_CLASS_NAME)
-    val stubClassPath = _preloadStub::class.java.name.replace('.', '/') + ".class"
     transformer.transform(
-        loader = null,
-        internalClassName = Type.getInternalName(_preloadStub::class.java),
+        loader = ownerClass.classLoader,
+        internalClassName = suspendClassName.internalName,
         classBeingRedefined = null,
         protectionDomain = null,
-        classfileBuffer = loadResource(stubClassPath)!!
+        classfileBuffer = Base64.getDecoder().decode(suspendClassBodyBase64)
     )
+    inst.addTransformer(transformer, inst.isRetransformClassesSupported)
 }
 
 private class DecoroutinatorClassFileTransformer(
@@ -133,18 +128,10 @@ private val ClassLoader.hasProviderApiDependency: Boolean
         false
     }
 
-@Suppress("ClassName")
-private class _preloadStub {
-    @Suppress("Unused")
-    suspend fun suspendFun() {
-        suspendCoroutine<Unit> { }
-    }
-}
-
 internal val DecoroutinatorMetadataInfoResolveStrategy.resolveFunction: (className: String) -> DebugMetadataInfo?
     get() = when (this) {
         DecoroutinatorMetadataInfoResolveStrategy.SYSTEM_RESOURCE -> { className ->
-            val path = className.replace('.', '/') + ".class"
+            val path = className.internalName + ".class"
             getResourceAsStream(path)?.let { resource ->
                 resource.use {
                     getDebugMetadataInfoFromClassBody(resource)
@@ -160,8 +147,12 @@ internal val DecoroutinatorMetadataInfoResolveStrategy.resolveFunction: (classNa
         DecoroutinatorMetadataInfoResolveStrategy.SYSTEM_RESOURCE_AND_CLASS -> {
             val systemResource = DecoroutinatorMetadataInfoResolveStrategy.SYSTEM_RESOURCE.resolveFunction
             val classResource = DecoroutinatorMetadataInfoResolveStrategy.CLASS.resolveFunction
-            { className ->
-                systemResource(className) ?: classResource(className)
-            }
+            { systemResource(it) ?: classResource(it) }
         }
     }
+
+private val suspendClassName: String
+    @LoadConstant("jvmAgentCommonSuspendClassName") get() { fail() }
+
+private val suspendClassBodyBase64: String
+    @LoadConstant("jvmAgentCommonSuspendClassBodyBase64") get() { fail() }

@@ -10,6 +10,7 @@ import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 const val BASE_CONTINUATION_CLASS_NAME = "kotlin.coroutines.jvm.internal.BaseContinuationImpl"
 const val UNKNOWN_LINE_NUMBER = -1
 const val PROVIDER_MODULE_NAME = "dev.reformator.stacktracedecoroutinator.provider"
+const val LABEL_FIELD_NAME = "label"
 
 @ChangeClassName(toName = "kotlin.coroutines.jvm.internal.BaseContinuationImpl", deleteAfterChanging = true)
 abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {

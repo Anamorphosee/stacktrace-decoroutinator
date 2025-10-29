@@ -5,7 +5,6 @@ import dev.reformator.stacktracedecoroutinator.mhinvoker.internal.RegularVarHand
 
 module dev.reformator.stacktracedecoroutinator.mhinvoker {
     requires static dev.reformator.bytecodeprocessor.intrinsics;
-    requires static intrinsics;
 
     requires kotlin.stdlib;
     requires dev.reformator.stacktracedecoroutinator.provider;

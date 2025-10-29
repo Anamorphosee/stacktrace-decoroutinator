@@ -49,7 +49,6 @@ dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     compileOnly(project(":intrinsics"))
 
-    implementation(project(":stacktrace-decoroutinator-common"))
     implementation(project(":stacktrace-decoroutinator-class-transformer"))
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.kotlin.gradle.plugin.api)

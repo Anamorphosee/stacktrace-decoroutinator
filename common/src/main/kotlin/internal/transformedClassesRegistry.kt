@@ -8,22 +8,12 @@ import java.lang.reflect.GenericSignatureFormatError
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
-internal object TransformedClassesRegistry {
-    class TransformedClassSpec(
-        val transformedClass: Class<*>,
-        val fileName: String?,
-        val lookup: MethodHandles.Lookup,
-        val lineNumbersByMethod: Map<String, IntArray>,
-        val baseContinuationClasses: Set<String>,
-        val skipSpecMethods: Boolean
-    )
+internal class TransformedClassesRegistryImpl: TransformedClassesRegistry {
+    private val _transformedClasses: MutableMap<Class<*>, TransformedClassesRegistry.TransformedClassSpec> =
+        ConcurrentHashMap()
+    private val listeners: MutableList<TransformedClassesRegistry.Listener> = CopyOnWriteArrayList()
 
-    fun interface Listener {
-        fun onNewTransformedClass(spec: TransformedClassSpec)
-        fun onException(exception: Throwable) { }
-    }
-
-    val transformedClasses: Collection<TransformedClassSpec>
+    override val transformedClasses: Collection<TransformedClassesRegistry.TransformedClassSpec>
         get() {
             while (true) {
                 try {
@@ -32,11 +22,14 @@ internal object TransformedClassesRegistry {
             }
         }
 
-    fun addListener(listener: Listener) {
+    override fun get(clazz: Class<*>): TransformedClassesRegistry.TransformedClassSpec? =
+        _transformedClasses[clazz]
+
+    override fun addListener(listener: TransformedClassesRegistry.Listener) {
         listeners.add(listener)
     }
 
-    fun registerTransformedClass(lookup: MethodHandles.Lookup) {
+    override fun registerTransformedClass(lookup: MethodHandles.Lookup) {
         val clazz: Class<*> = lookup.lookupClass()
         val loader = clazz.classLoader ?: ClassLoader.getSystemClassLoader()
         val meta = try {
@@ -47,7 +40,6 @@ internal object TransformedClassesRegistry {
                     methodNames = transformedAnnotation.methodNames.toList(),
                     lineNumbersCounts = transformedAnnotation.lineNumbersCounts.toList(),
                     lineNumbers = transformedAnnotation.lineNumbers.toList(),
-                    baseContinuationClasses = transformedAnnotation.baseContinuationClasses.toSet(),
                     skipSpecMethods = transformedAnnotation.skipSpecMethods
                 )
             }
@@ -76,24 +68,20 @@ internal object TransformedClassesRegistry {
                             newHashMapForSize(meta.methods.size)
                         }
                     )
-                TransformedClassSpec(
+                TransformedClassesRegistry.TransformedClassSpec(
                     transformedClass = clazz,
                     fileName = meta.fileName,
                     lookup = lookup,
                     lineNumbersByMethod = lineNumbersByMethod,
-                    baseContinuationClasses = meta.baseContinuationClasses,
                     skipSpecMethods = meta.skipSpecMethods
                 )
             }
-            _transformedClasses[clazz.name] = transformedClassSpec
+            _transformedClasses[clazz] = transformedClassSpec
             callListeners(transformedClassSpec)
         }
     }
 
-    private val _transformedClasses: MutableMap<String, TransformedClassSpec> = ConcurrentHashMap()
-    private val listeners: MutableList<Listener> = CopyOnWriteArrayList()
-
-    private fun callListeners(spec: TransformedClassSpec) {
+    private fun callListeners(spec: TransformedClassesRegistry.TransformedClassSpec) {
         listeners.forEach {
             try {
                 it.onNewTransformedClass(spec)

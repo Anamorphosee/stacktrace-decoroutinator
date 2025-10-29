@@ -1,6 +1,5 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
-import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
 import dev.reformator.stacktracedecoroutinator.runtimesettings.internal.getRuntimeSettingsValue
@@ -67,7 +66,9 @@ internal val isUsingElementFactoryForBaseContinuationEnabled: Boolean =
         ).toBoolean()
     }
 
-internal var baseContinuationAccessor: BaseContinuationAccessor? = null
+@Suppress("ObjectPropertyName")
+private val _transformedClassesRegistry: TransformedClassesRegistry? =
+    if (enabled) TransformedClassesRegistryImpl() else null
 
 @Suppress("ObjectPropertyName")
 private val _methodHandleInvoker: MethodHandleInvoker? =
@@ -111,6 +112,9 @@ private val _varHandleInvoker: VarHandleInvoker? =
     } else {
         null
     }
+
+internal val transformedClassesRegistry: TransformedClassesRegistry
+    get() = _transformedClassesRegistry!!
 
 val methodHandleInvoker: MethodHandleInvoker
     get() = _methodHandleInvoker!!

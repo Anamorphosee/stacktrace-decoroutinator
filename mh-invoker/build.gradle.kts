@@ -20,7 +20,6 @@ repositories {
 dependencies {
     //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
-    compileOnly(project(":intrinsics"))
 
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-common"))
@@ -28,11 +27,7 @@ dependencies {
 }
 
 bytecodeProcessor {
-    dependentProjects = listOf(project(":stacktrace-decoroutinator-common"))
-    processors = listOf(
-        ChangeClassNameProcessor,
-        GetOwnerClassProcessor
-    )
+    processors = listOf(GetOwnerClassProcessor)
 }
 
 tasks.test {

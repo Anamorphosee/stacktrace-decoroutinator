@@ -3,12 +3,9 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
-import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import java.lang.invoke.MethodHandle
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-
-
 
 abstract class BaseSpecMethodsFactory: SpecMethodsFactory {
     private val classesByName: MutableMap<String, ClassSpec> = HashMap()
@@ -133,9 +130,9 @@ internal object SpecMethodsFactoryImpl: SpecMethodsFactory {
     }
 
     init {
-        TransformedClassesRegistry.addListener(::register)
+        transformedClassesRegistry.addListener(::register)
         classSpecsByNameUpdateLock.withLock {
-            TransformedClassesRegistry.transformedClasses.forEach(::register)
+            transformedClassesRegistry.transformedClasses.forEach(::register)
         }
     }
 

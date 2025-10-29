@@ -28,9 +28,18 @@ annotation class DecoroutinatorTransformed(
     val methodNames: Array<String>,
     val lineNumbersCounts: IntArray,
     val lineNumbers: IntArray,
-    val baseContinuationClasses: Array<String>,
     val skipSpecMethods: Boolean = false
 )
+
+interface BaseContinuationExtractor {
+    @Suppress("unused", "PropertyName")
+    @get:MethodNameConstant("baseContinuationExtractorGetLabelMethodName")
+    val `$decoroutinator$label`: Int
+
+    @Suppress("unused", "PropertyName")
+    @get:MethodNameConstant("baseContinuationExtractorGetElementsMethodName")
+    val `$decoroutinator$elements`: Array<StackTraceElement>
+}
 
 val isDecoroutinatorEnabled: Boolean
     @MethodNameConstant("isDecoroutinatorEnabledMethodName") get() = provider.isDecoroutinatorEnabled

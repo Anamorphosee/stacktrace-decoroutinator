@@ -7,7 +7,28 @@ import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
+import java.lang.invoke.MethodHandles
 import java.lang.invoke.VarHandle
+
+interface TransformedClassesRegistry {
+    class TransformedClassSpec(
+        val transformedClass: Class<*>,
+        val fileName: String?,
+        val lookup: MethodHandles.Lookup,
+        val lineNumbersByMethod: Map<String, IntArray>,
+        val skipSpecMethods: Boolean
+    )
+
+    fun interface Listener {
+        fun onNewTransformedClass(spec: TransformedClassSpec)
+        fun onException(exception: Throwable) { }
+    }
+
+    val transformedClasses: Collection<TransformedClassSpec>
+    operator fun get(clazz: Class<*>): TransformedClassSpec?
+    fun addListener(listener: Listener)
+    fun registerTransformedClass(lookup: MethodHandles.Lookup)
+}
 
 fun interface SpecMethodsFactory {
     fun getSpecMethodHandle(element: StackTraceElement): MethodHandle?
@@ -16,11 +37,9 @@ fun interface SpecMethodsFactory {
 data class TransformationMetadata(
     val fileName: String?,
     val methods: List<Method>,
-    val baseContinuationClasses: Set<String>,
     val skipSpecMethods: Boolean
 ) {
-    @Suppress("ArrayInDataClass")
-    data class Method(
+    class Method(
         val name: String,
         val lineNumbers: IntArray
     )
@@ -49,16 +68,13 @@ interface MethodHandleInvoker {
 
 @AndroidLegacyKeep
 interface VarHandleInvoker {
-    fun getIntVar(handle: VarHandle, owner: BaseContinuation): Int
+    fun getIntVar(handle: VarHandle, owner: Any): Int
 }
 
 internal interface StacktraceElementsFactory {
     fun getStacktraceElement(baseContinuation: BaseContinuation): StackTraceElement?
-    fun getLabelExtractor(continuation: BaseContinuation): LabelExtractor
-
-    fun interface LabelExtractor {
-        fun getLabel(continuation: BaseContinuation): Int
-    }
+    fun getLabel(baseContinuation: BaseContinuation): Int
 }
 
-internal const val UNKNOWN_LABEL = -1
+internal const val NONE_LABEL = Int.MIN_VALUE / 2
+internal const val UNKNOWN_LABEL = NONE_LABEL - 1

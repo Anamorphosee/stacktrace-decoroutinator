@@ -7,7 +7,6 @@ import dcunknown.unknownSpecClass
 import dev.reformator.stacktracedecoroutinator.common.internal.MethodHandleInvoker
 import dev.reformator.stacktracedecoroutinator.common.internal.VarHandleInvoker
 import dev.reformator.stacktracedecoroutinator.common.internal.assert
-import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
 import java.lang.invoke.MethodHandle
@@ -33,10 +32,7 @@ internal class RegularMethodHandleInvoker: MethodHandleInvoker {
 }
 
 internal class RegularVarHandleInvoker: VarHandleInvoker {
-    override fun getIntVar(
-        handle: VarHandle,
-        owner: BaseContinuation
-    ): Int =
+    override fun getIntVar(handle: VarHandle, owner: Any): Int =
         handle[owner] as Int
 }
 

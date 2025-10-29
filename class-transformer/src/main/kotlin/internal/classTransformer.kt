@@ -7,10 +7,11 @@ import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.intrinsics.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.intrinsics.LABEL_FIELD_NAME
 import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
+import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
-import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import dev.reformator.stacktracedecoroutinator.provider.internal.providerInternalApiClass
 import dev.reformator.stacktracedecoroutinator.provider.providerApiClass
@@ -72,28 +73,30 @@ fun transformClassBody(
         return readProviderClassBodyTransformationStatus
     }
 
+    var doTransformation = false
+    val lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>> = HashMap()
+
     val metadataAnnotation = node.kotlinMetadataAnnotation ?: return noClassBodyTransformationStatus
     val xi = metadataAnnotation.getField("xi") as Int?
-    if (xi != null && xi and (1 shl 7) != 0) {
-        return noClassBodyTransformationStatus
+    // 7th bit of 'xi' indicates that the class is a scope of an inline function
+    if (xi == null || xi and (1 shl 7) == 0) {
+        if (node.name == BASE_CONTINUATION_CLASS_NAME.internalName) {
+            node.transformBaseContinuation()
+            doTransformation = true
+        } else {
+            if (node.tryAddBaseContinuationExtractor()) doTransformation = true
+            if (node.tryTransformSuspendMethods(metadataResolver, lineNumbersBySpecMethodName)) {
+                doTransformation = true
+            }
+        }
     }
-
-    if (node.name == BASE_CONTINUATION_CLASS_NAME.internalName) {
-        transformBaseContinuation(node, skipSpecMethods)
-        return ClassBodyTransformationStatus(
+    return if (doTransformation) {
+        node.generateSpecMethodsAndTransformAnnotation(skipSpecMethods, lineNumbersBySpecMethodName)
+        ClassBodyTransformationStatus(
             updatedBody = node.classBody,
             needReadProviderModule = true
         )
-    }
-
-    val transformationInfo = node.getClassTransformationInfo(metadataResolver) ?:
-        return noClassBodyTransformationStatus
-
-    node.transform(transformationInfo, skipSpecMethods)
-    return ClassBodyTransformationStatus(
-        updatedBody = node.classBody,
-        needReadProviderModule = true
-    )
+    } else noClassBodyTransformationStatus
 }
 
 fun getDebugMetadataInfoFromClassBody(body: InputStream): DebugMetadataInfo? =
@@ -103,7 +106,6 @@ fun getDebugMetadataInfoFromClass(clazz: Class<*>): DebugMetadataInfo? =
     clazz.getDeclaredAnnotation(DebugMetadata::class.java)?.let {
         DebugMetadataInfo(
             specClassInternalClassName = it.c.internalName,
-            baseContinuationInternalClassName = clazz.name.internalName,
             methodName = it.m,
             lineNumbers = it.l.toSet()
         )
@@ -127,8 +129,106 @@ private val isUsingElementFactoryForBaseContinuationEnabledMethodName: String
 private val getElementFactoryStacktraceElementMethodName: String
     @LoadConstant("getElementFactoryStacktraceElementMethodName") get() = fail()
 
-private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMethods: Boolean) {
-    val resumeWithMethod = baseContinuation.methods?.find {
+private val baseContinuationExtractorGetLabelMethodName: String
+    @LoadConstant("baseContinuationExtractorGetLabelMethodName") get() = fail()
+
+private val baseContinuationExtractorGetElementsMethodName: String
+    @LoadConstant("baseContinuationExtractorGetElementsMethodName") get() = fail()
+
+private const val baseContinuationElementsFieldName = "\$decoroutinator\$elements"
+
+private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
+    val debugMetadata = kotlinDebugMetadataAnnotation ?: return false
+
+    if (
+        access and Opcodes.ACC_INTERFACE != 0 || fields.orEmpty().all { field ->
+            field.name != LABEL_FIELD_NAME
+            || field.desc != Type.INT_TYPE.descriptor
+            || field.access and Opcodes.ACC_STATIC == 0
+        }
+    ) return false
+
+    interfaces = interfaces.orEmpty() + Type.getInternalName(BaseContinuationExtractor::class.java)
+
+    fields = fields.orEmpty() + FieldNode(
+        Opcodes.ASM9,
+        Opcodes.ACC_PRIVATE or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC,
+        baseContinuationElementsFieldName,
+        Type.getDescriptor(Array<StackTraceElement>::class.java),
+        null,
+        null
+    )
+
+    methods = methods.orEmpty() + MethodNode(Opcodes.ASM9).apply {
+        access = Opcodes.ACC_PUBLIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
+        name = baseContinuationExtractorGetLabelMethodName
+        desc = "()${Type.INT_TYPE.descriptor}"
+        instructions = InsnList().apply {
+            add(VarInsnNode(Opcodes.ALOAD, 0))
+            add(FieldInsnNode(
+                Opcodes.GETFIELD,
+                this@tryAddBaseContinuationExtractor.name,
+                LABEL_FIELD_NAME,
+                Type.INT_TYPE.descriptor
+            ))
+            add(InsnNode(Opcodes.IRETURN))
+        }
+    } + MethodNode(Opcodes.ASM9).apply {
+        access = Opcodes.ACC_PUBLIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
+        name = baseContinuationExtractorGetElementsMethodName
+        desc = "()${Type.getDescriptor(Array<StackTraceElement>::class.java)}"
+        instructions = InsnList().apply {
+            add(FieldInsnNode(
+                Opcodes.GETSTATIC,
+                this@tryAddBaseContinuationExtractor.name,
+                baseContinuationExtractorGetLabelMethodName,
+                Type.getDescriptor(Array<StackTraceElement>::class.java)
+            ))
+            add(InsnNode(Opcodes.ARETURN))
+        }
+    }
+
+    getOrCreateClinitMethod().apply {
+        val className = (debugMetadata.getField(DebugMetadata::c.name) as String?).orEmpty()
+        val methodName = (debugMetadata.getField(DebugMetadata::m.name) as String?).orEmpty()
+        val fileName = (debugMetadata.getField(DebugMetadata::f.name) as String?)?.takeIf { it.isNotEmpty() }
+        @Suppress("UNCHECKED_CAST")
+        val lineNumbers = (debugMetadata.getField(DebugMetadata::l.name) as List<Int>?).orEmpty()
+        instructions.insertBefore(instructions.first, InsnList().apply {
+            add(LdcInsnNode(lineNumbers.size + 1))
+            add(TypeInsnNode(Opcodes.ANEWARRAY, Type.getInternalName(StackTraceElement::class.java)))
+            repeat(lineNumbers.size + 1) { index ->
+                add(InsnNode(Opcodes.DUP))
+                add(LdcInsnNode(index))
+                add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(StackTraceElement::class.java)))
+                add(InsnNode(Opcodes.DUP))
+                add(LdcInsnNode(className))
+                add(LdcInsnNode(methodName))
+                add(if (fileName != null) LdcInsnNode(fileName) else InsnNode(Opcodes.ACONST_NULL))
+                add(LdcInsnNode(if (index == 0) UNKNOWN_LINE_NUMBER else lineNumbers[index - 1]))
+                add(MethodInsnNode(
+                    Opcodes.INVOKESPECIAL,
+                    Type.getInternalName(StackTraceElement::class.java),
+                    "<init>",
+                    "(${Type.getDescriptor(String::class.java)}${Type.getDescriptor(String::class.java)}"
+                        + "${Type.getDescriptor(String::class.java)}${Type.INT_TYPE.descriptor})${Type.VOID_TYPE.descriptor}"
+                ))
+                add(InsnNode(Opcodes.AASTORE))
+            }
+            add(FieldInsnNode(
+                Opcodes.PUTSTATIC,
+                this@tryAddBaseContinuationExtractor.name,
+                baseContinuationElementsFieldName,
+                Type.getDescriptor(Array<StackTraceElement>::class.java)
+            ))
+        })
+    }
+
+    return true
+}
+
+private fun ClassNode.transformBaseContinuation() {
+    val resumeWithMethod = methods?.find {
         it.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}" && !it.isStatic
     } ?: error("[${BaseContinuation::resumeWith.name}] method is not found")
     resumeWithMethod.instructions.insertBefore(resumeWithMethod.instructions.first, InsnList().apply {
@@ -183,7 +283,7 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
         add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
     })
 
-    val getStackTraceElementMethod = baseContinuation.methods?.find {
+    val getStackTraceElementMethod = methods?.find {
         it.desc == "()${Type.getDescriptor(StackTraceElement::class.java)}" && !it.isStatic
     } ?: error("[${BaseContinuation::getStackTraceElement.name}] method is not found")
     getStackTraceElementMethod.instructions.insertBefore(
@@ -212,22 +312,6 @@ private fun transformBaseContinuation(baseContinuation: ClassNode, skipSpecMetho
             add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
         }
     )
-
-    val visibleAnnotations: MutableList<AnnotationNode> = baseContinuation.visibleAnnotations ?: (mutableListOf<AnnotationNode>().also {
-        baseContinuation.visibleAnnotations = it
-    })
-    visibleAnnotations.add(ClassTransformationInfo(
-        lineNumbersByMethod = emptyMap(),
-        baseContinuationInternalClassNames = emptySet()
-    ).getTransformedAnnotation(baseContinuation, skipSpecMethods))
-
-    val invisibleAnnotations: MutableList<AnnotationNode> = baseContinuation.invisibleAnnotations ?: (mutableListOf<AnnotationNode>().also {
-        baseContinuation.invisibleAnnotations = it
-    })
-    invisibleAnnotations.add(AnnotationNode(
-        Opcodes.ASM9,
-        Type.getDescriptor(AndroidLegacyKeep::class.java)
-    ))
 }
 
 private val noClassBodyTransformationStatus = ClassBodyTransformationStatus(
@@ -255,14 +339,9 @@ private val noNeedTransformationStatus = NeedTransformationStatus(
     needReadProviderModule = false
 )
 
-private data class ClassTransformationInfo(
-    val lineNumbersByMethod: Map<String, Set<Int>>,
-    val baseContinuationInternalClassNames: Set<String>
-)
-
-private fun ClassNode.transform(
-    classTransformationInfo: ClassTransformationInfo,
-    skipSpecMethods: Boolean
+private fun ClassNode.generateSpecMethodsAndTransformAnnotation(
+    skipSpecMethods: Boolean,
+    lineNumbersBySpecMethodName: Map<String, Set<Int>>
 ) {
     val isInterface = access and Opcodes.ACC_INTERFACE != 0
     val isPrivateMethodsInInterfacesSupported = version >= Opcodes.V9
@@ -270,7 +349,7 @@ private fun ClassNode.transform(
     val makeFinal = !isInterface
     version = maxOf(version, Opcodes.V1_7)
     if (!skipSpecMethods) {
-        classTransformationInfo.lineNumbersByMethod.forEach { (methodName, lineNumbers) ->
+        lineNumbersBySpecMethodName.forEach { (methodName, lineNumbers) ->
             methods.add(
                 buildSpecMethodNode(
                     methodName = methodName,
@@ -282,15 +361,40 @@ private fun ClassNode.transform(
         }
     }
 
-    val clinit = getOrCreateClinitMethod()
-    clinit.instructions.insertBefore(
-        clinit.instructions.first,
-        buildCallRegisterLookupInstructions()
-    )
-    if (visibleAnnotations == null) {
-        visibleAnnotations = mutableListOf()
+    if (lineNumbersBySpecMethodName.isNotEmpty()) {
+        val clinit = getOrCreateClinitMethod()
+        clinit.instructions.insertBefore(
+            clinit.instructions.first,
+            buildCallRegisterLookupInstructions()
+        )
     }
-    visibleAnnotations.add(classTransformationInfo.getTransformedAnnotation(this, skipSpecMethods))
+
+    visibleAnnotations = visibleAnnotations.orEmpty() +
+        AnnotationNode(Opcodes.ASM9, Type.getDescriptor(DecoroutinatorTransformed::class.java)).apply {
+            val lineNumbers = lineNumbersBySpecMethodName.entries.toList()
+            values = buildList {
+                if (sourceFile != null) {
+                    add(DecoroutinatorTransformed::fileName.name)
+                    add(sourceFile)
+                } else {
+                    add(DecoroutinatorTransformed::fileNamePresent.name)
+                    add(false)
+                }
+                add(DecoroutinatorTransformed::methodNames.name)
+                add(lineNumbers.map { it.key })
+
+                add(DecoroutinatorTransformed::lineNumbersCounts.name)
+                add(lineNumbers.map { it.value.size })
+
+                add(DecoroutinatorTransformed::lineNumbers.name)
+                add(lineNumbers.flatMap { it.value })
+
+                if (skipSpecMethods) {
+                    add(DecoroutinatorTransformed::skipSpecMethods.name)
+                    add(true)
+                }
+            }
+        }
 }
 
 private val ClassNode.kotlinMetadataAnnotation: AnnotationNode?
@@ -298,20 +402,18 @@ private val ClassNode.kotlinMetadataAnnotation: AnnotationNode?
         .orEmpty()
         .firstOrNull { it.desc == Type.getDescriptor(Metadata::class.java) }
 
-private fun ClassNode.getClassTransformationInfo(
-    metadataResolver: (className: String) -> DebugMetadataInfo?
-): ClassTransformationInfo? {
-    val lineNumbersByMethod = mutableMapOf<String, MutableSet<Int>>()
-    val baseContinuationInternalClassNames = mutableSetOf<String>()
+private fun ClassNode.tryTransformSuspendMethods(
+    metadataResolver: (className: String) -> DebugMetadataInfo?,
+    lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>>
+): Boolean {
     var needTransformation = false
     val check = { info: DebugMetadataInfo? ->
         if (info != null && info.specClassInternalClassName == name) {
             needTransformation = true
-            val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(info.methodName) {
-                mutableSetOf(UNKNOWN_LINE_NUMBER)
+            val currentLineNumbers = lineNumbersBySpecMethodName.computeIfAbsent(info.methodName) {
+                hashSetOf(UNKNOWN_LINE_NUMBER)
             }
             currentLineNumbers.addAll(info.lineNumbers)
-            baseContinuationInternalClassNames.add(info.baseContinuationInternalClassName)
         }
     }
     check(debugMetadataInfo)
@@ -323,7 +425,7 @@ private fun ClassNode.getClassTransformationInfo(
                     completionVarIndex = status.completionVarIndex,
                     clazz = this,
                     method = method,
-                    lineNumbersByMethod = lineNumbersByMethod
+                    lineNumbersBySpecMethodName = lineNumbersBySpecMethodName
                 )) {
                     needTransformation = true
                 }
@@ -331,14 +433,7 @@ private fun ClassNode.getClassTransformationInfo(
             null -> { }
         }
     }
-    return if (needTransformation) {
-        ClassTransformationInfo(
-            lineNumbersByMethod = lineNumbersByMethod,
-            baseContinuationInternalClassNames = baseContinuationInternalClassNames
-        )
-    } else {
-        null
-    }
+    return needTransformation
 }
 
 private val getBaseContinuationMethodName: String
@@ -348,7 +443,7 @@ private fun tailCallDeopt(
     completionVarIndex: Int,
     clazz: ClassNode,
     method: MethodNode,
-    lineNumbersByMethod: MutableMap<String, MutableSet<Int>>
+    lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>>
 ): Boolean {
     var result = false
     method.instructions.forEach { instruction ->
@@ -360,7 +455,7 @@ private fun tailCallDeopt(
                 .takeWhile { it.opcode == -1 }
                 .mapNotNull { it as? LineNumberNode }
                 .firstOrNull()?.line ?: UNKNOWN_LINE_NUMBER
-            val currentLineNumbers = lineNumbersByMethod.computeIfAbsent(method.name) {
+            val currentLineNumbers = lineNumbersBySpecMethodName.computeIfAbsent(method.name) {
                 mutableSetOf(UNKNOWN_LINE_NUMBER)
             }
             currentLineNumbers.add(lineNumber)
@@ -403,7 +498,6 @@ private val ClassNode.debugMetadataInfo: DebugMetadataInfo?
         }
         DebugMetadataInfo(
             specClassInternalClassName = internalClassName,
-            baseContinuationInternalClassName = name,
             methodName = methodName,
             lineNumbers = lineNumbers
         )
@@ -555,40 +649,6 @@ private fun buildCallRegisterLookupInstructions() = InsnList().apply {
     ))
     add(disabledLabel)
     add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
-}
-
-private fun ClassTransformationInfo.getTransformedAnnotation(
-    clazz: ClassNode,
-    skipSpecMethods: Boolean
-): AnnotationNode {
-    val result = AnnotationNode(Opcodes.ASM9, Type.getDescriptor(DecoroutinatorTransformed::class.java))
-    val lineNumbers = lineNumbersByMethod.entries.toList()
-    result.values = buildList {
-        if (clazz.sourceFile != null) {
-            add(DecoroutinatorTransformed::fileName.name)
-            add(clazz.sourceFile)
-        } else {
-            add(DecoroutinatorTransformed::fileNamePresent.name)
-            add(false)
-        }
-        add(DecoroutinatorTransformed::methodNames.name)
-        add(lineNumbers.map { it.key })
-
-        add(DecoroutinatorTransformed::lineNumbersCounts.name)
-        add(lineNumbers.map { it.value.size })
-
-        add(DecoroutinatorTransformed::lineNumbers.name)
-        add(lineNumbers.flatMap { it.value })
-
-        add(DecoroutinatorTransformed::baseContinuationClasses.name)
-        add(baseContinuationInternalClassNames.map { Type.getObjectType(it).className })
-
-        if (skipSpecMethods) {
-            add(DecoroutinatorTransformed::skipSpecMethods.name)
-            add(true)
-        }
-    }
-    return result
 }
 
 private val ClassNode.classBody: ByteArray

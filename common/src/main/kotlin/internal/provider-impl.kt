@@ -12,19 +12,20 @@ import kotlin.coroutines.Continuation
 
 internal class Provider: DecoroutinatorProvider {
     private val prepareBaseContinuationAccessorLock = ReentrantLock()
+    private var _baseContinuationAccessor: BaseContinuationAccessor? = null
 
     override val isDecoroutinatorEnabled: Boolean
         get() = enabled
 
     override val baseContinuationAccessor: BaseContinuationAccessor?
-        get() = dev.reformator.stacktracedecoroutinator.common.internal.baseContinuationAccessor
+        get() = _baseContinuationAccessor
 
     @Suppress("NewApi")
     override fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor =
         prepareBaseContinuationAccessorLock.withLock {
-            baseContinuationAccessor?.let { return it }
+            _baseContinuationAccessor?.let { return it }
             val accessor = baseContinuationAccessorProvider.createAccessor(lookup)
-            dev.reformator.stacktracedecoroutinator.common.internal.baseContinuationAccessor = accessor
+            _baseContinuationAccessor = accessor
             accessor
         }
 
@@ -37,7 +38,7 @@ internal class Provider: DecoroutinatorProvider {
     }
 
     override fun registerTransformedClass(lookup: MethodHandles.Lookup) {
-        TransformedClassesRegistry.registerTransformedClass(lookup)
+        transformedClassesRegistry.registerTransformedClass(lookup)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -51,11 +52,9 @@ internal class Provider: DecoroutinatorProvider {
         if (!tailCallDeoptimize || completion == null) {
             return completion
         }
-        if (completion is BaseContinuation && completion !is DecoroutinatorContinuationImpl) {
-            val label = stacktraceElementsFactory.getLabelExtractor(completion).getLabel(completion)
-            if (label == UNKNOWN_LABEL || label and Int.MIN_VALUE != 0) {
-                return completion
-            }
+        if (completion is BaseContinuation) {
+            val label = stacktraceElementsFactory.getLabel(completion)
+            if (label != NONE_LABEL && label and Int.MIN_VALUE != 0) return completion
         }
         return DecoroutinatorContinuationImpl(
             completion = completion as Continuation<Any?>,

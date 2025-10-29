@@ -5,6 +5,7 @@ module dev.reformator.stacktracedecoroutinator.classtransformer {
     requires dev.reformator.stacktracedecoroutinator.provider;
     requires dev.reformator.stacktracedecoroutinator.specmethodbuilder;
     requires org.objectweb.asm.tree;
+//    requires dev.reformator.kotlinmetadatajvmrepack;
 
     exports dev.reformator.stacktracedecoroutinator.classtransformer.internal to
             dev.reformator.stacktracedecoroutinator.jvmagentcommon;

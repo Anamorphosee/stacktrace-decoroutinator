@@ -4,6 +4,12 @@ package dev.reformator.stacktracedecoroutinator.classtransformer.internal
 
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.kmetarepack.isInline
+import dev.reformator.kmetarepack.isSuspend
+import dev.reformator.kmetarepack.jvm.JvmMethodSignature
+import dev.reformator.kmetarepack.jvm.KotlinClassMetadata
+import dev.reformator.kmetarepack.jvm.signature
+import dev.reformator.kmetarepack.jvm.Metadata as createMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
@@ -85,7 +91,23 @@ fun transformClassBody(
             doTransformation = true
         } else {
             if (node.tryAddBaseContinuationExtractor()) doTransformation = true
-            if (node.tryTransformSuspendMethods(metadataResolver, lineNumbersBySpecMethodName)) {
+
+            @Suppress("UNCHECKED_CAST")
+            val notSuspendFunctionSignatures = createMetadata(
+                kind = metadataAnnotation.getField("k") as Int?,
+                metadataVersion = (metadataAnnotation.getField("mv") as List<Int>?)?.toIntArray(),
+                data1 = (metadataAnnotation.getField("d1") as List<String>?)?.toTypedArray(),
+                data2 = (metadataAnnotation.getField("d2") as List<String>?)?.toTypedArray(),
+                extraString = metadataAnnotation.getField("xs") as String?,
+                packageName = metadataAnnotation.getField("pn") as String?,
+                extraInt = xi
+            ).getNonSuspendFunctionSignatures()
+
+            if (node.tryTransformSuspendMethods(
+                    metadataResolver = metadataResolver,
+                    lineNumbersBySpecMethodName = lineNumbersBySpecMethodName,
+                    notSuspendFunctionSignatures = notSuspendFunctionSignatures
+            )) {
                 doTransformation = true
             }
         }
@@ -136,6 +158,22 @@ private val baseContinuationExtractorGetElementsMethodName: String
     @LoadConstant("baseContinuationExtractorGetElementsMethodName") get() = fail()
 
 private const val baseContinuationElementsFieldName = "\$decoroutinator\$elements"
+
+private fun Metadata.getNonSuspendFunctionSignatures(): List<JvmMethodSignature> {
+    val functions = when(val metadata = KotlinClassMetadata.readLenient(this)) {
+        is KotlinClassMetadata.Class -> metadata.kmClass.functions
+        is KotlinClassMetadata.FileFacade -> metadata.kmPackage.functions
+        is KotlinClassMetadata.SyntheticClass -> metadata.kmLambda?.function?.let { listOf(it) } ?: emptyList()
+        is KotlinClassMetadata.MultiFileClassPart -> metadata.kmPackage.functions
+        is KotlinClassMetadata.MultiFileClassFacade -> emptyList()
+        is KotlinClassMetadata.Unknown -> emptyList()
+    }
+    return functions.asSequence()
+        .filter { it.isInline || !it.isSuspend }
+        .mapNotNull { it.signature }
+        .filter { it.descriptor.endsWith("${Type.getDescriptor(Continuation::class.java)})${Type.getDescriptor(Object::class.java)}") }
+        .toList()
+}
 
 private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
     val debugMetadata = kotlinDebugMetadataAnnotation ?: return false
@@ -404,7 +442,8 @@ private val ClassNode.kotlinMetadataAnnotation: AnnotationNode?
 
 private fun ClassNode.tryTransformSuspendMethods(
     metadataResolver: (className: String) -> DebugMetadataInfo?,
-    lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>>
+    lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>>,
+    notSuspendFunctionSignatures: Collection<JvmMethodSignature>
 ): Boolean {
     var needTransformation = false
     val check = { info: DebugMetadataInfo? ->
@@ -418,7 +457,7 @@ private fun ClassNode.tryTransformSuspendMethods(
     }
     check(debugMetadataInfo)
     methods.orEmpty().forEach { method ->
-        when (val status = getCheckTransformationStatus(this, method)) {
+        when (val status = getCheckTransformationStatus(this, method, notSuspendFunctionSignatures)) {
             is DefaultTransformationStatus -> check(metadataResolver(status.baseContinuationClassName))
             is TailCallTransformationStatus -> {
                 if (tailCallDeopt(
@@ -522,7 +561,8 @@ private class TailCallTransformationStatus(val completionVarIndex: Int): CheckTr
 
 private fun getCheckTransformationStatus(
     clazz: ClassNode,
-    method: MethodNode
+    method: MethodNode,
+    notSuspendFunctionSignatures: Collection<JvmMethodSignature>
 ): CheckTransformationStatus? {
     if (
         method.name == "<init>"
@@ -530,6 +570,7 @@ private fun getCheckTransformationStatus(
         || !method.desc.endsWith("${Type.getDescriptor(Continuation::class.java)})${Type.getDescriptor(Object::class.java)}")
         || method.instructions == null
         || method.instructions.size() == 0
+        || notSuspendFunctionSignatures.any { it.name == method.name && it.descriptor == method.desc }
     ) return null
     val completionIndex = method.lastArgumentIndex
     val baseContinuationClassNames = mutableSetOf<String>()

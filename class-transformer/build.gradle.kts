@@ -25,6 +25,7 @@ dependencies {
     compileOnly(project(":intrinsics"))
 
     implementation(libs.asm.utils)
+    implementation(libs.kotlin.metadata.jvm)
     implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(project(":stacktrace-decoroutinator-spec-method-builder"))
 }

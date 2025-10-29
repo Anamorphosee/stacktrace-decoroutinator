@@ -39,7 +39,7 @@ tasks.named<ShadowJar>("shadowJar") {
     relocate("dev.reformator.kmetarepack", "dev.reformator.stacktracedecoroutinator.jvmagent.kmetarepack")
     exclude("META-INF/*.kotlin_module")
     mergeServiceFiles()
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    duplicatesStrategy = DuplicatesStrategy.FAIL
 }
 
 tasks.test {

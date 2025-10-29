@@ -28,6 +28,7 @@ kotlinx-coroutines-debug-latest = { group = "org.jetbrains.kotlinx", name = "kot
 multidex = { group = "androidx.multidex", name = "multidex", version = "2.0.1" }
 jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
 jackson-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version.ref = "jackson" }
+kotlin-metadata-jvm = { group = "dev.reformator.kotlin-metadata-jvm-repack", name = "kotlin-metadata-jvm-repack", version = "0.9.0-3" }
 
 [plugins]
 shadow = { id = "com.github.johnrengelman.shadow" }

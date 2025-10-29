@@ -35,6 +35,7 @@ dependencies {
     implementation(libs.kotlin.gradle.plugin.api)
     implementation(libs.asm.utils)
     implementation(libs.kotlin.logging.jvm)
+    implementation(libs.kotlin.metadata.jvm)
 }
 
 bytecodeProcessor {

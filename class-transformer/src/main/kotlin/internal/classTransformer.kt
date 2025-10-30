@@ -182,7 +182,7 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
         access and Opcodes.ACC_INTERFACE != 0 || fields.orEmpty().all { field ->
             field.name != LABEL_FIELD_NAME
             || field.desc != Type.INT_TYPE.descriptor
-            || field.access and Opcodes.ACC_STATIC == 0
+            || field.access and Opcodes.ACC_STATIC != 0
         }
     ) return false
 
@@ -219,7 +219,7 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
             add(FieldInsnNode(
                 Opcodes.GETSTATIC,
                 this@tryAddBaseContinuationExtractor.name,
-                baseContinuationExtractorGetLabelMethodName,
+                baseContinuationElementsFieldName,
                 Type.getDescriptor(Array<StackTraceElement>::class.java)
             ))
             add(InsnNode(Opcodes.ARETURN))

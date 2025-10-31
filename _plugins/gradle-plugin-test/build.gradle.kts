@@ -122,5 +122,9 @@ gradlePlugin {
             id = "dev.reformator.stacktracedecoroutinator.attribute"
             implementationClass = "dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorAttributePlugin"
         }
+        create("decoroutinatorTransformBaseContinuation") {
+            id = "decoroutinatorTransformBaseContinuation"
+            implementationClass = "DecoroutinatorTransformBaseContinuationGradlePlugin"
+        }
     }
 }

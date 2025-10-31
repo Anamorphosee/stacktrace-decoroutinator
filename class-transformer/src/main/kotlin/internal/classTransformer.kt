@@ -233,6 +233,17 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
         @Suppress("UNCHECKED_CAST")
         val lineNumbers = (debugMetadata.getField(DebugMetadata::l.name) as List<Int>?).orEmpty()
         instructions.insertBefore(instructions.first, InsnList().apply {
+            add(MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                Type.getInternalName(providerApiClass),
+                isDecoroutinatorEnabledMethodName,
+                "()${Type.BOOLEAN_TYPE.descriptor}"
+            ))
+            val defaultAwakeLabel = LabelNode()
+            add(JumpInsnNode(
+                Opcodes.IFEQ,
+                defaultAwakeLabel
+            ))
             add(LdcInsnNode(lineNumbers.size + 1))
             add(TypeInsnNode(Opcodes.ANEWARRAY, Type.getInternalName(StackTraceElement::class.java)))
             repeat(lineNumbers.size + 1) { index ->
@@ -259,6 +270,8 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
                 baseContinuationElementsFieldName,
                 Type.getDescriptor(Array<StackTraceElement>::class.java)
             ))
+            add(defaultAwakeLabel)
+            add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
         })
     }
 

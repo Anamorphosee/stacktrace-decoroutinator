@@ -24,10 +24,6 @@ fun awakeBaseContinuation(accessor: BaseContinuationAccessor, baseContinuation: 
     )
 }
 
-val isUsingElementFactoryForBaseContinuationEnabled: Boolean
-    @MethodNameConstant("isUsingElementFactoryForBaseContinuationEnabledMethodName")
-    get() = provider.isUsingElementFactoryForBaseContinuationEnabled
-
 @MethodNameConstant("getElementFactoryStacktraceElementMethodName")
 fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement? =
     provider.getElementFactoryStacktraceElement(baseContinuation)

@@ -67,5 +67,9 @@ fun getBaseContinuation(
         lineNumber = lineNumber
     )
 
+val isUsingElementFactoryForBaseContinuationEnabled: Boolean
+    @MethodNameConstant("isUsingElementFactoryForBaseContinuationEnabledMethodName")
+    get() = provider.isUsingElementFactoryForBaseContinuationEnabled
+
 val providerApiClass: Class<*>
     @GetOwnerClass get() { fail() }

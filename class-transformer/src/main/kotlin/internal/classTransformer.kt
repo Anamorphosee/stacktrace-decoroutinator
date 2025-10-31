@@ -236,7 +236,7 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
             add(MethodInsnNode(
                 Opcodes.INVOKESTATIC,
                 Type.getInternalName(providerApiClass),
-                isDecoroutinatorEnabledMethodName,
+                isUsingElementFactoryForBaseContinuationEnabledMethodName,
                 "()${Type.BOOLEAN_TYPE.descriptor}"
             ))
             val defaultAwakeLabel = LabelNode()
@@ -342,7 +342,7 @@ private fun ClassNode.transformBaseContinuation() {
         InsnList().apply {
             add(MethodInsnNode(
                 Opcodes.INVOKESTATIC,
-                Type.getInternalName(providerInternalApiClass),
+                Type.getInternalName(providerApiClass),
                 isUsingElementFactoryForBaseContinuationEnabledMethodName,
                 "()${Type.BOOLEAN_TYPE.descriptor}"
             ))

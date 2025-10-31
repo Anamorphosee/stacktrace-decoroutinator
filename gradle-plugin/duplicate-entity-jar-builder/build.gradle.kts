@@ -1,10 +1,9 @@
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
 import dev.reformator.bytecodeprocessor.plugins.GetOwnerClassProcessor
+import org.apache.tools.zip.ZipEntry
+import org.apache.tools.zip.ZipOutputStream
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
-import java.io.FileOutputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 
 plugins {
     kotlin("jvm")
@@ -16,6 +15,7 @@ repositories {
 }
 
 dependencies {
+    //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 }
 
@@ -55,7 +55,7 @@ val createDuplicateJarTask = tasks.register<DefaultTask>("createDuplicateJar") {
     dependsOn(compileJavaTask, compileKotlinTask)
     outputs.file(layout.buildDirectory.file("duplicate-entities.jar"))
     doLast {
-        ZipOutputStream(FileOutputStream(outputs.files.singleFile)).use { output ->
+        ZipOutputStream(outputs.files.singleFile).use { output ->
             output.putDirectoryDuplicate(compileJavaTask.get().destinationDirectory.asFile.get())
             output.putDirectoryDuplicate(compileKotlinTask.get().destinationDirectory.asFile.get())
         }
@@ -66,6 +66,7 @@ artifacts.add(duplicateJarConfig.name, createDuplicateJarTask)
 
 fun ZipOutputStream.putDirectoryDuplicate(root: File) {
     root.walk().forEach { file ->
+        if (file == root) return@forEach
         val path = file.relativeTo(root).path.replace(File.pathSeparatorChar, '/')
         if (file.isDirectory) {
             val dirPath = "$path/"
@@ -85,8 +86,4 @@ private fun ZipOutputStream.putEntry(name: String) {
     putNextEntry(ZipEntry(name).apply {
         method = ZipEntry.DEFLATED
     })
-    val namesField = ZipOutputStream::class.java.getDeclaredField("names").apply {
-        isAccessible = true
-    }
-    (namesField.get(this) as HashSet<*>).clear()
 }

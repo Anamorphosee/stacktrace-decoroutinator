@@ -37,8 +37,12 @@ private const val LOG_TAG = "Decoroutinator"
 internal class AndroidSpecMethodsFactory: BaseSpecMethodsFactory() {
     init {
         //assert the platform
-        @Suppress("NewApi")
-        Class.forName(InMemoryDexClassLoader::class.java.name)
+        generateSpecMethodHandles(
+            className = "stub",
+            classRevision = 0,
+            fileName = "unknown",
+            lineNumbersByMethod = emptyMap()
+        )
     }
 
     override fun generateSpecMethodHandles(

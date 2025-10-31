@@ -9,7 +9,11 @@ import java.util.concurrent.CopyOnWriteArrayList
 internal class GeneratorJvmSpecMethodsFactory: BaseSpecMethodsFactory() {
     init {
         //assert the platform
-        DecoroutinatorClassLoader()
+        DecoroutinatorClassLoader().buildClassAndGetSpecHandlesByMethod(
+            className = "stub",
+            fileName = "unknown",
+            lineNumbersByMethod = emptyMap()
+        )
     }
 
     override fun generateSpecMethodHandles(

@@ -47,6 +47,12 @@ dependencies {
     androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
     androidTestRuntimeOnly(libs.androidx.test.runner)
     androidTestRuntimeOnly(project(":test-utils:base-continuation-accessor-reflect-stub"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.jdk8.build)
+
+    testRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
+    testRuntimeOnly(project(":test-utils:base-continuation-accessor-stub"))
 }
 
 bytecodeProcessor {
@@ -58,6 +64,8 @@ bytecodeProcessor {
 
 afterEvaluate {
     configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(decoroutinatorTransformedBaseContinuationAttribute, true)
+    configurations["debugUnitTestRuntimeClasspath"].attributes.attribute(decoroutinatorTransformedBaseContinuationAttribute, true)
+    configurations["releaseUnitTestRuntimeClasspath"].attributes.attribute(decoroutinatorTransformedBaseContinuationAttribute, true)
 }
 
 val dokkaJavadocsJar = tasks.register<Jar>("dokkaJavadocsJar") {

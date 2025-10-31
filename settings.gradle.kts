@@ -36,7 +36,8 @@ include(
     "jvm:jdk8-tests-j",
     "mh-invoker-android:legacy-tests",
     "mh-invoker-jvm:jdk8-tests-mij",
-    "jvm-agent-common:suspend-class-stub"
+    "jvm-agent-common:suspend-class-stub",
+    "generator-jvm:android-wrong-generator-tests"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"

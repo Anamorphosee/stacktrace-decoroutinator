@@ -2,8 +2,6 @@
 
 package dev.reformator.stacktracedecoroutinator.jvmagentcommon.internal
 
-import dev.reformator.bytecodeprocessor.intrinsics.GetOwnerClass
-import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.runtimesettings.DecoroutinatorMetadataInfoResolveStrategy
 import dev.reformator.stacktracedecoroutinator.runtimesettings.internal.getRuntimeSettingsValue
 
@@ -30,6 +28,3 @@ internal val metadataInfoResolveStrategy =
             DecoroutinatorMetadataInfoResolveStrategy.SYSTEM_RESOURCE_AND_CLASS.name
         ))
     }.resolveFunction
-
-val diClass: Class<*>
-    @GetOwnerClass get() { fail() }

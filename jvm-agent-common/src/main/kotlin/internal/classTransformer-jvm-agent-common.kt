@@ -122,8 +122,7 @@ private class DecoroutinatorClassFileTransformer(
 
 private val ClassLoader.hasProviderApiDependency: Boolean
     get() = try {
-        loadClass(providerApiClass.name)
-        true
+        loadClass(providerApiClass.name) == providerApiClass
     } catch (_: ClassNotFoundException) {
         false
     }

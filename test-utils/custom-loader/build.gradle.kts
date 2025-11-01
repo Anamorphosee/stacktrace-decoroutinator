@@ -12,10 +12,15 @@ repositories {
 }
 
 dependencies {
+    //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     implementation(libs.kotlinx.coroutines.jdk8.build)
     implementation(libs.junit5.api)
+}
+
+tasks.shadowJar {
+    failOnDuplicateEntries = true
 }
 
 bytecodeProcessor {

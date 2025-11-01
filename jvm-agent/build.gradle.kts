@@ -1,4 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.dokka.gradle.AbstractDokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -28,7 +27,9 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.jdk8.build)
 }
 
-tasks.named<ShadowJar>("shadowJar") {
+tasks.shadowJar {
+    failOnDuplicateEntries = true
+    mergeServiceFiles()
     manifest {
         attributes(mapOf(
             "Premain-Class" to "dev.reformator.stacktracedecoroutinator.jvmagent.DecoroutinatorAgentKt"
@@ -38,8 +39,6 @@ tasks.named<ShadowJar>("shadowJar") {
     relocate("org.objectweb.asm", "dev.reformator.stacktracedecoroutinator.jvmagent.asmrepack")
     relocate("dev.reformator.kmetarepack", "dev.reformator.stacktracedecoroutinator.jvmagent.kmetarepack")
     exclude("META-INF/*.kotlin_module")
-    mergeServiceFiles()
-    duplicatesStrategy = DuplicatesStrategy.FAIL
 }
 
 tasks.test {
@@ -77,7 +76,7 @@ val mavenPublicationName = "maven"
 publishing {
     publications {
         create<MavenPublication>(mavenPublicationName) {
-            shadow.component(this)
+            from(components["shadow"])
             artifact(dokkaJavadocsJar)
             artifact(tasks.named("kotlinSourcesJar"))
             pom {

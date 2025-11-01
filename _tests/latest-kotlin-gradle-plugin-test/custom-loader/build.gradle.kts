@@ -17,6 +17,10 @@ dependencies {
     implementation(libs.junit5.api)
 }
 
+tasks.shadowJar {
+    failOnDuplicateEntries = true
+}
+
 bytecodeProcessor {
     processors = setOf(
         GetCurrentFileNameProcessor,

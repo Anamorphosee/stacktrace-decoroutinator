@@ -9,7 +9,7 @@ jackson = "2.19.2"
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
-shadow-gradle-plugin = { group = "com.github.johnrengelman", name = "shadow", version = "8.1.1" }
+shadow-gradle-plugin = { group = "com.gradleup.shadow", name = "com.gradleup.shadow.gradle.plugin", version = "9.2.2" }
 asm-utils = { group = "org.ow2.asm", name = "asm-util", version = "9.8" }
 dalvik-dx = { group = "com.jakewharton.android.repackaged", name = "dalvik-dx", version = "14.0.0_r21" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.5.2" }
@@ -31,7 +31,7 @@ jackson-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-modul
 kotlin-metadata-jvm = { group = "dev.reformator.kotlin-metadata-jvm-repack", name = "kotlin-metadata-jvm-repack", version = "0.9.0-3" }
 
 [plugins]
-shadow = { id = "com.github.johnrengelman.shadow" }
+shadow = { id = "com.gradleup.shadow" }
 dokka = { id = "org.jetbrains.dokka", version = "1.9.20" }
 android-library = { id = "com.android.library" }
 nmcp = { id = "com.gradleup.nmcp", version = "0.0.9" }

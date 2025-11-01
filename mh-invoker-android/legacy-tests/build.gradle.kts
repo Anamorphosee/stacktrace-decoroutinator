@@ -13,7 +13,7 @@ repositories {
 
 android {
     namespace = "dev.reformator.stacktracedecoroutinator.mhinvokerandroid.legacytests"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         minSdk = 14
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

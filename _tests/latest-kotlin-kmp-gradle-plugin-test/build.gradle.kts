@@ -86,8 +86,9 @@ kotlin {
             compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
             implementation(kotlin("test"))
             implementation(files("../../test-utils/build/libs/").asFileTree)
-            implementation(files("../../generator/build/libs/").asFileTree)
+            implementation(files("../../generator-jvm/build/libs/").asFileTree)
             implementation(files("../../mh-invoker/build/libs/").asFileTree)
+            implementation(files("../../class-transformer/build/libs/").asFileTree)
             runtimeOnly(libs.asm.utils)
             implementation(libs.junit5.api)
             runtimeOnly(libs.ktor.io.jvm)
@@ -111,8 +112,9 @@ kotlin {
             implementation(compose.desktop.currentOs)
             //noinspection UseTomlInstead
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
-            implementation(files("../../generator/build/libs/").asFileTree)
+            implementation(files("../../generator-jvm/build/libs/").asFileTree)
             implementation(files("../../mh-invoker/build/libs/").asFileTree)
+            implementation(files("../../class-transformer/build/libs/").asFileTree)
             runtimeOnly(libs.asm.utils)
         }
     }
@@ -120,12 +122,11 @@ kotlin {
 
 android {
     namespace = "org.example.project"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "org.example.project"
         minSdk = 24
-        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

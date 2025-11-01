@@ -36,8 +36,10 @@ dependencies {
     runtimeOnly(files("../../provider/build/libs/").asFileTree)
     implementation(files("../../common/build/libs/").asFileTree)
     implementation(files("../../mh-invoker/build/libs/").asFileTree)
-    implementation(files("../../generator/build/libs/").asFileTree)
+    implementation(files("../../generator-jvm/build/libs/").asFileTree)
     implementation(files("../../runtime-settings/build/libs/").asFileTree)
+    implementation(files("../../class-transformer/build/libs/").asFileTree)
+    implementation(files("../../spec-method-builder/build/libs/").asFileTree)
     runtimeOnly(libs.asm.utils)
 
     //noinspection UseTomlInstead

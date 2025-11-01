@@ -11,7 +11,7 @@ repositories {
 
 android {
     namespace = "dev.reformator.stacktracedecoroutinator.generatorjvm.androidwronggeneratortests"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         minSdk = 14
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

@@ -8,8 +8,15 @@ import java.lang.invoke.MethodType
 
 internal val supportsMethodHandle = supportsMethodHandle()
 
+@Suppress("ObjectPropertyName")
+internal val _methodHandleInvoker = if (supportsMethodHandle) loadService<MethodHandleInvoker>() else null
+
+@Suppress("ObjectPropertyName")
+internal val _baseContinuationAccessorProvider =
+    if (_methodHandleInvoker != null) loadService<BaseContinuationAccessorProvider>() else null
+
 internal val enabled =
-    supportsMethodHandle && getRuntimeSettingsValue({ enabled }) {
+    _baseContinuationAccessorProvider != null && getRuntimeSettingsValue({ enabled }) {
         System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
     }
 
@@ -34,9 +41,7 @@ internal val recoveryExplicitStacktraceTimeoutMs =
                 "500"
             ).toUInt()
         }
-    } else {
-        0U
-    }
+    } else 0U
 
 internal val methodsNumberThreshold =
     if (enabled) {
@@ -46,9 +51,7 @@ internal val methodsNumberThreshold =
                 "50"
             ).toInt()
         }
-    } else {
-        0
-    }
+    } else 0
 
 internal val fillUnknownElementsWithClassName =
     enabled && getRuntimeSettingsValue({ fillUnknownElementsWithClassName }) {
@@ -71,47 +74,21 @@ private val _transformedClassesRegistry: TransformedClassesRegistry? =
     if (enabled) TransformedClassesRegistryImpl() else null
 
 @Suppress("ObjectPropertyName")
-private val _methodHandleInvoker: MethodHandleInvoker? =
-    if (enabled) {
-        loadMandatoryService<MethodHandleInvoker>()
-    } else {
-        null
-    }
-
-@Suppress("ObjectPropertyName")
-private val _baseContinuationAccessorProvider: BaseContinuationAccessorProvider? =
-    if (enabled) {
-        loadMandatoryService<BaseContinuationAccessorProvider>()
-    } else {
-        null
-    }
-
-@Suppress("ObjectPropertyName")
 private val _stacktraceElementsFactory: StacktraceElementsFactory? =
     if (enabled) StacktraceElementsFactoryImpl() else null
 
 @Suppress("ObjectPropertyName")
-private val _specMethodsFactory: SpecMethodsFactory? =
-    if (enabled) {
-        loadService<SpecMethodsFactory>() ?: SpecMethodsFactoryImpl
-    } else {
-        null
-    }
+private val _specMethodsFactory =
+    if (enabled) loadService<SpecMethodsFactory>() ?: SpecMethodsFactoryImpl else null
 
-internal val annotationMetadataResolver: AnnotationMetadataResolver? =
-    if (enabled) {
-        loadService<AnnotationMetadataResolver>()
-    } else {
-        null
-    }
+internal val annotationMetadataResolver =
+    if (enabled) loadService<AnnotationMetadataResolver>() else null
 
 @Suppress("ObjectPropertyName")
-private val _varHandleInvoker: VarHandleInvoker? =
-    if (_methodHandleInvoker?.supportsVarHandle == true) {
-        loadMandatoryService<VarHandleInvoker>()
-    } else {
-        null
-    }
+private val _varHandleInvoker =
+    if (enabled && methodHandleInvoker.supportsVarHandle) loadService<VarHandleInvoker>() else null
+
+internal val supportsVarHandle = _varHandleInvoker != null
 
 internal val transformedClassesRegistry: TransformedClassesRegistry
     get() = _transformedClassesRegistry!!

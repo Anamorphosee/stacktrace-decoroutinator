@@ -82,48 +82,21 @@ fun parseTransformationMetadata(
     )
 }
 
-private fun <T: Any> loadServices(type: Class<T>): Pair<List<T>, List<Throwable>> {
-    val services = mutableListOf<T>()
-    val errors = mutableListOf<Throwable>()
-    val iter = ServiceLoader.load(type).iterator()
+private fun <T: Any> loadService(type: Class<T>): T? {
+    val iter: Iterator<T> = ServiceLoader.load(type).iterator()
     while (true) {
         try {
             if (!iter.hasNext()) {
                 break
             }
-            services.add(iter.next())
-        } catch (e: Throwable) {
-            errors.add(e)
-        }
+            return iter.next()
+        } catch (_: Throwable) { }
     }
-    return Pair(services, errors)
+    return null
 }
-
-private fun <T: Any> loadService(type: Class<T>): T? =
-    loadServices(type).first.firstOrNull()
 
 internal inline fun <reified T: Any> loadService(): T? =
     loadService(T::class.java)
-
-private fun <T: Any> loadMandatoryService(type: Class<T>): T {
-    val services = loadServices(type)
-    if (services.first.isNotEmpty()) {
-        return services.first.first()
-    }
-    val message = "service [${type.simpleName}] not found"
-    val exception = if (services.second.isNotEmpty()) {
-        IllegalStateException(message, services.second[0])
-    } else {
-        IllegalStateException(message)
-    }
-    services.second.asSequence().drop (1).forEach {
-        exception.addSuppressed(it)
-    }
-    throw exception
-}
-
-internal inline fun <reified T: Any> loadMandatoryService(): T =
-    loadMandatoryService(T::class.java)
 
 internal fun Class<*>.getBodyStream(loader: ClassLoader): InputStream? =
     loader.getResourceAsStream(name.internalName + ".class")

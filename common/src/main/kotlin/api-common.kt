@@ -8,6 +8,7 @@ import dev.reformator.stacktracedecoroutinator.common.internal.ENABLED_PROPERTY
 import dev.reformator.stacktracedecoroutinator.common.internal.enabled
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
+import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -31,6 +32,18 @@ object DecoroutinatorCommonApi {
             return DecoroutinatorStatus(
                 successful = false,
                 description = "The platform doesn't support MethodHandle's API"
+            )
+        }
+        if (_methodHandleInvoker == null) {
+            return DecoroutinatorStatus(
+                successful = false,
+                description = "Mandatory service '${MethodHandleInvoker::class.java.simpleName}' is not found"
+            )
+        }
+        if (_baseContinuationAccessorProvider == null) {
+            return DecoroutinatorStatus(
+                successful = false,
+                description = "Mandatory service '${BaseContinuationAccessorProvider::class.java.simpleName}' is not found"
             )
         }
         if (!enabled) {

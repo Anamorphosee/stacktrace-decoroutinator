@@ -53,9 +53,7 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
                 baseContinuationClass.getLabelReflectionField()
             } else null
             labelVarHandle = if (
-                _elementsByLabel != null &&
-                _elementsByLabel !== failedElementsByLabel &&
-                methodHandleInvoker.supportsVarHandle
+                _elementsByLabel != null && _elementsByLabel !== failedElementsByLabel && supportsVarHandle
             ) {
                 baseContinuationClass.getLabelVarHandle(_elementsByLabel[0].className)
             } else null

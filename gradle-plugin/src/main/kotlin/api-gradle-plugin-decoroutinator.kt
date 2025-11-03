@@ -10,7 +10,6 @@ import dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorAttrib
 import dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPluginExtension
 import dev.reformator.stacktracedecoroutinator.gradleplugin.decoroutinatorDir
 import org.gradle.api.Project
-import org.gradle.api.artifacts.dsl.DependencyHandler
 import java.io.File
 
 fun Project.stacktraceDecoroutinator(configure: DecoroutinatorPluginExtension.() -> Unit) {
@@ -21,37 +20,34 @@ fun Project.stacktraceDecoroutinatorAttribute(configure: DecoroutinatorAttribute
     extensions.configure(::stacktraceDecoroutinatorAttribute.name, configure)
 }
 
-@Suppress("UnusedReceiverParameter")
-fun DependencyHandler.decoroutinatorCommon(): Any =
+@Suppress("unused")
+@Deprecated("replace with method", replaceWith = ReplaceWith("decoroutinatorAndroidProGuardRules()"))
+val Project.decoroutinatorAndroidProGuardRules: File
+    get() = decoroutinatorAndroidProGuardRules()
+
+fun Project.decoroutinatorAndroidProGuardRules(): File =
+    decoroutinatorDir.resolve(ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME)
+
+fun decoroutinatorCommon(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-common:$projectVersionIntrinsic"
 
-@Suppress("UnusedReceiverParameter")
-fun DependencyHandler.decoroutinatorJvmRuntime(): Any =
+fun decoroutinatorJvmRuntime(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-jvm:$projectVersionIntrinsic"
 
-@Suppress("UnusedReceiverParameter")
-fun DependencyHandler.decoroutinatorAndroidRuntime(): Any =
+fun decoroutinatorAndroidRuntime(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-generator-android:$projectVersionIntrinsic"
 
-@Suppress("UnusedReceiverParameter")
-fun DependencyHandler.decoroutinatorRegularMethodHandleInvoker(): Any =
+fun decoroutinatorRegularMethodHandleInvoker(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-mh-invoker:$projectVersionIntrinsic"
 
-@Suppress("UnusedReceiverParameter")
-fun DependencyHandler.decoroutinatorAndroidMethodHandleInvoker(): Any =
+fun decoroutinatorAndroidMethodHandleInvoker(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-mh-invoker-android:$projectVersionIntrinsic"
 
-@Suppress("UnusedReceiverParameter")
-fun DependencyHandler.decoroutinatorJvmMethodHandleInvoker(): Any =
+fun decoroutinatorJvmMethodHandleInvoker(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-mh-invoker-jvm:$projectVersionIntrinsic"
 
-@Suppress("UnusedReceiverParameter")
-fun DependencyHandler.decoroutinatorRuntimeSettings(): Any =
+fun decoroutinatorRuntimeSettings(): Any =
     "dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-runtime-settings:$projectVersionIntrinsic"
-
-@Suppress("unused")
-val Project.decoroutinatorAndroidProGuardRules: File
-    get() = decoroutinatorDir.resolve(ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME)
 
 private val projectVersionIntrinsic: String
     @LoadConstant("version") get() { fail() }

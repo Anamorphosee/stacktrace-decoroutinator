@@ -19,6 +19,7 @@ import org.gradle.api.tasks.compile.AbstractCompile
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.File
+import java.util.ServiceLoader
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -59,6 +60,7 @@ internal class ObservableProperty<T>(private var _value: T): ReadWriteProperty<A
     }
 }
 
+@Suppress("PropertyName")
 class StringMatcherProperty {
     internal val _include = ObservableProperty(setOf<String>())
     internal val _exclude = ObservableProperty(setOf<String>())
@@ -85,6 +87,7 @@ internal val defaultArtifactTypes = setOf(
     "android-classes-directory"
 )
 
+@Suppress("PropertyName")
 open class DecoroutinatorPluginExtension {
     // high level configurations
     internal val _legacyAndroidCompatibility = ObservableProperty(false)
@@ -431,6 +434,7 @@ internal fun createUnsetDecoroutinatorTransformedStateAttributeAction(artifactTy
 class DecoroutinatorPlugin: Plugin<Project> {
     override fun apply(target: Project) {
         log.debug { "applying Decoroutinator plugin to [${target.name}]" }
+        groovyDslInitializer.initGroovyDsl(target)
         with (target) {
             val pluginExtension = extensions.create(
                 ::stacktraceDecoroutinator.name,
@@ -672,6 +676,12 @@ class DecoroutinatorPlugin: Plugin<Project> {
         }
     }
 }
+
+internal fun interface GroovyDslInitializer {
+    fun initGroovyDsl(target: Project)
+}
+
+private val groovyDslInitializer = ServiceLoader.load(GroovyDslInitializer::class.java).iterator().next()!!
 
 private inline fun visitModuleInfoFiles(root: File, onModuleInfoFile: (path: File, relativePath: File) -> Unit) {
     root.walk().forEach { file ->

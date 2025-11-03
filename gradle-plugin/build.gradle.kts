@@ -1,6 +1,6 @@
 import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
 import org.gradle.kotlin.dsl.named
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.util.Base64
 
 plugins {
@@ -11,10 +11,19 @@ plugins {
     signing
     alias(libs.plugins.gradle.plugin.publish)
     id("dev.reformator.bytecodeprocessor")
+    groovy
 }
 
 repositories {
     mavenCentral()
+}
+
+tasks.named<GroovyCompile>("compileGroovy") {
+    val kotlinCompile = tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(kotlinCompile)
+    doFirst {
+        classpath = files(classpath + kotlinCompile.get().destinationDirectory.get().asFile)
+    }
 }
 
 gradlePlugin {
@@ -50,11 +59,11 @@ dependencies {
     compileOnly(project(":intrinsics"))
 
     implementation(project(":stacktrace-decoroutinator-class-transformer"))
+    implementation(project(":stacktrace-decoroutinator-runtime-settings"))
+    implementation(project(":stacktrace-decoroutinator-provider"))
     implementation(libs.kotlin.logging.jvm)
     implementation(libs.kotlin.gradle.plugin.api)
     implementation(libs.asm.utils)
-    implementation(project(":stacktrace-decoroutinator-runtime-settings"))
-    implementation(project(":stacktrace-decoroutinator-provider"))
 
     testImplementation(kotlin("test"))
 }
@@ -106,15 +115,8 @@ bytecodeProcessor {
 
 bytecodeProcessorInitTask.dependsOn(fillConstantProcessorTask)
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
 kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_1_8
-    }
+    jvmToolchain(8)
 }
 
 tasks.test {

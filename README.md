@@ -187,7 +187,13 @@ stacktraceDecoroutinator {
 ### Using Decoroutinator Gradle plugin with on Android with minification enabled
 Please add the following ProGuard config file to your `build.gradle.kts` for Decoroutinator:
 ```kotlin
-proguardFiles(decoroutinatorAndroidProGuardRules)
+android {
+    buildTypes {
+        release {
+            proguardFiles(decoroutinatorAndroidProGuardRules())
+        }
+    }
+}
 ```
 
 ### Problem with Shadow Gradle plugin

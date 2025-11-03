@@ -1,6 +1,7 @@
 import dev.reformator.bytecodeprocessor.plugins.*
 import org.gradle.kotlin.dsl.named
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.util.Base64
 
 buildscript {
@@ -15,6 +16,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm.build)
     alias(libs.plugins.gradle.plugin.publish)
     id("dev.reformator.bytecodeprocessor")
+    groovy
 }
 
 group = "dev.reformator.gradle-plugin-test"
@@ -23,6 +25,14 @@ version = "0.0.1-SNAPSHOT"
 repositories {
     mavenCentral()
     gradlePluginPortal()
+}
+
+tasks.named<GroovyCompile>("compileGroovy") {
+    val kotlinCompile = tasks.named<KotlinJvmCompile>("compileKotlin")
+    dependsOn(kotlinCompile)
+    doFirst {
+        classpath = files(classpath + kotlinCompile.get().destinationDirectory.get().asFile)
+    }
 }
 
 dependencies {
@@ -107,9 +117,12 @@ kotlin {
 
 val kotlinSources = sourceSets.main.get().kotlin
 val resourcesSources = sourceSets.main.get().resources
+val groovySources = sourceSets.main.get().extensions.getByName("groovy") as SourceDirectorySet
 kotlinSources.srcDirs("../../gradle-plugin/src/main/kotlin")
 kotlinSources.srcDirs("../../class-transformer/src/main/kotlin")
 kotlinSources.srcDirs("../../spec-method-builder/src/main/kotlin")
+resourcesSources.srcDirs("../../gradle-plugin/src/main/resources")
+groovySources.srcDirs("../../gradle-plugin/src/main/groovy")
 
 
 gradlePlugin {

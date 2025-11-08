@@ -82,6 +82,8 @@ These methods don't do anything except call each other in the coroutine call sta
 
 Thus, if the coroutine throws an exception, they mimic the real call stack of the coroutine during the creation of the exception stacktrace.
 
+Check out [Decoroutinator playground](https://decoroutinator.reformator.dev/playground/).
+
 ### JVM
 There are three possible ways to enable Stacktrace-decoroutinator for a JVM.
 1. If you build your project with Gradle, just apply the Gradle plugin with id `dev.reformator.stacktracedecoroutinator`.
@@ -207,5 +209,3 @@ You can call function `DecoroutinatorCommonApi.getStatus { it() }` at runtime to
 
 ### Communication
 Feel free to ask any question at [Discussions](https://github.com/Anamorphosee/stacktrace-decoroutinator/discussions).
-
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/reformator)

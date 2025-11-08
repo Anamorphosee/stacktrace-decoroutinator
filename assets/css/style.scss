@@ -3,7 +3,13 @@
 
 @import "{{ site.theme }}";
 
+.container, 
+.site-content, 
 .main-content {
-  flex: 1; /* main content takes all available space */
-  width: 100%; /* full width */
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
 }

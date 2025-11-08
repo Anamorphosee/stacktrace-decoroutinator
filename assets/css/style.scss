@@ -1,0 +1,9 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+.main-content {
+  flex: 1; /* main content takes all available space */
+  width: 100%; /* full width */
+}

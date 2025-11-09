@@ -23,26 +23,24 @@ permalink: /playground/
 <script src="/js/set_up_transfering_of_recovery_type.js"></script>
 
 <div class="kotlin-code">
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 
 suspend fun fun1() {
-    delay(10)
+    yield()
     throw Exception("exception at ${System.currentTimeMillis()}")
 }
 
 suspend fun fun2() {
     fun1()
-    delay(10)
 }
 
 suspend fun fun3() {
     fun2()
-    delay(10)
 }
 
 fun main() {
-    runBlocking {
+    runTest {
         fun3()
     }
 }

@@ -74,7 +74,7 @@ The Kotlin team are known about the problem and has come up with a [solution](ht
 For example, the exception from the example above still lacks some calls.
 
 ### Solution
-Stacktrace-decoroutinator replaces the coroutine awakening implementation.
+Decoroutinator replaces the coroutine awakening implementation.
 
 It generates methods at runtime with names that match the entire coroutine call stack.
 
@@ -82,10 +82,10 @@ These methods don't do anything except call each other in the coroutine call sta
 
 Thus, if the coroutine throws an exception, they mimic the real call stack of the coroutine during the creation of the exception stacktrace.
 
-Check out [Decoroutinator playground](https://decoroutinator.reformator.dev/playground/).
+Check out [the Decoroutinator playground](https://decoroutinator.reformator.dev/playground/).
 
 ### JVM
-There are three possible ways to enable Stacktrace-decoroutinator for a JVM.
+There are three possible ways to enable Decoroutinator for a JVM.
 1. If you build your project with Gradle, just apply the Gradle plugin with id `dev.reformator.stacktracedecoroutinator`.
 2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.5.8.jar` to your JVM start arguments. The corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.5.8`.
 3. Add the dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.5.8` and call method `DecoroutinatorJvmApi.install()`.

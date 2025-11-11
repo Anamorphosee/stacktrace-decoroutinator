@@ -22,7 +22,7 @@ permalink: /playground/
 
 <script src="/js/set_up_transfering_of_recovery_type.js"></script>
 
-<div class="kotlin-code">
+<div id="code" class="kotlin-code">
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 
@@ -45,3 +45,5 @@ fun main() {
     }
 }
 </div>
+
+<script src="/js/fill_code_from_url_param.js"></script>

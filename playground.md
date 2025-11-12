@@ -5,12 +5,8 @@ permalink: /playground/
 
 # Decoroutinator playground
 
-<script
-    src="https://unpkg.com/kotlin-playground@1"
-    data-selector=".kotlin-code"
-    data-server="https://api.decoroutinator.reformator.dev/decoroutinator-kotlin-compiler"
-    data-version="1.9.23">
-</script>
+<script src="https://unpkg.com/kotlin-playground@1"></script>
+<script src="/js/set_up_kotlin_playground.js"></script>
 
 <label for="recoveryType">Stack trace recovery method</label>
 <select id="recoveryType">
@@ -19,7 +15,6 @@ permalink: /playground/
     <option value="NONE">Without recovery</option>
     <option value="FULL">Decoroutinator and Kotlin stack trace recovery</option>
 </select>
-
 <script src="/js/set_up_transfering_of_recovery_type.js"></script>
 
 <div id="code" class="kotlin-code">
@@ -45,5 +40,7 @@ fun main() {
     }
 }
 </div>
-
 <script src="/js/fill_code_from_url_param.js"></script>
+
+<button id="copyLink">Copy link</button>
+<script src="/js/set_up_copy_link_button.js"></script>

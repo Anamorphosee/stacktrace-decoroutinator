@@ -23,14 +23,17 @@ import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
-import kotlin.reflect.KFunction
 
 class TestException(message: String): Exception(message)
 
 @Suppress("JUnitMixedFramework")
 open class RuntimeTest {
+    private val feature = AtomicReference<CompletableFuture<Unit>?>()
+    private var recBaseLineNumber: Int = 0
+    private val allowedLineNumberOffsets = listOf(0, 1, 3, 4, 6)
+
     @Junit4Test @Junit5Test
-    fun inlineTransformedClassForKotlinc() {
+    open fun inlineTransformedClassForKotlinc() {
         runBlocking {
             flowOf(1)
                 .transform { emit(it) }
@@ -39,11 +42,11 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    fun basic() = runBlocking {
+    open fun basic() = runBlocking {
         val random = Random(123)
         val size = 30
         val lineNumberOffsets = generateSequence {
-                allowedLineNumberOffsets[random.nextInt(allowedLineNumberOffsets.size)]
+                allowedLineNumberOffsets.random(random)
             }
             .take(size)
             .toList()
@@ -60,13 +63,13 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    fun overloadedMethods() = runBlocking {
+    open fun overloadedMethods() = runBlocking {
         overload(1)
         overload("")
     }
 
     @Junit4Test @Junit5Test
-    fun resumeWithException() {
+    open fun resumeWithException() {
         try {
             runBlocking {
                 resumeWithExceptionRec(10)
@@ -88,7 +91,7 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    fun resumeDoubleException() {
+    open fun resumeDoubleException() {
         var firstResumeLineNumber = 0
         var secondResumeLineNumber = 0
         var resumeClassName = ""
@@ -147,12 +150,12 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    fun testLoadSelfDefinedClass() {
+    open fun testLoadSelfDefinedClass() {
         Class.forName("io.ktor.utils.io.ByteBufferChannel")
     }
 
     @Junit4Test @Junit5Test
-    fun testSuspendCrossinlineInDifferentFile() {
+    open fun testSuspendCrossinlineInDifferentFile() {
         val flow = flow {
             for (i in 2..6) {
                 emit(i)
@@ -179,12 +182,12 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    fun loadInterfaceWithSuspendFunWithDefaultImpl() = runBlocking {
+    open fun loadInterfaceWithSuspendFunWithDefaultImpl() = runBlocking {
         object: InterfaceWithDefaultMethod { }.startCheck()
     }
 
     @Junit4Test @Junit5Test
-    fun flowSingle(): Unit = runBlocking {
+    open fun flowSingle(): Unit = runBlocking {
         val flow = flow {
             emit(10)
             yield()
@@ -193,7 +196,7 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    fun concurrentTest() {
+    open fun concurrentTest() {
         val numThreads = Runtime.getRuntime().availableProcessors() * 2
         val numMocks = 10
         val random = Random(123)
@@ -231,14 +234,10 @@ open class RuntimeTest {
         tailCallDeoptimize()
     }
 
-    private val feature = AtomicReference<CompletableFuture<Unit>?>()
-    private var recBaseLineNumber: Int = 0
-    private val allowedLineNumberOffsets = listOf(0, 1, 3, 4, 6)
-
     private suspend fun rec(lineNumberOffsets: List<Int>, index: Int): String {
         val checkedStacktrace = lineNumberOffsets.subList(0, index).reversed().map {
             StackTraceElement(
-                RuntimeTest::class.java.typeName,
+                RuntimeTest::class.java.name,
                 RuntimeTest::rec.name,
                 currentFileName,
                 recBaseLineNumber + it
@@ -247,7 +246,7 @@ open class RuntimeTest {
         checkStacktrace(*checkedStacktrace)
 
         val message = if (index == lineNumberOffsets.size) {
-            delay(10)
+            yield()
             val feature = CompletableFuture<Unit>()
             this.feature.set(feature)
             feature.await()
@@ -291,7 +290,7 @@ open class RuntimeTest {
         val lineNumber = currentLineNumber + 1
         suspendResumeAndCheckStack(StackTraceElement(
             RuntimeTest::class.java.typeName,
-            run {val x: suspend (Int) -> Unit = ::overload; x as KFunction<*>}.name,
+            ownerMethodName,
             currentFileName,
             lineNumber
         ))
@@ -303,7 +302,7 @@ open class RuntimeTest {
         val lineNumber = currentLineNumber + 1
         suspendResumeAndCheckStack(StackTraceElement(
             RuntimeTest::class.java.typeName,
-            run {val x: suspend (String) -> Unit = ::overload; x as KFunction<*>}.name,
+            ownerMethodName,
             currentFileName,
             lineNumber
         ))
@@ -314,8 +313,6 @@ open class RuntimeTest {
         delay(10)
         checkStacktrace(*elements)
     }
-
-
 }
 
 interface InterfaceWithDefaultMethod {
@@ -457,7 +454,6 @@ private suspend inline fun callInline(trace: List<Class<out ConcurrentTestMock>>
     }
 }
 
-const val CONCURRENT_TEST_MOCKS_NUMBER = 20
 private class ConcurrentTestMock1: ConcurrentTestMock {
     override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
 }
@@ -519,10 +515,17 @@ private class ConcurrentTestMock20: ConcurrentTestMock {
     override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
 }
 
+private val mockClasses = listOf(
+    ConcurrentTestMock1::class.java, ConcurrentTestMock2::class.java, ConcurrentTestMock3::class.java,
+    ConcurrentTestMock4::class.java, ConcurrentTestMock5::class.java, ConcurrentTestMock6::class.java,
+    ConcurrentTestMock7::class.java, ConcurrentTestMock8::class.java, ConcurrentTestMock9::class.java,
+    ConcurrentTestMock10::class.java, ConcurrentTestMock11::class.java, ConcurrentTestMock12::class.java,
+    ConcurrentTestMock13::class.java, ConcurrentTestMock14::class.java, ConcurrentTestMock15::class.java,
+    ConcurrentTestMock16::class.java, ConcurrentTestMock17::class.java, ConcurrentTestMock18::class.java,
+    ConcurrentTestMock19::class.java, ConcurrentTestMock20::class.java
+)
+
 private fun Random.getConcurrentTestMocks(size: Int): List<Class<out ConcurrentTestMock>> =
     buildList(size) {
-        val index = nextInt(CONCURRENT_TEST_MOCKS_NUMBER) + 1
-        val className = "dev.reformator.stacktracedecoroutinator.test.ConcurrentTestMock$index"
-        @Suppress("UNCHECKED_CAST")
-        add(Class.forName(className, false, ConcurrentTestMock::class.java.classLoader) as Class<out ConcurrentTestMock>)
+        add(mockClasses.random(this@getConcurrentTestMocks))
     }

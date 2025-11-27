@@ -1,7 +1,7 @@
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
 
 plugins {
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.application)
     kotlin("android")
     id("dev.reformator.stacktracedecoroutinator")
     id("dev.reformator.bytecodeprocessor")
@@ -25,19 +25,21 @@ stacktraceDecoroutinator {
 
 dependencies {
     androidTestImplementation(project(":test-utils"))
-    androidTestImplementation(libs.kotlinx.coroutines.jdk8.build)
-    androidTestImplementation(libs.junit4)
-    androidTestImplementation(libs.kotlinx.coroutines.debug.build)
-    androidTestImplementation(libs.junit5.api)
+
+    implementation(project(":test-utils"))
+    implementation(libs.kotlinx.coroutines.jdk8.build)
+    implementation(libs.junit4)
+    implementation(libs.kotlinx.coroutines.debug.build)
+    implementation(libs.junit5.api)
+    implementation(project(":gradle-plugin:empty-module-tests"))
+
+    runtimeOnly(libs.androidx.test.runner)
+    runtimeOnly(project(":stacktrace-decoroutinator-common"))
+    runtimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
+    runtimeOnly(project(":stacktrace-decoroutinator-runtime-settings"))
 
     //noinspection UseTomlInstead
-    androidTestCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
-
-    implementation(project(":gradle-plugin:empty-module-tests"))
-    androidTestRuntimeOnly(libs.androidx.test.runner)
-    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-common"))
-    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker"))
-    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-runtime-settings"))
+    compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 }
 
 bytecodeProcessor {
@@ -50,6 +52,9 @@ android {
     namespace = "dev.reformator.stacktracedecoroutinator.gradlepluginandroidtests"
     compileSdk = 36
     defaultConfig {
+        applicationId = "dev.reformator.stacktracedecoroutinator.gradlepluginandroidtests"
+        versionCode = 1
+        versionName = "1.0"
         minSdk = 26
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -61,5 +66,12 @@ android {
     }
     kotlin {
         jvmToolchain(8)
+    }
+    buildTypes {
+        debug {
+            isMinifyEnabled = true
+            testProguardFiles(decoroutinatorAndroidProGuardRules(), "proguard-rules.pro")
+            proguardFiles(decoroutinatorAndroidProGuardRules(), "proguard-rules.pro")
+        }
     }
 }

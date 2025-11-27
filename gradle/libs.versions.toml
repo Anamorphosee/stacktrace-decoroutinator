@@ -42,3 +42,4 @@ android-application-version = { id = "com.android.application", version.ref = "a
 compose-multiplatform-latest = { id = "org.jetbrains.compose", version = "1.10.0-alpha03" }
 compose-compiler-latest = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin-latest" }
 kotlin-multiplatform-latest = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin-latest" }
+android-application = { id = "com.android.application" }

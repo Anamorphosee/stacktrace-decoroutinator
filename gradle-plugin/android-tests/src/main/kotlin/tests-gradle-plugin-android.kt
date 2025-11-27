@@ -1,3 +1,7 @@
+@file:Suppress("PackageDirectoryMismatch")
+
+package dev.reformator.stacktracedecoroutinator.gradlepluginandroidtests
+
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import dev.reformator.stacktracedecoroutinator.test.checkStacktrace
@@ -10,9 +14,9 @@ import org.junit.Test
 import org.junit.jupiter.api.Assertions.*
 import kotlin.coroutines.resume
 
-class TestLocalFile {
+open class TestLocalFile {
     @Test
-    fun localTest(): Unit = runBlocking {
+    open fun localTest(): Unit = runBlocking {
         fun1()
     }
 
@@ -22,7 +26,7 @@ class TestLocalFile {
 
     suspend fun fun2(fun1LineNumber: Int) {
         val fun1Frame = StackTraceElement(
-            TestLocalFile::class.qualifiedName,
+            TestLocalFile::class.java.name,
             ::fun1.name,
             currentFileName,
             fun1LineNumber
@@ -33,7 +37,7 @@ class TestLocalFile {
 
     suspend fun fun3(fun1Frame: StackTraceElement, fun2LineNumber: Int) {
         val fun2Frame = StackTraceElement(
-            TestLocalFile::class.qualifiedName,
+            TestLocalFile::class.java.name,
             ::fun2.name,
             currentFileName,
             fun2LineNumber
@@ -43,22 +47,22 @@ class TestLocalFile {
     }
 }
 
-class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
+open class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
     @Test
-    fun performBasic() {
+    open fun performBasic() {
         basic()
     }
 
     @Test
-    fun performInterfaceWithDefaultMethodImpl() {
+    open fun performInterfaceWithDefaultMethodImpl() {
         interfaceWithDefaultMethodImpl()
     }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class DebugProbesTest {
+open class DebugProbesTest {
     @Test
-    fun performDebugProbes() {
+    open fun performDebugProbes() {
         runBlocking {
             suspendCancellableCoroutine { continuation ->
                 assertTrue(DebugProbes.dumpCoroutinesInfo().isNotEmpty())

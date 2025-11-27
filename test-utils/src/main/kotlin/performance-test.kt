@@ -185,22 +185,22 @@ private fun Random.getMocks(depth: Int) = List(depth) { mocks.random(this) }
 @Suppress("JUnitMixedFramework")
 open class PerformanceTest {
     @Junit4Test @Junit5Test
-    fun depth10() {
+    open fun depth10() {
         resumeWithDepth(10)
     }
 
     @Junit4Test @Junit5Test
-    fun depth50() {
+    open fun depth50() {
         resumeWithDepth(50)
     }
 
     @Junit4Test @Junit5Test
-    fun depth100() {
+    open fun depth100() {
         resumeWithDepth(100)
     }
 
     @Junit4Test @Junit5Test
-    fun depth500() {
+    open fun depth500() {
         resumeWithDepth(500)
     }
 

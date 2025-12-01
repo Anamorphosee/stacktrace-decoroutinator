@@ -197,7 +197,7 @@ android {
     }
 }
 ```
-### Using De with Kotest
+### Using Decoroutinator with Kotest
 [Kotest](https://kotest.io) 6.0 offers decoroutinator support out of the box.
 See documentation on how to integrate [here](https://kotest.io/docs/extensions/decoroutinator.html).
 

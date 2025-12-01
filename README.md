@@ -197,6 +197,9 @@ android {
     }
 }
 ```
+### Using De with Kotest
+[Kotest[(https://kotest.io) 6.0 offers decoroutinator support out of the box.
+See documentation on how to integrate [here](https://kotest.io/docs/extensions/decoroutinator.html).
 
 ### Problem with Shadow Gradle plugin
 There is [a bug](https://github.com/GradleUp/shadow/issues/882) in Shadow Gradle plugin which may lead to some build issues when both Decoroutinator as a Gradle plugin and Shadow are applied. But there are some [workarounds](https://github.com/GradleUp/shadow/issues/882#issuecomment-1715703146) for it. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/46. 

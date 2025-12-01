@@ -40,13 +40,7 @@ dependencies {
     api(project(":stacktrace-decoroutinator-common"))
 
     implementation(project(":stacktrace-decoroutinator-provider"))
-
     implementation(libs.dalvik.dx)
-
-    androidTestRuntimeOnly(project(":test-utils"))
-    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-mh-invoker-android"))
-    androidTestRuntimeOnly(libs.androidx.test.runner)
-    androidTestRuntimeOnly(project(":test-utils:base-continuation-accessor-reflect-stub"))
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.jdk8.build)
@@ -63,7 +57,6 @@ bytecodeProcessor {
 }
 
 afterEvaluate {
-    configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(decoroutinatorTransformedBaseContinuationAttribute, true)
     configurations["debugUnitTestRuntimeClasspath"].attributes.attribute(decoroutinatorTransformedBaseContinuationAttribute, true)
     configurations["releaseUnitTestRuntimeClasspath"].attributes.attribute(decoroutinatorTransformedBaseContinuationAttribute, true)
 }

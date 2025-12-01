@@ -48,24 +48,6 @@ class ReloadBaseContinuationTest {
 }
 
 @DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
-class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
-    @BeforeTest
-    fun setup() {
-        setupTest()
-    }
-
-    @Test
-    fun performBasic() {
-        basic()
-    }
-
-    @Test
-    fun performInterfaceWithDefaultMethodImpl() {
-        interfaceWithDefaultMethodImpl()
-    }
-}
-
-@DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
 class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
     @BeforeTest
     fun setup() {
@@ -75,15 +57,9 @@ class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.Custom
 
 @DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
 class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
-
     @BeforeTest
     fun setup() {
         setupTest()
-    }
-
-    @Test
-    fun performClassWithSpaces() {
-        `class with spaces`(true)
     }
 }
 

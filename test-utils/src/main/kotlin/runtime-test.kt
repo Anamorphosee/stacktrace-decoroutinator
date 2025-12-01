@@ -1,8 +1,9 @@
-@file:Suppress("PackageDirectoryMismatch", "unused")
+@file:Suppress("PackageDirectoryMismatch", "unused", "JUnitMixedFramework")
 
 package dev.reformator.stacktracedecoroutinator.test
 
 import dev.reformator.bytecodeprocessor.intrinsics.*
+import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -26,11 +27,18 @@ import kotlin.random.Random
 
 class TestException(message: String): Exception(message)
 
-@Suppress("JUnitMixedFramework")
 open class RuntimeTest {
     private val feature = AtomicReference<CompletableFuture<Unit>?>()
     private var recBaseLineNumber: Int = 0
     private val allowedLineNumberOffsets = listOf(0, 1, 3, 4, 6)
+
+    @Junit4Test @Junit5Test
+    fun checkStatus() {
+        val status = DecoroutinatorCommonApi.getStatus(
+            allowTailCallOptimization = true
+        ) { it() }
+        assertTrue(status.successful, status.description)
+    }
 
     @Junit4Test @Junit5Test
     open fun inlineTransformedClassForKotlinc() {
@@ -334,13 +342,43 @@ interface InterfaceWithDefaultMethod {
 }
 
 open class TailCallDeoptimizeTest {
+    @Junit4Test @Junit5Test
+    fun checkStatus() {
+        val status = DecoroutinatorCommonApi.getStatus { it() }
+        assertTrue(status.successful, status.description)
+    }
+
+    @Junit4Test @Junit5Test
     fun basic() = runBlocking {
         tailCallDeoptimizeBasicRec(recDepth)
         tailCallDeoptF1()
     }
 
+    @Junit4Test @Junit5Test
     fun interfaceWithDefaultMethodImpl() = runBlocking {
         object: InterfaceWithDefaultImplMethod {}.defaultImpl()
+    }
+
+    @Junit4Test @Junit5Test
+    fun singleTailCall() = runBlocking {
+        singleTailCallFun1()
+    }
+
+    lateinit var singleTailCallElement: StackTraceElement
+
+    private suspend fun singleTailCallFun1() {
+        singleTailCallElement = StackTraceElement(
+            ownerClassName,
+            ownerMethodName,
+            currentFileName,
+            currentLineNumber + 2
+        )
+        singleTailCallFun2()
+    }
+
+    private suspend fun singleTailCallFun2() {
+        yield()
+        checkStacktrace(singleTailCallElement)
     }
 }
 
@@ -370,17 +408,29 @@ open class CustomClassLoaderTest {
         loadCustomLoaderStubClass(false)
     }
 
-    fun basic(allowTailCallOptimization: Boolean) {
-        val clazz = loadCustomLoaderStubClass(true)
-        val instance = clazz.getDeclaredConstructor().newInstance()
-        val performCheckMethod = clazz.getDeclaredMethod("performCheck", Boolean::class.javaPrimitiveType)
-        performCheckMethod.invoke(instance, allowTailCallOptimization)
+    @Junit5Test
+    fun basic() {
+        performCustomClassLoaderTestBasicTest(true)
     }
+}
+
+open class CustomClassLoaderTailCallDeoptimizedTest {
+    @Junit5Test
+    fun basic() {
+        performCustomClassLoaderTestBasicTest(false)
+    }
+}
+
+private fun performCustomClassLoaderTestBasicTest(allowTailCallOptimization: Boolean) {
+    val clazz = loadCustomLoaderStubClass(true)
+    val instance = clazz.getDeclaredConstructor().newInstance()
+    val performCheckMethod = clazz.getDeclaredMethod("performCheck", Boolean::class.javaPrimitiveType)
+    performCheckMethod.invoke(instance, allowTailCallOptimization)
 }
 
 private const val recDepth = 10
 private val recLineNumber = currentLineNumber + 3
-suspend fun tailCallDeoptimizeBasicRec(depth: Int) {
+private suspend fun tailCallDeoptimizeBasicRec(depth: Int) {
     if (depth > 0) {
         tailCallDeoptimizeBasicRecRec(depth - 1)
     } else {
@@ -408,7 +458,7 @@ suspend fun tailCallDeoptimizeBasicRec(depth: Int) {
 }
 
 private val recRecLineNumber = currentLineNumber + 2
-suspend fun tailCallDeoptimizeBasicRecRec(depth: Int) {
+private suspend fun tailCallDeoptimizeBasicRecRec(depth: Int) {
     tailCallDeoptimizeBasicRec(depth)
 }
 
@@ -444,88 +494,86 @@ interface InterfaceWithDefaultImplMethod {
 }
 
 private interface ConcurrentTestMock {
-    suspend fun call(trace: List<Class<out ConcurrentTestMock>>)
+    suspend fun call(trace: List<ConcurrentTestMock>)
 }
 
-private suspend inline fun callInline(trace: List<Class<out ConcurrentTestMock>>) {
+private suspend inline fun callInline(trace: List<ConcurrentTestMock>) {
     yield()
     if (trace.isNotEmpty()) {
-        trace[0].getDeclaredConstructor().newInstance().call(trace.subList(1, trace.size))
+        trace[0].call(trace.subList(1, trace.size))
     }
 }
 
 private class ConcurrentTestMock1: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock2: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock3: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock4: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock5: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock6: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock7: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock8: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock9: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock10: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock11: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock12: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock13: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock14: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock15: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock16: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock17: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock18: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock19: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 private class ConcurrentTestMock20: ConcurrentTestMock {
-    override suspend fun call(trace: List<Class<out ConcurrentTestMock>>) = callInline(trace)
+    override suspend fun call(trace: List<ConcurrentTestMock>) = callInline(trace)
 }
 
-private val mockClasses = listOf(
-    ConcurrentTestMock1::class.java, ConcurrentTestMock2::class.java, ConcurrentTestMock3::class.java,
-    ConcurrentTestMock4::class.java, ConcurrentTestMock5::class.java, ConcurrentTestMock6::class.java,
-    ConcurrentTestMock7::class.java, ConcurrentTestMock8::class.java, ConcurrentTestMock9::class.java,
-    ConcurrentTestMock10::class.java, ConcurrentTestMock11::class.java, ConcurrentTestMock12::class.java,
-    ConcurrentTestMock13::class.java, ConcurrentTestMock14::class.java, ConcurrentTestMock15::class.java,
-    ConcurrentTestMock16::class.java, ConcurrentTestMock17::class.java, ConcurrentTestMock18::class.java,
-    ConcurrentTestMock19::class.java, ConcurrentTestMock20::class.java
+private val concurrentTestMocks = listOf(
+    ConcurrentTestMock1(), ConcurrentTestMock2(), ConcurrentTestMock3(), ConcurrentTestMock4(), ConcurrentTestMock5(),
+    ConcurrentTestMock6(), ConcurrentTestMock7(), ConcurrentTestMock8(), ConcurrentTestMock9(), ConcurrentTestMock10(),
+    ConcurrentTestMock11(), ConcurrentTestMock12(), ConcurrentTestMock13(), ConcurrentTestMock14(),
+    ConcurrentTestMock15(), ConcurrentTestMock16(), ConcurrentTestMock17(), ConcurrentTestMock18(),
+    ConcurrentTestMock19(), ConcurrentTestMock20()
 )
 
-private fun Random.getConcurrentTestMocks(size: Int): List<Class<out ConcurrentTestMock>> =
+private fun Random.getConcurrentTestMocks(size: Int): List<ConcurrentTestMock> =
     buildList(size) {
-        add(mockClasses.random(this@getConcurrentTestMocks))
+        add(concurrentTestMocks.random(this@getConcurrentTestMocks))
     }

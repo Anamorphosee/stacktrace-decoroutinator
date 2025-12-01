@@ -81,9 +81,16 @@ object DecoroutinatorCommonApi {
 
             @Suppress("unused", "UNCHECKED_CAST")
             private suspend fun getStatus(): DecoroutinatorStatus {
-                val trace = sourceCall {
-                    suspendResumeAndGetStacktrace()
+                @Suppress("ClassName")
+                @AndroidKeep
+                class _lambda: suspend () -> List<StackTraceElement> {
+                    override suspend fun invoke(): List<StackTraceElement> {
+                        val result = suspendResumeAndGetStacktrace()
+                        result.hashCode() // tail-call deoptimize
+                        return result
+                    }
                 }
+                val trace = sourceCall(_lambda())
                 if (!wasSuspended) {
                     error("'sourceCall' must be called exactly once")
                 }
@@ -95,7 +102,7 @@ object DecoroutinatorCommonApi {
                     trace should be from top to bottom:
                     - suspendResumeAndGetStacktrace()
                     - <awaking auxiliary frames>
-                    - <invoke>
+                    - <_lambda>
                     - <sourceCalls>
                     - getStatus()
                     - <...>
@@ -135,26 +142,33 @@ object DecoroutinatorCommonApi {
                     )
                 }
 
-                val getStatusMethodName = Exception().stackTrace.find {
-                    it.className == _continuation::class.java.name
-                }!!.methodName
-
-                if (restoredSubTrace.all {
-                    it.className != _continuation::class.java.name || it.methodName != getStatusMethodName
-                }) {
+                val lambdaIndex = restoredSubTrace.indexOfFirst { it.className == _lambda::class.java.name }
+                if (lambdaIndex == -1) {
                     return DecoroutinatorStatus(
                         successful = false,
-                        description = "'getStatus' call is not found. Probably Decoroutinator wasn't installed."
+                        description = "'_lambda' call is not found. Probably Decoroutinator wasn't installed or was obfuscated."
                     )
                 }
 
-                if (!allowTailCallOptimization) {
-                    if (restoredSubTrace.all { it.className != sourceCall.javaClass.name }) {
-                        return DecoroutinatorStatus(
-                            successful = false,
-                            description = "The stack trace doesn't contain source call frames. Probably the source call was tail call optimized"
-                        )
+                val getStatusMethodName = Exception().stackTrace.find {
+                    it.className == _continuation::class.java.name
+                }!!.methodName
+                val getStatusIndex =
+                    restoredSubTrace.indexOfFirst {
+                        it.className == _continuation::class.java.name && it.methodName == getStatusMethodName
                     }
+                if (getStatusIndex <= lambdaIndex) {
+                    return DecoroutinatorStatus(
+                        successful = false,
+                        description = "'getStatus' call is not found. Probably Decoroutinator wasn't installed or was obfuscated."
+                    )
+                }
+
+                if (!allowTailCallOptimization && getStatusIndex == lambdaIndex + 1) {
+                    return DecoroutinatorStatus(
+                        successful = false,
+                        description = "The stack trace doesn't contain source call frames. Probably the source call was tail call optimized"
+                    )
                 }
 
                 return DecoroutinatorStatus(
@@ -170,17 +184,14 @@ object DecoroutinatorCommonApi {
         val continuation = _continuation()
 
         continuation.callGetStatus()
-        continuation.continuation.let {
-            if (it == null) {
+        continuation.continuation.let { resumeContinuation ->
+            if (resumeContinuation == null) {
                 error("'sourceCall' must only call its argument, no other actions")
             }
             continuation.wasSuspended = true
-            it.resumeWith(Result.success(Unit))
+            resumeContinuation.resumeWith(Result.success(Unit))
         }
-        return continuation.status.let {
-            require(it != null)
-            it
-        }
+        return continuation.status!!
     }
 }
 

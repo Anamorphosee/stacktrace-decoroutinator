@@ -34,11 +34,11 @@ include(
     "jvm-agent:tests-ja",
     "jvm-agent:jdk8-tests-ja",
     "jvm:jdk8-tests-j",
-    "mh-invoker-android:legacy-tests",
     "mh-invoker-jvm:jdk8-tests-mij",
     "jvm-agent-common:suspend-class-stub",
     "generator-jvm:android-wrong-generator-tests",
-    "gradle-plugin:gradle-groovy-dsl-tests"
+    "gradle-plugin:gradle-groovy-dsl-tests",
+    "test-utils:retrace-repack"
 )
 project(":provider").name = "stacktrace-decoroutinator-provider"
 project(":common").name = "stacktrace-decoroutinator-common"

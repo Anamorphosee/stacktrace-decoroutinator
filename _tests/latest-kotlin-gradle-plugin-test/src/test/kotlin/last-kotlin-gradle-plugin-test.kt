@@ -6,31 +6,12 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.coroutines.resume
 
-class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
-    @Test
-    fun performClassesWithSpaces() {
-        `class with spaces`(false)
-    }
-}
-
-class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
-    @Test
-    fun performBasic() {
-        basic(true)
-    }
-}
-
-class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
-    @Test
-    fun performBasic() {
-        basic()
-    }
-
-    @Test
-    fun performInterfaceWithDefaultMethodImpl() {
-        interfaceWithDefaultMethodImpl()
-    }
-}
+class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
+class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest()
+class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest()
+class CustomClassLoaderTailCallDeoptimizedTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTailCallDeoptimizedTest()
+class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest()
+class JvmTailCallDeoptimizedTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTailCallDeoptimizedTest()
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DebugProbesTest {

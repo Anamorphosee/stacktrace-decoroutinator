@@ -11,7 +11,10 @@ repositories {
 }
 
 dependencies {
-    testImplementation(project(":test-utils"))
+    testImplementation(project(":test-utils")) {
+        exclude(module = "stacktrace-decoroutinator-common")
+        exclude(module = "stacktrace-decoroutinator-provider")
+    }
     testImplementation(project(":test-utils-jvm"))
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.jdk8.build)

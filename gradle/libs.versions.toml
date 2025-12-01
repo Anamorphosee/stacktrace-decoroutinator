@@ -5,6 +5,7 @@ kotlin-latest = "2.3.0-Beta2"
 coroutines-build = "1.8.1"
 coroutines-latest = "1.10.2"
 jackson = "2.19.2"
+androidx-test = "1.7.0"
 
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -29,6 +30,9 @@ multidex = { group = "androidx.multidex", name = "multidex", version = "2.0.1" }
 jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
 jackson-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version.ref = "jackson" }
 kotlin-metadata-jvm = { group = "dev.reformator.kotlin-metadata-jvm-repack", name = "kotlin-metadata-jvm-repack", version = "0.9.0-3" }
+retrace = { group = "com.guardsquare", name = "proguard-retrace", version = "7.8.1" }
+androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidx-test" }
+androidx-annotation-jvm = { group = "androidx.annotation", name = "annotation-jvm", version.ref = "androidx-test" }
 
 [plugins]
 shadow = { id = "com.gradleup.shadow" }

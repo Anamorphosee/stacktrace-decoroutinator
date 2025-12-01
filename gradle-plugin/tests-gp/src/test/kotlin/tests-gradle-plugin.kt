@@ -18,6 +18,9 @@ import kotlin.test.Test
 
 class PerformanceTest: dev.reformator.stacktracedecoroutinator.test.PerformanceTest()
 class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
+class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest()
+class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest()
+class JvmTailCallDeoptimizedTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTailCallDeoptimizedTest()
 
 class TestLocalFile {
     @Test
@@ -73,25 +76,6 @@ class TestLocalFile {
         )
         yield()
         checkStacktrace(fun2Frame, fun1Frame)
-    }
-}
-
-class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
-    @Test
-    fun performBasic() {
-        basic()
-    }
-
-    @Test
-    fun performInterfaceWithDefaultMethodImpl() {
-        interfaceWithDefaultMethodImpl()
-    }
-}
-
-class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
-    @Test
-    fun performClassWithSpaces() {
-        `class with spaces`(false)
     }
 }
 

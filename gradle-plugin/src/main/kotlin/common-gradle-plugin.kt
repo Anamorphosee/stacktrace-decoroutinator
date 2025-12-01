@@ -84,7 +84,8 @@ internal val defaultArtifactTypes = setOf(
     ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
     ArtifactTypeDefinition.ZIP_TYPE,
     "aar",
-    "android-classes-directory"
+    "android-classes-directory",
+    "android-classes-jar"
 )
 
 @Suppress("PropertyName")
@@ -706,7 +707,7 @@ private val ANDROID_PROGUARD_RULES = """
     # Decoroutinator ProGuard rules
     -dontwarn dev.reformator.bytecodeprocessor.intrinsics.*
     -keep,allowobfuscation @interface ${DecoroutinatorTransformed::class.java.name}
-    -keepattributes RuntimeVisibleAnnotations
+    -keepattributes RuntimeVisibleAnnotations,LineNumberTable,SourceFile
     -keepclasseswithmembers,allowshrinking @${DecoroutinatorTransformed::class.java.name} class * {
         static *(${DecoroutinatorSpec::class.java.name}, ${Object::class.java.name});
     }

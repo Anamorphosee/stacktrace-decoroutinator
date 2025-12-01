@@ -1,4 +1,6 @@
+import com.android.build.gradle.internal.tasks.R8Task
 import dev.reformator.bytecodeprocessor.plugins.GetCurrentFileNameProcessor
+import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
 
 plugins {
     alias(libs.plugins.android.application)
@@ -24,14 +26,13 @@ stacktraceDecoroutinator {
 }
 
 dependencies {
-    androidTestImplementation(project(":test-utils"))
-
     implementation(project(":test-utils"))
     implementation(libs.kotlinx.coroutines.jdk8.build)
     implementation(libs.junit4)
     implementation(libs.kotlinx.coroutines.debug.build)
     implementation(libs.junit5.api)
     implementation(project(":gradle-plugin:empty-module-tests"))
+    implementation(libs.androidx.test.rules)
 
     runtimeOnly(libs.androidx.test.runner)
     runtimeOnly(project(":stacktrace-decoroutinator-common"))
@@ -42,10 +43,37 @@ dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 }
 
+val minifyDebugMappingFileDevicePath = "/sdcard/debugMapping.txt"
+
 bytecodeProcessor {
     processors = listOf(
-        GetCurrentFileNameProcessor
+        GetCurrentFileNameProcessor,
+        LoadConstantProcessor
     )
+    initContext {
+        LoadConstantProcessor.addValues(
+            context = this,
+            valuesByKeys = mapOf("minifyDebugMappingFile" to minifyDebugMappingFileDevicePath)
+        )
+    }
+}
+
+afterEvaluate {
+    val minifyDebugWithR8Task = tasks.named<R8Task>("minifyDebugWithR8")
+
+    val pushMinifyDebugMappingFileTask = tasks.register<Exec>("pushMinifyDebugMappingFile") {
+        commandLine(
+            "${android.sdkDirectory}/platform-tools/adb",
+            "push",
+            minifyDebugWithR8Task.get().mappingFile.get().asFile.absolutePath,
+            minifyDebugMappingFileDevicePath
+        )
+        dependsOn(minifyDebugWithR8Task)
+    }
+
+    tasks.matching { it.name.startsWith("connected") && it.name.endsWith("AndroidTest") }.configureEach {
+        dependsOn(pushMinifyDebugMappingFileTask)
+    }
 }
 
 android {
@@ -70,6 +98,7 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = true
+            isDebuggable = false
             testProguardFiles(decoroutinatorAndroidProGuardRules(), "proguard-rules.pro")
             proguardFiles(decoroutinatorAndroidProGuardRules(), "proguard-rules.pro")
         }

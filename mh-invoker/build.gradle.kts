@@ -27,7 +27,10 @@ dependencies {
 }
 
 bytecodeProcessor {
-    processors = listOf(GetOwnerClassProcessor)
+    processors = listOf(
+        GetOwnerClassProcessor,
+        RemoveKotlinStdlibProcessor
+    )
 }
 
 tasks.test {

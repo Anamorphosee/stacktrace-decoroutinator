@@ -501,12 +501,16 @@ private fun tailCallDeopt(
     method.instructions.forEach { instruction ->
         if (instruction is VarInsnNode && instruction.opcode == Opcodes.ALOAD && instruction.`var` == completionVarIndex) {
             result = true
-            val lineNumber = generateSequence(instruction.previous, { it.previous })
-                .mapNotNull { it as? LineNumberNode }
-                .firstOrNull()?.line ?: generateSequence(instruction.next, { it.next })
-                .takeWhile { it.opcode == -1 }
-                .mapNotNull { it as? LineNumberNode }
-                .firstOrNull()?.line ?: UNKNOWN_LINE_NUMBER
+
+            val lineNumber = generateSequence(instruction.next, { it.next })
+                    .takeWhile { it.opcode == -1 }
+                    .mapNotNull { it as? LineNumberNode }
+                    .firstOrNull()?.line
+                ?: generateSequence(instruction.previous, { it.previous })
+                    .mapNotNull { it as? LineNumberNode }
+                    .firstOrNull()?.line
+                ?: UNKNOWN_LINE_NUMBER
+
             val currentLineNumbers = lineNumbersBySpecMethodName.computeIfAbsent(method.name) {
                 mutableSetOf(UNKNOWN_LINE_NUMBER)
             }

@@ -5,6 +5,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import org.junit.Test
 
+class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest()
+
 class TestLocalFile {
     @Test
     fun localTest(): Unit = runBlocking {
@@ -35,17 +37,5 @@ class TestLocalFile {
         )
         yield()
         checkStacktrace(fun2Frame, fun1Frame)
-    }
-}
-
-class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
-    @Test
-    fun performBasic() {
-        basic()
-    }
-
-    @Test
-    fun performInterfaceWithDefaultMethodImpl() {
-        interfaceWithDefaultMethodImpl()
     }
 }

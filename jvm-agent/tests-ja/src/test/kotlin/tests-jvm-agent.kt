@@ -1,11 +1,14 @@
-import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import kotlin.test.Test
-import kotlin.test.assertTrue
 
 class PerformanceTest: dev.reformator.stacktracedecoroutinator.test.PerformanceTest()
 class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
+class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest()
+class CustomClassLoaderTailCallDeoptimizedTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTailCallDeoptimizedTest()
+class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest()
+class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest()
+class JvmTailCallDeoptimizedTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTailCallDeoptimizedTest()
 
 // Jacoco only instruments this class
 class JacocoInstrumentedMethodTest {
@@ -16,36 +19,5 @@ class JacocoInstrumentedMethodTest {
             yield()
         }
         jacocoInstrumentedMethod()
-    }
-}
-
-class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
-    @Test
-    fun performBasic() {
-        basic()
-    }
-
-    @Test
-    fun performInterfaceWithDefaultMethodImpl() {
-        interfaceWithDefaultMethodImpl()
-    }
-}
-
-class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
-    @Test
-    fun performBasic() {
-        basic(false)
-    }
-}
-
-class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
-    @Test
-    fun performClassWithSpaces() {
-        `class with spaces`(false)
-    }
-
-    @Test
-    fun checkStatus() {
-        assertTrue(DecoroutinatorCommonApi.getStatus { it() }.successful)
     }
 }

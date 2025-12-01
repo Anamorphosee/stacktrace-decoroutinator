@@ -1,6 +1,5 @@
 package dev.reformator.stacktracedecoroutinator.jvmtests
 
-import dev.reformator.stacktracedecoroutinator.common.DecoroutinatorCommonApi
 import dev.reformator.stacktracedecoroutinator.intrinsics.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.jvm.DecoroutinatorJvmApi
 import dev.reformator.stacktracedecoroutinator.jvm.internal.isTransformed
@@ -60,52 +59,18 @@ class ReloadBaseContinuationTest {
 }
 
 @DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
-class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest() {
-    @BeforeTest
-    fun setup() {
-        setupTest()
-    }
-
-    @Test
-    fun performBasic() {
-        basic()
-    }
-
-    @Test
-    fun performInterfaceWithDefaultMethodImpl() {
-        interfaceWithDefaultMethodImpl()
-    }
-}
-
-@DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
 class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest() {
     @BeforeTest
     fun setup() {
         setupTest()
     }
-
-    @Test
-    fun performBasic() {
-        basic(true)
-    }
 }
 
 @DisabledIfSystemProperty(named = "testReloadBaseConfiguration", matches = "true")
 class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest() {
-
     @BeforeTest
     fun setup() {
         setupTest()
-    }
-
-    @Test
-    fun performClassWithSpaces() {
-        `class with spaces`(true)
-    }
-
-    @Test
-    fun checkStatus() {
-        assertTrue(DecoroutinatorCommonApi.getStatus { it() }.successful)
     }
 }
 

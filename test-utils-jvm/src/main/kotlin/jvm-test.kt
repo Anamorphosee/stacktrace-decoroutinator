@@ -4,6 +4,8 @@ package dev.reformator.stacktracedecoroutinator.testjvm
 
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
+import dev.reformator.bytecodeprocessor.intrinsics.ownerClassName
+import dev.reformator.bytecodeprocessor.intrinsics.ownerMethodName
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import org.junit.jupiter.api.Test
@@ -15,39 +17,35 @@ open class JvmTest {
         yield()
     }
 
-    fun `class with spaces`(allowTailCallsOptimization: Boolean) = runBlocking {
-        if (allowTailCallsOptimization) {
-            checkTailCallsOptimized()
-        } else {
-            checkWithoutTailCallsOptimization()
-        }
-    }
-
-    suspend fun checkTailCallsOptimized() {
+    @Test
+    fun `method with spaces`() = runBlocking {
         val lineNumber = currentLineNumber + 1
         check(StackTraceElement(
-            JvmTest::class.java.name,
-            JvmTest::checkTailCallsOptimized.name,
+            ownerClassName,
+            ownerMethodName,
             currentFileName,
             lineNumber
         ))
         tailCallDeoptimize()
     }
+}
 
-    suspend fun checkWithoutTailCallsOptimization() {
+open class JvmTailCallDeoptimizedTest {
+    @Test
+    fun `method with spaces`() = runBlocking {
         val lineNumber = currentLineNumber + 1
         check(StackTraceElement(
-            JvmTest::class.java.name,
-            JvmTest::checkWithoutTailCallsOptimization.name,
+            ownerClassName,
+            ownerMethodName,
             currentFileName,
             lineNumber
         ))
     }
-
-    suspend fun check(parent: StackTraceElement) {
-        yield()
-        checkStacktrace(parent)
-    }
 }
 
 private fun tailCallDeoptimize() { }
+
+private suspend fun check(parent: StackTraceElement) {
+    yield()
+    checkStacktrace(parent)
+}

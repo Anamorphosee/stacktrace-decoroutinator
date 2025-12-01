@@ -11,7 +11,6 @@ plugins {
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
-    id("decoroutinatorTransformBaseContinuation")
 }
 
 repositories {
@@ -39,11 +38,6 @@ dependencies {
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
     implementation(project(":stacktrace-decoroutinator-common"))
-
-    androidTestRuntimeOnly(project(":stacktrace-decoroutinator-generator-android"))
-    androidTestRuntimeOnly(project(":test-utils"))
-    androidTestRuntimeOnly(libs.androidx.test.runner)
-    androidTestRuntimeOnly(project(":test-utils:base-continuation-accessor-reflect-stub"))
 }
 
 bytecodeProcessor {
@@ -84,10 +78,6 @@ val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
 }
 
 bytecodeProcessorInitTask.dependsOn(fillConstantProcessorTask)
-
-afterEvaluate {
-    configurations["debugAndroidTestRuntimeClasspath"].attributes.attribute(decoroutinatorTransformedBaseContinuationAttribute, true)
-}
 
 val dokkaJavadocsJar = tasks.register<Jar>("dokkaJavadocsJar") {
     val dokkaJavadocTask = tasks.named<AbstractDokkaTask>("dokkaJavadoc").get()

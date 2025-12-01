@@ -1,22 +1,4 @@
-import dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest
-import dev.reformator.stacktracedecoroutinator.test.PerformanceTest
-import dev.reformator.stacktracedecoroutinator.test.RuntimeTest
-import dev.reformator.stacktracedecoroutinator.testjvm.JvmTest
-import org.junit.jupiter.api.Test
-
-class PerformanceTest: PerformanceTest()
-class RuntimeTest: RuntimeTest()
-
-class CustomClassLoaderTest: CustomClassLoaderTest() {
-    @Test
-    fun performBasic() {
-        basic(true)
-    }
-}
-
-class JvmTest: JvmTest() {
-    @Test
-    fun performClassWithSpaces() {
-        `class with spaces`(true)
-    }
-}
+class PerformanceTest: dev.reformator.stacktracedecoroutinator.test.PerformanceTest()
+class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
+class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest()
+class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest()

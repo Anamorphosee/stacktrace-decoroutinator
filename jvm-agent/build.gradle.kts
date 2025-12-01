@@ -21,10 +21,6 @@ dependencies {
     implementation(project(":stacktrace-decoroutinator-jvm-agent-common")) {
         exclude(group = "org.jetbrains.kotlin")
     }
-
-    testImplementation(project(":test-utils"))
-    testImplementation(kotlin("test"))
-    testImplementation(libs.kotlinx.coroutines.jdk8.build)
 }
 
 tasks.shadowJar {

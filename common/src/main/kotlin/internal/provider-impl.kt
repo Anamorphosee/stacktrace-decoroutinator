@@ -3,6 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
+import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider
 import java.lang.invoke.MethodHandles
@@ -53,7 +54,12 @@ internal class Provider: DecoroutinatorProvider {
             return completion
         }
         if (completion is BaseContinuation) {
-            val label = stacktraceElementsFactory.getLabel(completion)
+            val label =
+                if (completion is BaseContinuationExtractor) {
+                    completion.`$decoroutinator$label`
+                } else {
+                    stacktraceElementsFactory.getLabel(completion)
+                }
             if (label != NONE_LABEL && label and Int.MIN_VALUE != 0) return completion
         }
         return DecoroutinatorContinuationImpl(
@@ -69,5 +75,9 @@ internal class Provider: DecoroutinatorProvider {
         get() = dev.reformator.stacktracedecoroutinator.common.internal.isUsingElementFactoryForBaseContinuationEnabled
 
     override fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement? =
-        stacktraceElementsFactory.getStacktraceElement(baseContinuation as BaseContinuation)
+        if (baseContinuation is BaseContinuationExtractor) {
+            baseContinuation.`$decoroutinator$elements`[baseContinuation.`$decoroutinator$label`]
+        } else {
+            stacktraceElementsFactory.getStacktraceElement(baseContinuation as BaseContinuation)
+        }
 }

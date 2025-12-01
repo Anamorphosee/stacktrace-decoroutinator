@@ -6,7 +6,6 @@ import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.intrinsics.LABEL_FIELD_NAME
 import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
-import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
 import java.lang.invoke.VarHandle
 import java.lang.reflect.Field
 import java.lang.reflect.GenericSignatureFormatError
@@ -23,9 +22,6 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
         ) { BaseContinuationClassSpec(baseContinuationClass) }
 
     override fun getStacktraceElement(baseContinuation: BaseContinuation): StackTraceElement? {
-        if (baseContinuation is BaseContinuationExtractor) {
-            return baseContinuation.`$decoroutinator$elements`[baseContinuation.`$decoroutinator$label`]
-        }
         val spec = getBaseContinuationClassSpec(baseContinuation.javaClass)
         val elementsByLabel = spec.elementsByLabel ?: return null
         val label = spec.getLabel(baseContinuation)
@@ -34,12 +30,7 @@ internal class StacktraceElementsFactoryImpl: StacktraceElementsFactory {
     }
 
     override fun getLabel(baseContinuation: BaseContinuation): Int =
-        if (baseContinuation is BaseContinuationExtractor) {
-            baseContinuation.`$decoroutinator$label`
-        } else {
-            val spec = getBaseContinuationClassSpec(baseContinuation.javaClass)
-            spec.getLabel(baseContinuation)
-        }
+        getBaseContinuationClassSpec(baseContinuation.javaClass).getLabel(baseContinuation)
 
     private class BaseContinuationClassSpec(baseContinuationClass: Class<*>) {
         @Suppress("JoinDeclarationAndAssignment")

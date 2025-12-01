@@ -39,6 +39,10 @@ interface BaseContinuationExtractor {
     @Suppress("unused", "PropertyName")
     @get:MethodNameConstant("baseContinuationExtractorGetElementsMethodName")
     val `$decoroutinator$elements`: Array<StackTraceElement>
+
+    @Suppress("unused", "PropertyName")
+    @get:MethodNameConstant("baseContinuationExtractorGetSpecMethodsMethodName")
+    val `$decoroutinator$specMethods`: Array<MethodHandle?>
 }
 
 val isDecoroutinatorEnabled: Boolean

@@ -31,6 +31,7 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.io.InputStream
+import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
@@ -157,7 +158,11 @@ private val baseContinuationExtractorGetLabelMethodName: String
 private val baseContinuationExtractorGetElementsMethodName: String
     @LoadConstant("baseContinuationExtractorGetElementsMethodName") get() = fail()
 
+private val baseContinuationExtractorGetSpecMethodsMethodName: String
+    @LoadConstant("baseContinuationExtractorGetSpecMethodsMethodName") get() = fail()
+
 private const val baseContinuationElementsFieldName = "\$decoroutinator\$elements"
+private const val baseContinuationSpecMethodsFieldName = "\$decoroutinator\$specMethods"
 
 private fun Metadata.getNonSuspendFunctionSignatures(): List<JvmMethodSignature> {
     val functions = when(val metadata = KotlinClassMetadata.readLenient(this)) {
@@ -195,6 +200,13 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
         Type.getDescriptor(Array<StackTraceElement>::class.java),
         null,
         null
+    ) + FieldNode(
+        Opcodes.ASM9,
+        Opcodes.ACC_PRIVATE or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC,
+        baseContinuationSpecMethodsFieldName,
+        Type.getDescriptor(Array<MethodHandle>::class.java),
+        null,
+        null
     )
 
     methods = methods.orEmpty() + MethodNode(Opcodes.ASM9).apply {
@@ -224,6 +236,19 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
             ))
             add(InsnNode(Opcodes.ARETURN))
         }
+    } + MethodNode(Opcodes.ASM9).apply {
+        access = Opcodes.ACC_PUBLIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
+        name = baseContinuationExtractorGetSpecMethodsMethodName
+        desc = "()${Type.getDescriptor(Array<MethodHandle>::class.java)}"
+        instructions = InsnList().apply {
+            add(FieldInsnNode(
+                Opcodes.GETSTATIC,
+                this@tryAddBaseContinuationExtractor.name,
+                baseContinuationSpecMethodsFieldName,
+                Type.getDescriptor(Array<MethodHandle>::class.java)
+            ))
+            add(InsnNode(Opcodes.ARETURN))
+        }
     }
 
     getOrCreateClinitMethod().apply {
@@ -236,7 +261,7 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
             add(MethodInsnNode(
                 Opcodes.INVOKESTATIC,
                 Type.getInternalName(providerApiClass),
-                isUsingElementFactoryForBaseContinuationEnabledMethodName,
+                isDecoroutinatorEnabledMethodName,
                 "()${Type.BOOLEAN_TYPE.descriptor}"
             ))
             val defaultAwakeLabel = LabelNode()
@@ -269,6 +294,14 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
                 this@tryAddBaseContinuationExtractor.name,
                 baseContinuationElementsFieldName,
                 Type.getDescriptor(Array<StackTraceElement>::class.java)
+            ))
+            add(LdcInsnNode(lineNumbers.size + 1))
+            add(TypeInsnNode(Opcodes.ANEWARRAY, Type.getInternalName(MethodHandle::class.java)))
+            add(FieldInsnNode(
+                Opcodes.PUTSTATIC,
+                this@tryAddBaseContinuationExtractor.name,
+                baseContinuationSpecMethodsFieldName,
+                Type.getDescriptor(Array<MethodHandle>::class.java)
             ))
             add(defaultAwakeLabel)
             add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))

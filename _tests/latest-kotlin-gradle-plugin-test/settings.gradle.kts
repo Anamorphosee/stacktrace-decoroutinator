@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 }
 
 include("custom-loader")
+include("test-utils")

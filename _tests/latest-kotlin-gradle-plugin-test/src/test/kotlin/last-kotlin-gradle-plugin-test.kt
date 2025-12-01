@@ -9,7 +9,6 @@ import kotlin.coroutines.resume
 class RuntimeTest: dev.reformator.stacktracedecoroutinator.test.RuntimeTest()
 class TailCallDeoptimizeTest: dev.reformator.stacktracedecoroutinator.test.TailCallDeoptimizeTest()
 class CustomClassLoaderTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTest()
-class CustomClassLoaderTailCallDeoptimizedTest: dev.reformator.stacktracedecoroutinator.test.CustomClassLoaderTailCallDeoptimizedTest()
 class JvmTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTest()
 class JvmTailCallDeoptimizedTest: dev.reformator.stacktracedecoroutinator.testjvm.JvmTailCallDeoptimizedTest()
 

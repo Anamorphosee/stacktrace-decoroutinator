@@ -1,6 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import dev.reformator.bytecodeprocessor.plugins.*
-
 buildscript {
     repositories {
         google()
@@ -16,7 +13,6 @@ buildscript {
 plugins {
     alias(libs.plugins.kotlin.jvm.latest)
     id("dev.reformator.stacktracedecoroutinator")
-    id("dev.reformator.bytecodeprocessor")
 }
 
 stacktraceDecoroutinator {
@@ -45,48 +41,13 @@ dependencies {
     //noinspection UseTomlInstead
     testCompileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
 
+    implementation(libs.kotlinx.coroutines.jdk8.latest)
+    implementation(libs.kotlinx.coroutines.debug.latest)
     testImplementation(kotlin("test"))
-    testImplementation(libs.junit5.api)
-    testImplementation(libs.junit4)
-    testImplementation(libs.kotlinx.coroutines.jdk8.latest)
-    testImplementation(libs.kotlin.logging.jvm)
-    testImplementation(libs.kotlinx.coroutines.debug.latest)
-
-    testRuntimeOnly(libs.ktor.io.jvm)
-    testRuntimeOnly(libs.logback.classic)
+    testImplementation(project(":test-utils"))
+    testImplementation(files("../../test-utils/retrace-repack/build/libs/").asFileTree)
 }
-
-bytecodeProcessor {
-    processors = setOf(
-        GetCurrentFileNameProcessor,
-        GetOwnerClassProcessor,
-        LoadConstantProcessor
-    )
-}
-
-val fillConstantProcessorTask = tasks.register("fillConstantProcessor") {
-    val customLoaderProject = project(":custom-loader")
-    val customLoaderJarTask = customLoaderProject.tasks.named<ShadowJar>("shadowJar")
-    dependsOn(customLoaderJarTask)
-    doLast {
-        val customLoaderJarUri = customLoaderJarTask.get().archiveFile.get().asFile.toURI().toString()
-        bytecodeProcessor {
-            initContext {
-                LoadConstantProcessor.addValues(
-                    context = this,
-                    valuesByKeys = mapOf("customLoaderJarUri" to customLoaderJarUri)
-                )
-            }
-        }
-    }
-}
-
-bytecodeProcessorInitTask.dependsOn(fillConstantProcessorTask)
 
 tasks.test {
     useJUnitPlatform()
 }
-
-val kotlinTestSources = sourceSets.test.get().kotlin
-kotlinTestSources.srcDirs("../../test-utils/src/main/kotlin")
-kotlinTestSources.srcDirs("../../test-utils-jvm/src/main/kotlin")

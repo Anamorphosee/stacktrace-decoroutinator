@@ -207,6 +207,21 @@ There is [a bug](https://github.com/GradleUp/shadow/issues/882) in Shadow Gradle
 ### Problem with Jacoco
 Using Jacoco and Decoroutinator as a Java agent may lead to the loss of code coverage. It's [a common Jacoco Problem](https://www.eclemma.org/jacoco/trunk/doc/classids.html). In order not to lose coverage, make sure that the Jacoco agent comes before the Decoroutinator agent. See more at https://github.com/Anamorphosee/stacktrace-decoroutinator/issues/24.
 
+### Usage with Robolectric
+[Robolectric](https://robolectric.org/) puts some Decoroutinator classes in different class loaders by default, which leads to an exception during the execution of tests. To fix this please add the following config to your `build.gradle.kts`:
+```kotlin
+android {
+    testOptions {
+        unitTests.all {
+            it.systemProperty(
+                "org.robolectric.packagesToNotAcquire",
+                "dev.reformator.stacktracedecoroutinator."
+            )
+        }
+    }
+}
+```
+
 ### Troubleshooting
 You can call function `DecoroutinatorCommonApi.getStatus { it() }` at runtime to check if Decoroutinator has been successfully installed.
 

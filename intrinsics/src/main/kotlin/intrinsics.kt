@@ -12,7 +12,7 @@ const val UNKNOWN_LINE_NUMBER = -1
 const val PROVIDER_MODULE_NAME = "dev.reformator.stacktracedecoroutinator.provider"
 const val LABEL_FIELD_NAME = "label"
 
-@ChangeClassName(toName = "kotlin.coroutines.jvm.internal.BaseContinuationImpl", deleteAfterChanging = true)
+@ChangeClassName(toName = BASE_CONTINUATION_CLASS_NAME, deleteAfterChanging = true)
 abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
     @Suppress("RedundantNullableReturnType")
     val completion: Continuation<Any?>?

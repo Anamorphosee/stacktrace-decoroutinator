@@ -9,7 +9,7 @@ import dev.reformator.stacktracedecoroutinator.classtransformer.internal.ClassBo
 import dev.reformator.stacktracedecoroutinator.classtransformer.internal.DebugMetadataInfo
 import dev.reformator.stacktracedecoroutinator.classtransformer.internal.getDebugMetadataInfoFromClass
 import dev.reformator.stacktracedecoroutinator.classtransformer.internal.getDebugMetadataInfoFromClassBody
-import dev.reformator.stacktracedecoroutinator.classtransformer.internal.needTransformation
+import dev.reformator.stacktracedecoroutinator.classtransformer.internal.noClassBodyTransformationStatus
 import dev.reformator.stacktracedecoroutinator.classtransformer.internal.transformClassBody
 import dev.reformator.stacktracedecoroutinator.intrinsics.BASE_CONTINUATION_CLASS_NAME
 import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
@@ -82,36 +82,35 @@ private class DecoroutinatorClassFileTransformer(
         classfileBuffer: ByteArray
     ): ClassBodyTransformationStatus {
         if (loader == null || !loader.hasProviderApiDependency) {
-            return ClassBodyTransformationStatus(
-                updatedBody = null,
-                needReadProviderModule = false
-            )
+            return noClassBodyTransformationStatus
         }
+
         if (classBeingRedefined != null) {
-            val needTransformation = classBeingRedefined.needTransformation
-            if (needTransformation.needTransformation && inst.isRedefineClassesSupported) {
-                if (classBeingRedefined.name == BASE_CONTINUATION_CLASS_NAME) {
-                    if (!isBaseContinuationRedefinitionAllowed) {
-                        return ClassBodyTransformationStatus(
-                            updatedBody = null,
-                            needReadProviderModule = needTransformation.needReadProviderModule
-                        )
-                    }
+            fun isClassRedefinitionAllowed(): Boolean {
+                if (!inst.isRedefineClassesSupported) return false
+                return if (classBeingRedefined.name == BASE_CONTINUATION_CLASS_NAME) {
+                    isBaseContinuationRedefinitionAllowed
                 } else {
-                    if (!isRedefinitionAllowed) {
-                        return ClassBodyTransformationStatus(
-                            updatedBody = null,
-                            needReadProviderModule = needTransformation.needReadProviderModule
-                        )
-                    }
+                    isRedefinitionAllowed
                 }
+            }
+
+            val transformationStatus = transformClassBody(
+                classBody = ByteArrayInputStream(classfileBuffer),
+                skipSpecMethods = false,
+                metadataResolver = metadataInfoResolveStrategy
+            )
+
+            return if (transformationStatus.updatedBody == null || isClassRedefinitionAllowed()) {
+                transformationStatus
             } else {
-                return ClassBodyTransformationStatus(
+                ClassBodyTransformationStatus(
                     updatedBody = null,
-                    needReadProviderModule = needTransformation.needReadProviderModule
+                    needReadProviderModule = transformationStatus.needReadProviderModule
                 )
             }
         }
+
         return transformClassBody(
             classBody = ByteArrayInputStream(classfileBuffer),
             skipSpecMethods = false,

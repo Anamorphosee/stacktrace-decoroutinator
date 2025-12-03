@@ -33,37 +33,12 @@ import org.objectweb.asm.tree.*
 import java.io.InputStream
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
-import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
 
 class ClassBodyTransformationStatus(
     val updatedBody: ByteArray?,
     val needReadProviderModule: Boolean
 )
-
-class NeedTransformationStatus(
-    val needTransformation: Boolean,
-    val needReadProviderModule: Boolean
-)
-
-val Class<*>.needTransformation: NeedTransformationStatus
-    get() {
-        getDeclaredAnnotation(DecoroutinatorTransformed::class.java)?.let { transformedAnnotation ->
-            if (transformedAnnotation.skipSpecMethods) {
-                error("not implemented")
-            }
-            return readProviderNeedTransformationStatus
-        }
-        if (name == BASE_CONTINUATION_CLASS_NAME) {
-            return fullNeedTransformationStatus
-        }
-        declaredMethods.forEach { method ->
-            if (method.isSuspend) {
-                return fullNeedTransformationStatus
-            }
-        }
-        return noNeedTransformationStatus
-    }
 
 fun transformClassBody(
     classBody: InputStream,
@@ -73,7 +48,7 @@ fun transformClassBody(
     val node = getClassNode(classBody) ?: return noClassBodyTransformationStatus
     node.decoroutinatorTransformedAnnotation?.let { transformedAnnotation ->
         val annotationSkipSpecMethods =
-            transformedAnnotation.getField(DecoroutinatorTransformed::skipSpecMethods.name) as Boolean?
+            transformedAnnotation.getField(decoroutinatorTransformedSkipSpecMethodsMethodName) as Boolean?
         if (skipSpecMethods != (annotationSkipSpecMethods ?: false)) {
             error("class [${node.name}] is already transformed but skipSpecMethods = [$annotationSkipSpecMethods]")
         }
@@ -108,9 +83,7 @@ fun transformClassBody(
                     metadataResolver = metadataResolver,
                     lineNumbersBySpecMethodName = lineNumbersBySpecMethodName,
                     notSuspendFunctionSignatures = notSuspendFunctionSignatures
-            )) {
-                doTransformation = true
-            }
+            )) doTransformation = true
         }
     }
     return if (doTransformation) {
@@ -160,6 +133,24 @@ private val baseContinuationExtractorGetElementsMethodName: String
 
 private val baseContinuationExtractorGetSpecMethodsMethodName: String
     @LoadConstant("baseContinuationExtractorGetSpecMethodsMethodName") get() = fail()
+
+private val decoroutinatorTransformedFileNamePresentMethodName: String
+    @LoadConstant("decoroutinatorTransformedFileNamePresentMethodName") get() = fail()
+
+private val decoroutinatorTransformedFileNameMethodName: String
+    @LoadConstant("decoroutinatorTransformedFileNameMethodName") get() = fail()
+
+private val decoroutinatorTransformedMethodNamesMethodName: String
+    @LoadConstant("decoroutinatorTransformedMethodNamesMethodName") get() = fail()
+
+private val decoroutinatorTransformedLineNumbersCountsMethodName: String
+    @LoadConstant("decoroutinatorTransformedLineNumbersCountsMethodName") get() = fail()
+
+private val decoroutinatorTransformedLineNumbersMethodName: String
+    @LoadConstant("decoroutinatorTransformedLineNumbersMethodName") get() = fail()
+
+private val decoroutinatorTransformedSkipSpecMethodsMethodName: String
+    @LoadConstant("decoroutinatorTransformedSkipSpecMethodsMethodName") get() = fail()
 
 private const val baseContinuationElementsFieldName = "\$decoroutinator\$elements"
 private const val baseContinuationSpecMethodsFieldName = "\$decoroutinator\$specMethods"
@@ -398,7 +389,7 @@ private fun ClassNode.transformBaseContinuation() {
     )
 }
 
-private val noClassBodyTransformationStatus = ClassBodyTransformationStatus(
+val noClassBodyTransformationStatus = ClassBodyTransformationStatus(
     updatedBody = null,
     needReadProviderModule = false
 )
@@ -406,21 +397,6 @@ private val noClassBodyTransformationStatus = ClassBodyTransformationStatus(
 private val readProviderClassBodyTransformationStatus = ClassBodyTransformationStatus(
     updatedBody = null,
     needReadProviderModule = true
-)
-
-private val fullNeedTransformationStatus = NeedTransformationStatus(
-    needTransformation = true,
-    needReadProviderModule = true
-)
-
-private val readProviderNeedTransformationStatus = NeedTransformationStatus(
-    needTransformation = false,
-    needReadProviderModule = true
-)
-
-private val noNeedTransformationStatus = NeedTransformationStatus(
-    needTransformation = false,
-    needReadProviderModule = false
 )
 
 private fun ClassNode.generateSpecMethodsAndTransformAnnotation(
@@ -434,18 +410,16 @@ private fun ClassNode.generateSpecMethodsAndTransformAnnotation(
     version = maxOf(version, Opcodes.V1_7)
     if (!skipSpecMethods) {
         lineNumbersBySpecMethodName.forEach { (methodName, lineNumbers) ->
-            methods.add(
-                buildSpecMethodNode(
-                    methodName = methodName,
-                    lineNumbers = lineNumbers,
-                    makePrivate = makePrivate,
-                    makeFinal = makeFinal
-                )
-            )
+            methods.add(buildSpecMethodNode(
+                methodName = methodName,
+                lineNumbers = lineNumbers,
+                makePrivate = makePrivate,
+                makeFinal = makeFinal
+            ))
         }
     }
 
-    if (lineNumbersBySpecMethodName.isNotEmpty()) {
+    if (!skipSpecMethods && lineNumbersBySpecMethodName.isNotEmpty()) {
         val clinit = getOrCreateClinitMethod()
         clinit.instructions.insertBefore(
             clinit.instructions.first,
@@ -458,23 +432,26 @@ private fun ClassNode.generateSpecMethodsAndTransformAnnotation(
             val lineNumbers = lineNumbersBySpecMethodName.entries.toList()
             values = buildList {
                 if (sourceFile != null) {
-                    add(DecoroutinatorTransformed::fileName.name)
+                    add(decoroutinatorTransformedFileNameMethodName)
                     add(sourceFile)
                 } else {
-                    add(DecoroutinatorTransformed::fileNamePresent.name)
+                    add(decoroutinatorTransformedFileNamePresentMethodName)
                     add(false)
                 }
-                add(DecoroutinatorTransformed::methodNames.name)
-                add(lineNumbers.map { it.key })
 
-                add(DecoroutinatorTransformed::lineNumbersCounts.name)
-                add(lineNumbers.map { it.value.size })
+                if (lineNumbers.isNotEmpty()) {
+                    add(decoroutinatorTransformedMethodNamesMethodName)
+                    add(lineNumbers.map { it.key })
 
-                add(DecoroutinatorTransformed::lineNumbers.name)
-                add(lineNumbers.flatMap { it.value })
+                    add(decoroutinatorTransformedLineNumbersCountsMethodName)
+                    add(lineNumbers.map { it.value.size })
+
+                    add(decoroutinatorTransformedLineNumbersMethodName)
+                    add(lineNumbers.flatMap { it.value })
+                }
 
                 if (skipSpecMethods) {
-                    add(DecoroutinatorTransformed::skipSpecMethods.name)
+                    add(decoroutinatorTransformedSkipSpecMethodsMethodName)
                     add(true)
                 }
             }
@@ -693,9 +670,6 @@ private fun getCheckTransformationStatus(
         null
     }
 }
-
-private val Method.isSuspend: Boolean
-    get() = parameters.isNotEmpty() && parameters.last().type == Continuation::class.java && returnType == Object::class.java
 
 private val MethodNode.isStatic: Boolean
     get() = access and Opcodes.ACC_STATIC != 0

@@ -23,11 +23,31 @@ interface DecoroutinatorSpec {
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
 @Retention
 annotation class DecoroutinatorTransformed(
+    @Suppress("unused")
+    @get:MethodNameConstant("decoroutinatorTransformedFileNamePresentMethodName")
+    @get:JvmName("fnp")
     val fileNamePresent: Boolean = true,
+
+    @get:MethodNameConstant("decoroutinatorTransformedFileNameMethodName")
+    @get:JvmName("fn")
     val fileName: String = "",
-    val methodNames: Array<String>,
-    val lineNumbersCounts: IntArray,
-    val lineNumbers: IntArray,
+
+    @Suppress("unused")
+    @get:MethodNameConstant("decoroutinatorTransformedMethodNamesMethodName")
+    @get:JvmName("mn")
+    val methodNames: Array<String> = [],
+
+    @Suppress("unused")
+    @get:MethodNameConstant("decoroutinatorTransformedLineNumbersCountsMethodName")
+    @get:JvmName("lnc")
+    val lineNumbersCounts: IntArray = [],
+
+    @get:MethodNameConstant("decoroutinatorTransformedLineNumbersMethodName")
+    @get:JvmName("ln")
+    val lineNumbers: IntArray = [],
+
+    @get:MethodNameConstant("decoroutinatorTransformedSkipSpecMethodsMethodName")
+    @get:JvmName("ssm")
     val skipSpecMethods: Boolean = false
 )
 

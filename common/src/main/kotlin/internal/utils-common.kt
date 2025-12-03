@@ -60,24 +60,21 @@ inline fun assert(check: () -> Boolean) {
 fun parseTransformationMetadata(
     fileNamePresent: Boolean?,
     fileName: String?,
-    methodNames: List<String>,
-    lineNumbersCounts: List<Int>,
-    lineNumbers: List<Int>,
+    methodNames: List<String>?,
+    lineNumbersCounts: List<Int>?,
+    lineNumbers: List<Int>?,
     skipSpecMethods: Boolean?
 ): TransformationMetadata {
-    val lineNumberIterator = lineNumbers.iterator()
+    val lineNumberIterator = lineNumbers.orEmpty().iterator()
     return TransformationMetadata(
-        fileName = if (fileNamePresent == null || fileNamePresent) {
-            fileName!!
-        } else {
-            null
-        },
-        methods = methodNames.mapIndexed { index, methodName ->
-            TransformationMetadata.Method(
-                name = methodName,
-                lineNumbers = IntArray(lineNumbersCounts[index]) { lineNumberIterator.next() }
-            )
-        },
+        fileName = if (fileNamePresent == null || fileNamePresent) fileName!! else null,
+        methods =
+            methodNames.orEmpty().mapIndexed { index, methodName ->
+                TransformationMetadata.Method(
+                    name = methodName,
+                    lineNumbers = IntArray(lineNumbersCounts!![index]) { lineNumberIterator.next() }
+                )
+            },
         skipSpecMethods = skipSpecMethods ?: false
     )
 }

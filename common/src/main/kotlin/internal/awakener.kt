@@ -10,6 +10,9 @@ import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtracto
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import java.lang.invoke.MethodHandle
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.jvm.internal.CoroutineStackFrame
@@ -48,11 +51,12 @@ private val unknownStacktraceElement =
 private val boundaryStacktraceElement =
     StackTraceElement("", "", boundaryLabel, -1)
 
+@OptIn(ExperimentalContracts::class)
 private inline fun Any.getElementAndSpecMethod(
-    elementConsumer: (StackTraceElement?) -> Unit,
-    specMethodConsumer: (MethodHandle) -> Unit,
+    consumer: (element: StackTraceElement?, specMethod: MethodHandle) -> Unit,
     elementSupplier: () -> StackTraceElement?
 ) {
+    contract { callsInPlace(consumer, InvocationKind.EXACTLY_ONCE) }
     if (this is BaseContinuationExtractor) {
         val label = `$decoroutinator$label`
         val element = `$decoroutinator$elements`[label]
@@ -63,35 +67,33 @@ private inline fun Any.getElementAndSpecMethod(
             specMethods[label] = specMethod
             specMethod
         }
-        elementConsumer(element)
-        specMethodConsumer(specMethod)
+        consumer(element, specMethod)
     } else {
         val element = elementSupplier()
         val specMethod = element?.let { specMethodsFactory.getSpecMethodHandle(it) }
             ?: methodHandleInvoker.unknownSpecMethodHandle
-        elementConsumer(element)
-        specMethodConsumer(specMethod)
+        consumer(element, specMethod)
     }
 }
 
+@OptIn(ExperimentalContracts::class)
 private inline fun BaseContinuation.getElementAndSpecMethod(
-    elementConsumer: (StackTraceElement?) -> Unit,
-    specMethodConsumer: (MethodHandle) -> Unit
+    consumer: (element: StackTraceElement?, specMethod: MethodHandle) -> Unit
 ) {
+    contract { callsInPlace(consumer, InvocationKind.EXACTLY_ONCE) }
     getElementAndSpecMethod(
-        elementConsumer = elementConsumer,
-        specMethodConsumer = specMethodConsumer,
+        consumer = consumer,
         elementSupplier = { getNormalizedStackTraceElement() }
     )
 }
 
+@OptIn(ExperimentalContracts::class)
 private inline fun CoroutineStackFrame.getElementAndSpecMethod(
-    elementConsumer: (StackTraceElement?) -> Unit,
-    specMethodConsumer: (MethodHandle) -> Unit
+    consumer: (element: StackTraceElement?, specMethod: MethodHandle) -> Unit
 ) {
+    contract { callsInPlace(consumer, InvocationKind.EXACTLY_ONCE) }
     getElementAndSpecMethod(
-        elementConsumer = elementConsumer,
-        specMethodConsumer = specMethodConsumer,
+        consumer = consumer,
         elementSupplier = { getNormalizedStackTraceElement() }
     )
 }
@@ -103,14 +105,24 @@ private class ElementAndSpecMethod(
 
 private fun BaseContinuation.getElementsAndSpecMethods(): List<ElementAndSpecMethod> =
     buildList {
-        var element: StackTraceElement? = null
-        var specMethod: MethodHandle? = null
-        getElementAndSpecMethod({ element = it }, { specMethod = it })
-        add(ElementAndSpecMethod(element, specMethod!!))
+        run {
+            val element: StackTraceElement?
+            val specMethod: MethodHandle
+            getElementAndSpecMethod { gotElement, gotSpecMethod ->
+                element = gotElement
+                specMethod = gotSpecMethod
+            }
+            add(ElementAndSpecMethod(element, specMethod))
+        }
         var frame = callerFrame
         while (frame != null) {
-            frame.getElementAndSpecMethod({ element = it }, { specMethod = it })
-            add(ElementAndSpecMethod(element, specMethod!!))
+            val element: StackTraceElement?
+            val specMethod: MethodHandle
+            frame.getElementAndSpecMethod { gotElement, gotSpecMethod ->
+                element = gotElement
+                specMethod = gotSpecMethod
+            }
+            add(ElementAndSpecMethod(element, specMethod))
             frame = frame.callerFrame
         }
     }
@@ -182,28 +194,28 @@ private fun BaseContinuation.callSpecMethods(
             val currentCompletion = currentBaseContinuation.completion!!
             if (currentCompletion is BaseContinuation) {
                 baseContinuation = currentCompletion
-                currentCompletion.getElementAndSpecMethod(
-                    elementConsumer = { element = it },
-                    specMethodConsumer = { elementSpecMethod = it }
-                )
+                currentCompletion.getElementAndSpecMethod { gotElement, gotSpecMethod ->
+                    element = gotElement
+                    elementSpecMethod = gotSpecMethod
+                }
             } else {
                 completion = currentCompletion
                 if (currentCompletion is CoroutineStackFrame) {
                     baseContinuation = null
                     frame = currentCompletion.callerFrame
-                    currentCompletion.getElementAndSpecMethod(
-                        elementConsumer = { element = it },
-                        specMethodConsumer = { elementSpecMethod = it }
-                    )
+                    currentCompletion.getElementAndSpecMethod { gotElement, gotSpecMethod ->
+                        element = gotElement
+                        elementSpecMethod = gotSpecMethod
+                    }
                 } else break
             }
         } else {
             val currentFrame = frame ?: break
             frame = currentFrame.callerFrame
-            currentFrame.getElementAndSpecMethod(
-                elementConsumer = { element = it },
-                specMethodConsumer = { elementSpecMethod = it }
-            )
+            currentFrame.getElementAndSpecMethod { gotElement, gotSpecMethod ->
+                element = gotElement
+                elementSpecMethod = gotSpecMethod
+            }
         }
 
         spec = DecoroutinatorSpecImpl(

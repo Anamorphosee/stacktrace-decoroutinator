@@ -87,8 +87,8 @@ Check out [the Decoroutinator playground](https://decoroutinator.reformator.dev/
 ### JVM
 There are three possible ways to enable Decoroutinator for a JVM.
 1. If you build your project with Gradle, just apply the Gradle plugin with id `dev.reformator.stacktracedecoroutinator`.
-2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.5.8.jar` to your JVM start arguments. The corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.5.8`.
-3. Add the dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.5.8` and call method `DecoroutinatorJvmApi.install()`.
+2. Add `-javaagent:stacktrace-decoroutinator-jvm-agent-2.5.9.jar` to your JVM start arguments. The corresponding dependency is `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm-agent:2.5.9`.
+3. Add the dependency `dev.reformator.stacktracedecoroutinator:stacktrace-decoroutinator-jvm:2.5.9` and call method `DecoroutinatorJvmApi.install()`.
 
 The first option generates auxiliary methods at build time, and the other two use the Java instrumentation API at runtime.
 
@@ -123,44 +123,44 @@ fun main() {
 ```
 prints out:
 ```
-java.lang.Exception: exception at 1754276835727
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:11)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test$rec$1.invokeSuspend(example.kt)
-	at kotlin.stdlib/kotlin.coroutines.jvm.internal.DecoroutinatorBaseContinuationAccessorImpl.invokeSuspend(base-continuation-accessor.kt:15)
-	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.DecoroutinatorSpecImpl.resumeNext(utils-common.kt:288)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt$main$1.invokeSuspend(example.kt:21)
-	at dev.reformator.stacktracedecoroutinator.mhinvoker/dev.reformator.stacktracedecoroutinator.mhinvoker.internal.RegularMethodHandleInvoker.callSpecMethod(mh-invoker.kt:21)
-	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.callSpecMethods(awakener.kt:179)
-	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.awake(awakener.kt:39)
-	at dev.reformator.stacktracedecoroutinator.common/dev.reformator.stacktracedecoroutinator.common.internal.Provider.awakeBaseContinuation(provider-impl.kt:36)
-	at dev.reformator.stacktracedecoroutinator.provider/dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorProviderApiKt.awakeBaseContinuation(provider-api.kt:45)
-	at kotlin.stdlib/kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt)
-	at kotlinx.coroutines.core/kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
-	at kotlinx.coroutines.core/kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
-	at kotlinx.coroutines.core/kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
-	at kotlinx.coroutines.core/kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
-	at kotlinx.coroutines.core/kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
-	at kotlinx.coroutines.core/kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
-	at kotlinx.coroutines.core/kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt.main(example.kt:20)
-	at dev.reformator.stacktracedecoroutinator.jvm.tests/dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt.main(example.kt)
+java.lang.Exception: exception at 1764729227496
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:11)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test$rec$1.invokeSuspend(example.kt)
+	at kotlin.coroutines.jvm.internal.DecoroutinatorBaseContinuationAccessorImpl.invokeSuspend(base-continuation-accessor.kt:15)
+	at dev.reformator.stacktracedecoroutinator.common.internal.DecoroutinatorSpecImpl.resumeNext(utils-common.kt:247)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.Test.rec(example.kt:13)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt$main$1.invokeSuspend(example.kt:21)
+	at dev.reformator.stacktracedecoroutinator.mhinvoker.internal.RegularMethodHandleInvoker.callSpecMethod(mh-invoker.kt:20)
+	at dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.callSpecMethods(awakener.kt:225)
+	at dev.reformator.stacktracedecoroutinator.common.internal.AwakenerKt.awake(awakener.kt:36)
+	at dev.reformator.stacktracedecoroutinator.common.internal.Provider.awakeBaseContinuation(provider-impl.kt:38)
+	at dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProviderInternalApiKt.awakeBaseContinuation(provider-api-internal.kt:20)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:277)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:48)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt.main(example.kt:20)
+	at dev.reformator.stacktracedecoroutinator.jvmtests.ExampleKt.main(example.kt)
 ```
 
 ### Android
 For Android there is only one option to enable Stacktrace-decoroutinator - apply the Gradle plugin `dev.reformator.stacketracedecoroutinator` to your application's project.
 ```kotlin
 plugins {
-    id("dev.reformator.stacktracedecoroutinator") version "2.5.8"
+    id("dev.reformator.stacktracedecoroutinator") version "2.5.9"
 }
 ```
 Besides, Decoroutinator uses [MethodHandle API](https://developer.android.com/reference/java/lang/invoke/MethodHandle) which requires Android API level at least 26 (Android 8) so the stack trace recovery machinery doesn't work on Android less than 8.

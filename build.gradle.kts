@@ -19,7 +19,7 @@ buildscript {
 }
 
 plugins {
-    alias(libs.plugins.nmcp)
+    alias(libs.plugins.nmcp.aggregation)
 }
 
 subprojects {
@@ -27,24 +27,15 @@ subprojects {
     version = "2.5.9-SNAPSHOT"
 }
 
-nmcp {
-    publishAggregation {
-        project(":stacktrace-decoroutinator-common")
-        project(":stacktrace-decoroutinator-generator-jvm")
-        project(":stacktrace-decoroutinator-generator-android")
-        project(":stacktrace-decoroutinator-gradle-plugin")
-        project(":stacktrace-decoroutinator-jvm")
-        project(":stacktrace-decoroutinator-jvm-agent")
-        project(":stacktrace-decoroutinator-jvm-agent-common")
-        project(":stacktrace-decoroutinator-provider")
-        project(":stacktrace-decoroutinator-mh-invoker")
-        project(":stacktrace-decoroutinator-mh-invoker-android")
-        project(":stacktrace-decoroutinator-mh-invoker-jvm")
-        project(":stacktrace-decoroutinator-runtime-settings")
-        project(":stacktrace-decoroutinator-spec-method-builder")
-        project(":stacktrace-decoroutinator-class-transformer")
+repositories {
+    mavenCentral()
+}
+
+nmcpAggregation {
+    centralPortal {
         username = properties["sonatype.username"] as String?
         password = properties["sonatype.password"] as String?
-        publicationType = "USER_MANAGED"
+        publishingType = "USER_MANAGED"
     }
+    publishAllProjectsProbablyBreakingProjectIsolation()
 }

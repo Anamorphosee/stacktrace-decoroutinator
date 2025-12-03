@@ -7,7 +7,6 @@ plugins {
     alias(libs.plugins.android.library)
     kotlin("android")
     alias(libs.plugins.dokka)
-    alias(libs.plugins.nmcp)
     `maven-publish`
     signing
     id("dev.reformator.bytecodeprocessor")
@@ -119,24 +118,10 @@ afterEvaluate {
                 }
             }
         }
-        repositories {
-            maven {
-                name = "snapshot"
-                url = uri("https://central.sonatype.com/repository/maven-snapshots/")
-                credentials {
-                    username = properties["sonatype.username"] as String?
-                    password = properties["sonatype.password"] as String?
-                }
-            }
-        }
     }
 
     signing {
         useGpgCmd()
         sign(publishing.publications[mavenPublicationName])
-    }
-
-    nmcp {
-        publish(mavenPublicationName) {}
     }
 }

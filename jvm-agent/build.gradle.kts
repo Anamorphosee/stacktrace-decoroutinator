@@ -4,7 +4,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     kotlin("jvm")
     alias(libs.plugins.dokka)
-    alias(libs.plugins.nmcp)
     alias(libs.plugins.shadow)
     `maven-publish`
     signing
@@ -100,23 +99,9 @@ publishing {
             }
         }
     }
-    repositories {
-        maven {
-            name = "snapshot"
-            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
-            credentials {
-                username = properties["sonatype.username"] as String?
-                password = properties["sonatype.password"] as String?
-            }
-        }
-    }
 }
 
 signing {
     useGpgCmd()
     sign(publishing.publications[mavenPublicationName])
-}
-
-nmcp {
-    publish(mavenPublicationName) {}
 }

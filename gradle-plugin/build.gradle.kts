@@ -6,7 +6,6 @@ import java.util.Base64
 plugins {
     kotlin("jvm")
     alias(libs.plugins.dokka)
-    alias(libs.plugins.nmcp)
     `maven-publish`
     signing
     alias(libs.plugins.gradle.plugin.publish)
@@ -153,26 +152,8 @@ publishing {
             }
         }
     }
-    repositories {
-        maven {
-            name = "snapshot"
-            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
-            credentials {
-                username = properties["sonatype.username"] as String?
-                password = properties["sonatype.password"] as String?
-            }
-        }
-    }
 }
 
 signing {
     useGpgCmd()
-}
-
-afterEvaluate {
-    nmcp {
-        publish("pluginMaven") {}
-        publish("decoroutinatorAttributePluginPluginMarkerMaven") {}
-        publish("decoroutinatorPluginPluginMarkerMaven") {}
-    }
 }

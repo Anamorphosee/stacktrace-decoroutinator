@@ -8,6 +8,7 @@ jackson = "2.19.2"
 androidx-test = "1.7.0"
 
 [libraries]
+#noinspection SimilarGradleDependency
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
 shadow-gradle-plugin = { group = "com.gradleup.shadow", name = "com.gradleup.shadow.gradle.plugin", version = "9.2.2" }
@@ -33,6 +34,8 @@ kotlin-metadata-jvm = { group = "dev.reformator.kotlin-metadata-jvm-repack", nam
 retrace = { group = "com.guardsquare", name = "proguard-retrace", version = "7.8.1" }
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidx-test" }
 androidx-annotation-jvm = { group = "androidx.annotation", name = "annotation-jvm", version.ref = "androidx-test" }
+#noinspection SimilarGradleDependency
+kotlin-gradle-plugin-latest = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin-latest" }
 
 [plugins]
 shadow = { id = "com.gradleup.shadow" }
@@ -49,3 +52,5 @@ compose-multiplatform-latest = { id = "org.jetbrains.compose", version = "1.10.0
 compose-compiler-latest = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin-latest" }
 kotlin-multiplatform-latest = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin-latest" }
 android-application = { id = "com.android.application" }
+kotlin-android-latest = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin-latest" }
+android-library-version = { id = "com.android.library", version.ref = "agp" }

@@ -34,8 +34,11 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFile
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.compile.AbstractCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
@@ -60,6 +63,7 @@ open class BytecodeProcessorPluginExtension {
     internal val initContextTasks = mutableListOf<BytecodeProcessorContext.() -> Unit>()
 }
 
+@CacheableTask
 abstract class BytecodeProcessorMergeContextsTask @Inject constructor(
     private val contextModifier: (MapperBytecodeProcessorContext.() -> Unit)
 ): DefaultTask() {
@@ -67,6 +71,7 @@ abstract class BytecodeProcessorMergeContextsTask @Inject constructor(
     abstract val mergedContextsFile: RegularFileProperty
 
     @get:InputFiles
+    @get:PathSensitive(PathSensitivity.ABSOLUTE)
     abstract val contextFilesToMerge: ConfigurableFileCollection
 
     @TaskAction
@@ -83,6 +88,7 @@ abstract class BytecodeProcessorMergeContextsTask @Inject constructor(
     }
 }
 
+@CacheableTask
 abstract class BytecodeProcessorMergeContextsNoModifierTask(): BytecodeProcessorMergeContextsTask({ })
 
 @Suppress("unused")

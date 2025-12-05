@@ -79,7 +79,7 @@ internal class StringMatcher(property: StringMatcherProperty) {
         includes.any { it.matches(value) } && excludes.all { !it.matches(value) }
 }
 
-internal val defaultArtifactTypes = setOf(
+internal val defaultArtifactTypes = listOf(
     ArtifactTypeDefinition.JAR_TYPE,
     ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
     ArtifactTypeDefinition.ZIP_TYPE,
@@ -397,7 +397,7 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfig(project: Project) 
     setupLowLevelEmbeddedDebugProbesConfigurations(project)
 }
 
-internal fun createUnsetDecoroutinatorTransformedStateAttributeAction(artifactTypes: Set<String>): Action<Project> =
+internal fun createUnsetDecoroutinatorTransformedStateAttributeAction(artifactTypes: Collection<String>): Action<Project> =
     Action<Project> { project ->
         project.configurations.configureEach { conf ->
             conf.outgoing.variants.configureEach { variant ->
@@ -448,43 +448,112 @@ class DecoroutinatorPlugin: Plugin<Project> {
                 if (pluginExtension.enabled) {
                     pluginExtension.setupLowLevelConfig(target)
                     log.debug { "registering DecoroutinatorArtifactTransformer for types [${pluginExtension.artifactTypes}]" }
-                    pluginExtension.artifactTypes.forEach { artifactType ->
-                        dependencies.registerTransform(DecoroutinatorTransformAction::class.java) { transformation ->
-                            transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            transformation.from.attribute(
-                                decoroutinatorTransformedStateAttribute,
-                                DecoroutinatorTransformedState.UNTRANSFORMED
-                            )
-                            transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            transformation.to.attribute(
-                                decoroutinatorTransformedStateAttribute,
-                                DecoroutinatorTransformedState.TRANSFORMED
-                            )
-                            transformation.parameters {
-                                it.skipSpecMethods.set(false)
+                    pluginExtension.artifactTypes.forEachIndexed { artifactTypeIndex, artifactType ->
+                        sequenceOf(true, false).forEach { skipSpecMethods ->
+                            fun getTransformedState(index: Int): String {
+                                val transformedState = if (skipSpecMethods) {
+                                    DecoroutinatorTransformedState.TRANSFORMED_SKIPPING_SPEC_METHODS
+                                } else {
+                                    DecoroutinatorTransformedState.TRANSFORMED
+                                }
+                                if (index == 0) return transformedState
+                                return "$transformedState|$artifactType|$index"
+                            }
+
+                            dependencies.registerTransform(DecoroutinatorTransformAction::class.java) { transformation ->
+                                transformation.from.attribute(
+                                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                                    artifactType
+                                )
+                                transformation.from.attribute(
+                                    decoroutinatorTransformedStateAttribute,
+                                    DecoroutinatorTransformedState.UNTRANSFORMED
+                                )
+                                transformation.to.attribute(
+                                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                                    artifactType
+                                )
+                                transformation.to.attribute(
+                                    decoroutinatorTransformedStateAttribute,
+                                    getTransformedState(artifactTypeIndex)
+                                )
+                                transformation.parameters { it.skipSpecMethods.set(skipSpecMethods) }
+                            }
+
+                            (1 .. artifactTypeIndex).forEach { index ->
+                                dependencies.registerTransform(DecoroutinatorNoopTransformAction::class.java) { transformation ->
+                                    transformation.from.attribute(
+                                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                                        artifactType
+                                    )
+                                    transformation.from.attribute(
+                                        decoroutinatorTransformedStateAttribute,
+                                        getTransformedState(index)
+                                    )
+                                    transformation.to.attribute(
+                                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                                        artifactType
+                                    )
+                                    transformation.to.attribute(
+                                        decoroutinatorTransformedStateAttribute,
+                                        getTransformedState(index - 1)
+                                    )
+                                }
                             }
                         }
-                        dependencies.registerTransform(DecoroutinatorTransformAction::class.java) { transformation ->
-                            transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            transformation.from.attribute(
-                                decoroutinatorTransformedStateAttribute,
-                                DecoroutinatorTransformedState.UNTRANSFORMED
-                            )
-                            transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            transformation.to.attribute(
-                                decoroutinatorTransformedStateAttribute,
-                                DecoroutinatorTransformedState.TRANSFORMED_SKIPPING_SPEC_METHODS
-                            )
-                            transformation.parameters {
-                                it.skipSpecMethods.set(true)
+
+                        fun getTransformedState(index: Int): String =
+                            if (index == 0) {
+                                DecoroutinatorEmbeddedDebugProbesState.TRUE
+                            } else {
+                                "$artifactType|$index"
                             }
-                        }
+
                         dependencies.registerTransform(DecoroutinatorEmbedDebugProbesAction::class.java) { transformation ->
                             transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            transformation.from.attribute(decoroutinatorEmbeddedDebugProbesAttribute, false)
+                            transformation.from.attribute(
+                                decoroutinatorTransformedStateAttribute,
+                                DecoroutinatorTransformedState.UNTRANSFORMED
+                            )
+                            transformation.from.attribute(
+                                decoroutinatorEmbeddedDebugProbesAttribute,
+                                DecoroutinatorEmbeddedDebugProbesState.FALSE
+                            )
                             transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            transformation.to.attribute(decoroutinatorEmbeddedDebugProbesAttribute, true)
+                            transformation.to.attribute(
+                                decoroutinatorTransformedStateAttribute,
+                                DecoroutinatorTransformedState.UNTRANSFORMED
+                            )
+                            transformation.to.attribute(
+                                decoroutinatorEmbeddedDebugProbesAttribute,
+                                getTransformedState(artifactTypeIndex)
+                            )
                         }
+
+                        (1 .. artifactTypeIndex).forEach { index ->
+                            dependencies.registerTransform(DecoroutinatorNoopTransformAction::class.java) { transformation ->
+                                transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                                transformation.from.attribute(
+                                    decoroutinatorTransformedStateAttribute,
+                                    DecoroutinatorTransformedState.UNTRANSFORMED
+                                )
+                                transformation.from.attribute(
+                                    decoroutinatorEmbeddedDebugProbesAttribute,
+                                    getTransformedState(index)
+                                )
+                                transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                                transformation.to.attribute(
+                                    decoroutinatorTransformedStateAttribute,
+                                    DecoroutinatorTransformedState.UNTRANSFORMED
+                                )
+                                transformation.to.attribute(
+                                    decoroutinatorEmbeddedDebugProbesAttribute,
+                                    getTransformedState(index - 1)
+                                )
+                            }
+                        }
+
+
                         dependencies.artifactTypes.maybeCreate(artifactType).attributes
                             .attribute(
                                 decoroutinatorTransformedStateAttribute,
@@ -492,7 +561,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                             )
                             .attribute(
                                 decoroutinatorEmbeddedDebugProbesAttribute,
-                                false
+                                DecoroutinatorEmbeddedDebugProbesState.FALSE
                             )
                     }
 
@@ -581,7 +650,10 @@ class DecoroutinatorPlugin: Plugin<Project> {
                         configurations.configureEach { config ->
                             if (matcher.matches(config.name)) {
                                 log.debug { "setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
-                                config.attributes.attribute(decoroutinatorEmbeddedDebugProbesAttribute, true)
+                                config.attributes.attribute(
+                                    decoroutinatorEmbeddedDebugProbesAttribute,
+                                    DecoroutinatorEmbeddedDebugProbesState.TRUE
+                                )
                             } else {
                                 log.debug { "skipping setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
                             }

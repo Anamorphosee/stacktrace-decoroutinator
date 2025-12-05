@@ -12,6 +12,7 @@ import dev.reformator.stacktracedecoroutinator.intrinsics.PROVIDER_MODULE_NAME
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessorProvider
 import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.gradle.api.artifacts.transform.CacheableTransform
 import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
 import org.gradle.api.artifacts.transform.TransformOutputs
@@ -20,6 +21,8 @@ import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ModuleProvideNode
 import java.io.IOException
@@ -32,6 +35,7 @@ internal const val MODULE_INFO_CLASS_NAME = "module-info.class"
 
 private val log = KotlinLogging.logger { }
 
+@CacheableTransform
 abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTransformAction.Parameters> {
     interface Parameters: TransformParameters {
         @get:Input
@@ -39,6 +43,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
     }
 
     @get:InputArtifact
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val inputArtifact: Provider<FileSystemLocation>
 
     override fun transform(outputs: TransformOutputs) {

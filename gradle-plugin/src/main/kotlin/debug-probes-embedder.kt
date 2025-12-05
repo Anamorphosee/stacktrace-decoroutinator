@@ -8,6 +8,7 @@ import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import org.objectweb.asm.tree.*
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.gradle.api.artifacts.transform.CacheableTransform
 import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
 import org.gradle.api.artifacts.transform.TransformOutputs
@@ -15,6 +16,8 @@ import org.gradle.api.artifacts.transform.TransformParameters
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import java.io.IOException
 import java.io.InputStream
 import java.util.zip.ZipFile
@@ -104,13 +107,20 @@ private inline fun Artifact.processArtifact(
     }
 }
 
-val decoroutinatorEmbeddedDebugProbesAttribute: Attribute<Boolean> = Attribute.of(
+internal object DecoroutinatorEmbeddedDebugProbesState {
+    const val FALSE = "FALSE"
+    const val TRUE = "TRUE"
+}
+
+val decoroutinatorEmbeddedDebugProbesAttribute: Attribute<String> = Attribute.of(
     "dev.reformator.stacktracedecoroutinator.embeddedDebugProbes",
-    Boolean::class.javaObjectType
+    String::class.javaObjectType
 )
 
+@CacheableTransform
 abstract class DecoroutinatorEmbedDebugProbesAction: TransformAction<TransformParameters.None> {
     @get:InputArtifact
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val inputArtifact: Provider<FileSystemLocation>
 
     override fun transform(outputs: TransformOutputs) {

@@ -172,8 +172,8 @@ private fun BaseContinuation.callSpecMethods(
     var completion: Continuation<Any?> = this
     while (true) {
         val currentBaseContinuation = baseContinuation
-        var element: StackTraceElement? = null
-        var elementSpecMethod: MethodHandle? = null
+        val element: StackTraceElement?
+        val elementSpecMethod: MethodHandle
 
         if (elementsAndSpecMethods != null) {
             if (elementIndex == elementsAndSpecMethods.size) {

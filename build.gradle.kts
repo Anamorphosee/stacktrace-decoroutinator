@@ -1,3 +1,5 @@
+import org.gradle.tooling.GradleConnector
+
 buildscript {
     repositories {
         google()
@@ -38,4 +40,15 @@ nmcpAggregation {
         publishingType = "USER_MANAGED"
     }
     publishAllProjectsProbablyBreakingProjectIsolation()
+}
+
+tasks.register("test") {
+    doLast {
+        val connector = GradleConnector.newConnector()
+            .useGradleVersion("9.2.1")
+            .forProjectDirectory(file("_latest-gradle"))
+            .connect()
+
+        connector.newBuild().forTasks("test").run()
+    }
 }

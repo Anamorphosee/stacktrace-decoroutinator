@@ -33,9 +33,9 @@ jackson-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-modul
 kotlin-metadata-jvm = { group = "dev.reformator.kotlin-metadata-jvm-repack", name = "kotlin-metadata-jvm-repack", version = "0.9.0-3" }
 retrace = { group = "com.guardsquare", name = "proguard-retrace", version = "7.8.1" }
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidx-test" }
-androidx-annotation-jvm = { group = "androidx.annotation", name = "annotation-jvm", version.ref = "androidx-test" }
 #noinspection SimilarGradleDependency
 kotlin-gradle-plugin-latest = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin-latest" }
+androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "androidx-test" }
 
 [plugins]
 shadow = { id = "com.gradleup.shadow" }
@@ -52,5 +52,3 @@ compose-multiplatform-latest = { id = "org.jetbrains.compose", version = "1.10.0
 compose-compiler-latest = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin-latest" }
 kotlin-multiplatform-latest = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin-latest" }
 android-application = { id = "com.android.application" }
-kotlin-android-latest = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin-latest" }
-android-library-version = { id = "com.android.library", version.ref = "agp" }

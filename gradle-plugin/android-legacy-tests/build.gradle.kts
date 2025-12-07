@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.jdk8.build)
     implementation(libs.junit5.api)
     implementation(libs.kotlinx.coroutines.debug.build)
+    implementation(libs.androidx.annotation)
 
     runtimeOnly(project(":stacktrace-decoroutinator-runtime-settings"))
     runtimeOnly(project(":stacktrace-decoroutinator-generator-android"))
@@ -76,8 +77,6 @@ dependencies {
 
     //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
-
-    androidTestImplementation(libs.androidx.annotation.jvm)
 }
 
 val minifyDebugMappingFileDevicePath = "/sdcard/debugMapping.txt"

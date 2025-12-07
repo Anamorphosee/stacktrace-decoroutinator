@@ -7,9 +7,3 @@ dependencyResolutionManagement {
         }
     }
 }
-
-includeBuild("_plugins/gradle-plugin-test")
-
-pluginManagement {
-    includeBuild("_plugins/gradle-plugin-test")
-}

@@ -3,6 +3,8 @@
 -dontwarn javax.**
 -dontwarn reactor.**
 -dontwarn com.google.errorprone.annotations.**
+-dontwarn android.test.AndroidTestCase
+-dontwarn android.test.InstrumentationTestCase
 
 -keepclasseswithmembers class * {
     @org.junit.Test <methods>;

@@ -1,4 +1,5 @@
 import org.gradle.tooling.GradleConnector
+import org.gradle.tooling.ProjectConnection
 
 buildscript {
     repositories {
@@ -42,13 +43,21 @@ nmcpAggregation {
     publishAllProjectsProbablyBreakingProjectIsolation()
 }
 
-tasks.register("test") {
+tasks.register("latestGradleTest") {
+    dependsOn(":stacktrace-decoroutinator-gradle-plugin:jar")
     doLast {
-        val connector = GradleConnector.newConnector()
-            .useGradleVersion("9.2.1")
-            .forProjectDirectory(file("_latest-gradle"))
-            .connect()
-
-        connector.newBuild().forTasks("test").run()
+        getLatestGradleTestConnection().newBuild().forTasks("test").run()
     }
 }
+
+tasks.register("clean") {
+    doLast {
+        getLatestGradleTestConnection().newBuild().forTasks("clean").run()
+    }
+}
+
+private fun getLatestGradleTestConnection(): ProjectConnection =
+    GradleConnector.newConnector()
+        .useGradleVersion("9.2.1")
+        .forProjectDirectory(file("_latest-gradle-test"))
+        .connect()

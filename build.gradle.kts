@@ -27,7 +27,7 @@ plugins {
 
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
-    version = "2.6.0-SNAPSHOT"
+    version = "2.6.0"
 }
 
 repositories {
@@ -50,7 +50,8 @@ tasks.register("latestGradleTest") {
     }
 }
 
-tasks.register("clean") {
+tasks.register("latestGradleClean") {
+    dependsOn(":stacktrace-decoroutinator-gradle-plugin:jar")
     doLast {
         getLatestGradleTestConnection().newBuild().forTasks("clean").run()
     }

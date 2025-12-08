@@ -71,7 +71,7 @@ abstract class BytecodeProcessorMergeContextsTask @Inject constructor(
     abstract val mergedContextsFile: RegularFileProperty
 
     @get:InputFiles
-    @get:PathSensitive(PathSensitivity.ABSOLUTE)
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val contextFilesToMerge: ConfigurableFileCollection
 
     @TaskAction

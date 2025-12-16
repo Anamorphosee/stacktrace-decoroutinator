@@ -3,7 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.provider.internal
 
 import java.lang.invoke.MethodHandles
-import java.util.*
+import java.util.ServiceLoader
 
 interface DecoroutinatorProvider {
     val isDecoroutinatorEnabled: Boolean
@@ -22,7 +22,50 @@ interface DecoroutinatorProvider {
     fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement?
 }
 
-internal val provider: DecoroutinatorProvider = ServiceLoader.load(DecoroutinatorProvider::class.java).iterator().next()
+internal val provider: DecoroutinatorProvider =
+    try {
+        ServiceLoader.load(DecoroutinatorProvider::class.java).iterator().next()
+    } catch (_: Throwable) {
+        null
+    } ?: NoopProvider()
+
+private class NoopProvider: DecoroutinatorProvider {
+    override val isDecoroutinatorEnabled: Boolean
+        get() = false
+
+    override val baseContinuationAccessor: BaseContinuationAccessor
+        get() = error("not supported")
+
+    override fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor =
+        error("not supported")
+
+    override fun awakeBaseContinuation(
+        accessor: BaseContinuationAccessor,
+        baseContinuation: Any,
+        result: Any?
+    ) {
+        error("not supported")
+    }
+
+    override fun registerTransformedClass(lookup: MethodHandles.Lookup) {
+        error("not supported")
+    }
+
+    override fun getBaseContinuation(
+        completion: Any?,
+        fileName: String?,
+        className: String,
+        methodName: String,
+        lineNumber: Int
+    ): Any? =
+        completion
+
+    override val isUsingElementFactoryForBaseContinuationEnabled: Boolean
+        get() = false
+
+    override fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement =
+        error("not supported")
+}
 
 interface BaseContinuationAccessor {
     fun invokeSuspend(baseContinuation: Any, result: Any?): Any?

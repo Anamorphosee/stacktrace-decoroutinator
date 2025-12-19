@@ -25,6 +25,9 @@ stacktraceDecoroutinator {
     runtimeSettingsDependencyConfigurations.include = emptySet()
 }
 
+val aarBuilderBundleReleaseAarTask =
+    project(":gradle-plugin:aar-builder").tasks.named("bundleReleaseAar")
+
 dependencies {
     implementation(project(":test-utils"))
     implementation(libs.kotlinx.coroutines.jdk8.build)
@@ -33,6 +36,7 @@ dependencies {
     implementation(libs.junit5.api)
     implementation(project(":gradle-plugin:empty-module-tests"))
     implementation(libs.androidx.test.rules)
+    implementation(files(aarBuilderBundleReleaseAarTask))
 
     runtimeOnly(libs.androidx.test.runner)
     runtimeOnly(project(":stacktrace-decoroutinator-common"))

@@ -8,6 +8,11 @@ import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.currentFileName
 import dev.reformator.bytecodeprocessor.intrinsics.currentLineNumber
 import dev.reformator.bytecodeprocessor.intrinsics.fail
+import dev.reformator.stacktracedecoroutinator.aarbuilder.suspendFunFromAar
+import dev.reformator.stacktracedecoroutinator.aarbuilder.suspendFunFromAarFileName
+import dev.reformator.stacktracedecoroutinator.aarbuilder.suspendFunFromAarLineNumber
+import dev.reformator.stacktracedecoroutinator.aarbuilder.suspendFunFromAarMethodName
+import dev.reformator.stacktracedecoroutinator.aarbuilder.suspendFunFromAarOwnerClassName
 import dev.reformator.stacktracedecoroutinator.test.checkStacktrace
 import dev.reformator.stacktracedecoroutinator.test.setRetraceMappingFiles
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,6 +39,19 @@ open class TestLocalFile {
     @Test
     fun localTest(): Unit = runBlocking {
         fun1()
+    }
+
+    @Test
+    fun suspendFunFromAarTest() = runBlocking {
+        suspendFunFromAar {
+            yield()
+            checkStacktrace(StackTraceElement(
+                suspendFunFromAarOwnerClassName,
+                suspendFunFromAarMethodName,
+                suspendFunFromAarFileName,
+                suspendFunFromAarLineNumber
+            ))
+        }
     }
 
     suspend fun fun1() {

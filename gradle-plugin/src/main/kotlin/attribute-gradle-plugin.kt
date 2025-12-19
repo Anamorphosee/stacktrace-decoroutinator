@@ -6,6 +6,7 @@ package dev.reformator.stacktracedecoroutinator.gradleplugin
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.kotlin.dsl.stacktraceDecoroutinatorAttribute
 
 private val log = KotlinLogging.logger { }
@@ -21,7 +22,7 @@ class DecoroutinatorAttributePlugin: Plugin<Project> {
             )
             afterEvaluate { _ ->
                 createUnsetDecoroutinatorTransformedStateAttributeAction(
-                    artifactTypes = pluginExtension.artifactTypes
+                    artifactTypes = pluginExtension.artifactTypesForAttributes
                 ).execute(target)
             }
         }
@@ -29,5 +30,12 @@ class DecoroutinatorAttributePlugin: Plugin<Project> {
 }
 
 open class DecoroutinatorAttributePluginExtension {
-    var artifactTypes = defaultArtifactTypes
+    var artifactTypesForAttributes = setOf(
+        ArtifactTypeDefinition.JAR_TYPE,
+        ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
+        ArtifactTypeDefinition.ZIP_TYPE,
+        "aar",
+        "android-classes-directory",
+        "android-classes-jar"
+    )
 }

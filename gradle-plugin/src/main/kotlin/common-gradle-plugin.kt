@@ -79,15 +79,6 @@ internal class StringMatcher(property: StringMatcherProperty) {
         includes.any { it.matches(value) } && excludes.all { !it.matches(value) }
 }
 
-internal val defaultArtifactTypes = listOf(
-    ArtifactTypeDefinition.JAR_TYPE,
-    ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
-    ArtifactTypeDefinition.ZIP_TYPE,
-    "aar",
-    "android-classes-directory",
-    "android-classes-jar"
-)
-
 @Suppress("PropertyName")
 open class DecoroutinatorPluginExtension {
     // high level configurations
@@ -113,7 +104,21 @@ open class DecoroutinatorPluginExtension {
     val transformedClassesSkippingSpecMethodsConfigurations = StringMatcherProperty()
     val tasks = StringMatcherProperty()
     val tasksSkippingSpecMethods = StringMatcherProperty()
-    var artifactTypes = defaultArtifactTypes
+    var artifactTypesForAttributes = setOf(
+        ArtifactTypeDefinition.JAR_TYPE,
+        ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
+        ArtifactTypeDefinition.ZIP_TYPE,
+        "aar",
+        "android-classes-directory",
+        "android-classes-jar"
+    )
+    var artifactTypesForTransformation = listOf(
+        ArtifactTypeDefinition.JAR_TYPE,
+        ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
+        ArtifactTypeDefinition.ZIP_TYPE,
+        "android-classes-directory",
+        "android-classes-jar"
+    )
     val embeddedDebugProbesConfigurations = StringMatcherProperty()
     val runtimeSettingsDependencyConfigurations = StringMatcherProperty()
 }
@@ -447,8 +452,8 @@ class DecoroutinatorPlugin: Plugin<Project> {
             afterEvaluate { _ ->
                 if (pluginExtension.enabled) {
                     pluginExtension.setupLowLevelConfig(target)
-                    log.debug { "registering DecoroutinatorArtifactTransformer for types [${pluginExtension.artifactTypes}]" }
-                    pluginExtension.artifactTypes.forEachIndexed { artifactTypeIndex, artifactType ->
+                    log.debug { "registering DecoroutinatorArtifactTransformer for types [${pluginExtension.artifactTypesForTransformation}]" }
+                    pluginExtension.artifactTypesForTransformation.forEachIndexed { artifactTypeIndex, artifactType ->
                         sequenceOf(true, false).forEach { skipSpecMethods ->
                             fun getTransformedState(index: Int): String {
                                 val transformedState = if (skipSpecMethods) {
@@ -552,8 +557,9 @@ class DecoroutinatorPlugin: Plugin<Project> {
                                 )
                             }
                         }
+                    }
 
-
+                    pluginExtension.artifactTypesForAttributes.forEach { artifactType ->
                         dependencies.artifactTypes.maybeCreate(artifactType).attributes
                             .attribute(
                                 decoroutinatorTransformedStateAttribute,
@@ -711,7 +717,7 @@ class DecoroutinatorPlugin: Plugin<Project> {
                     }
 
                     val unsetTransformedAttributeAction = createUnsetDecoroutinatorTransformedStateAttributeAction(
-                        artifactTypes = pluginExtension.artifactTypes
+                        artifactTypes = pluginExtension.artifactTypesForAttributes
                     )
                     rootProject.allprojects { project ->
                         if (project.state.executed) {
@@ -775,6 +781,7 @@ private const val ANDROID_PROGUARD_RULES_FILE_NAME = "android.pro"
 private const val ANDROID_LEGACY_PROGUARD_RULES_FILE_NAME = "android-legacy.pro"
 internal const val ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME = "android-current.pro"
 
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 private val ANDROID_PROGUARD_RULES = """
     # Decoroutinator ProGuard rules
     -dontwarn dev.reformator.bytecodeprocessor.intrinsics.*

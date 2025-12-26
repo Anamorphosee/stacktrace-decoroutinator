@@ -52,7 +52,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
         if (root.isFile) {
             log.debug { "artifact [${root.absolutePath}] is a file" }
             val artifact = try {
-                ZipArtifact(ZipFile(root))
+                ZipFileArtifact(ZipFile(root))
             } catch (e: IOException) {
                 log.warn(e) { "Failed to read artifact [${root.absolutePath}]. It will be skipped." }
                 null

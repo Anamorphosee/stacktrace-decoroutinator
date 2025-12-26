@@ -130,7 +130,7 @@ abstract class DecoroutinatorEmbedDebugProbesAction: TransformAction<TransformPa
             log.debug { "artifact [${root.absolutePath}] is a file" }
             try {
                 ZipFile(root).use { zip ->
-                    ZipArtifact(zip).processArtifact(
+                    ZipFileArtifact(zip).processArtifact(
                         skipArtifact = {
                             log.debug { "file artifact [${root.absolutePath}] was skipped" }
                             outputs.file(inputArtifact)

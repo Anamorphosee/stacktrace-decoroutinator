@@ -113,12 +113,14 @@ open class DecoroutinatorPluginExtension {
         "android-classes-jar"
     )
     var artifactTypesForTransformation = listOf(
+        "aar",
         ArtifactTypeDefinition.JAR_TYPE,
         ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
         ArtifactTypeDefinition.ZIP_TYPE,
         "android-classes-directory",
         "android-classes-jar"
     )
+    var artifactTypesForAarTransformation = setOf("aar")
     val embeddedDebugProbesConfigurations = StringMatcherProperty()
     val runtimeSettingsDependencyConfigurations = StringMatcherProperty()
 }
@@ -465,7 +467,13 @@ class DecoroutinatorPlugin: Plugin<Project> {
                                 return "$transformedState|$artifactType|$index"
                             }
 
-                            dependencies.registerTransform(DecoroutinatorTransformAction::class.java) { transformation ->
+                            val transformationAction = if (artifactType in pluginExtension.artifactTypesForAarTransformation) {
+                                DecoroutinatorAarTransformAction::class.java
+                            } else {
+                                DecoroutinatorTransformAction::class.java
+                            }
+
+                            dependencies.registerTransform(transformationAction) { transformation ->
                                 transformation.from.attribute(
                                     ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
                                     artifactType

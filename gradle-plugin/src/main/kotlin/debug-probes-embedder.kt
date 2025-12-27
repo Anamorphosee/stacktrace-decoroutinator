@@ -13,7 +13,6 @@ import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
 import org.gradle.api.artifacts.transform.TransformOutputs
 import org.gradle.api.artifacts.transform.TransformParameters
-import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.PathSensitive
@@ -106,16 +105,6 @@ private inline fun Artifact.processArtifact(
         skipArtifact()
     }
 }
-
-internal object DecoroutinatorEmbeddedDebugProbesState {
-    const val FALSE = "FALSE"
-    const val TRUE = "TRUE"
-}
-
-val decoroutinatorEmbeddedDebugProbesAttribute: Attribute<String> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.embeddedDebugProbes",
-    String::class.javaObjectType
-)
 
 @CacheableTransform
 abstract class DecoroutinatorEmbedDebugProbesAction: TransformAction<TransformParameters.None> {

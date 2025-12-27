@@ -6,24 +6,29 @@ package org.gradle.kotlin.dsl
 import dev.reformator.bytecodeprocessor.intrinsics.LoadConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
 import dev.reformator.stacktracedecoroutinator.gradleplugin.ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME
+import dev.reformator.stacktracedecoroutinator.gradleplugin.ATTRIBUTE_EXTENSION_NAME
 import dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorAttributePluginExtension
 import dev.reformator.stacktracedecoroutinator.gradleplugin.DecoroutinatorPluginExtension
+import dev.reformator.stacktracedecoroutinator.gradleplugin.EXTENSION_NAME
 import dev.reformator.stacktracedecoroutinator.gradleplugin.decoroutinatorDir
 import org.gradle.api.Project
 import java.io.File
 
 fun Project.stacktraceDecoroutinator(configure: DecoroutinatorPluginExtension.() -> Unit) {
-    extensions.configure(::stacktraceDecoroutinator.name, configure)
+    extensions.configure(EXTENSION_NAME, configure)
 }
 
+val Project.stacktraceDecoroutinator: DecoroutinatorPluginExtension
+    get() = extensions.getByName(EXTENSION_NAME) as DecoroutinatorPluginExtension
+
+@Suppress("unused")
 fun Project.stacktraceDecoroutinatorAttribute(configure: DecoroutinatorAttributePluginExtension.() -> Unit) {
-    extensions.configure(::stacktraceDecoroutinatorAttribute.name, configure)
+    extensions.configure(ATTRIBUTE_EXTENSION_NAME, configure)
 }
 
 @Suppress("unused")
-@Deprecated("replace with method", replaceWith = ReplaceWith("decoroutinatorAndroidProGuardRules()"))
-val Project.decoroutinatorAndroidProGuardRules: File
-    get() = decoroutinatorAndroidProGuardRules()
+val Project.stacktraceDecoroutinatorAttribute: DecoroutinatorAttributePluginExtension
+    get() = extensions.getByName(ATTRIBUTE_EXTENSION_NAME) as DecoroutinatorAttributePluginExtension
 
 fun Project.decoroutinatorAndroidProGuardRules(): File =
     decoroutinatorDir.resolve(ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME)

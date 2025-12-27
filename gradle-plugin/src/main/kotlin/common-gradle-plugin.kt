@@ -9,121 +9,77 @@ import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransforme
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidKeep
 import dev.reformator.stacktracedecoroutinator.provider.internal.AndroidLegacyKeep
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.UnknownDomainObjectException
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition
-import org.gradle.api.attributes.Attribute
 import org.gradle.api.tasks.compile.AbstractCompile
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
-import java.io.File
 import java.util.ServiceLoader
-import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KProperty
 
 private val log = KotlinLogging.logger { }
 
-internal object DecoroutinatorTransformedState {
-    const val UNTRANSFORMED = "UNTRANSFORMED"
-    const val TRANSFORMED = "TRANSFORMED"
-    const val TRANSFORMED_SKIPPING_SPEC_METHODS = "TRANSFORMED_SKIPPING_SPEC_METHODS"
-}
-
-internal val decoroutinatorTransformedStateAttribute: Attribute<String> = Attribute.of(
-    "dev.reformator.stacktracedecoroutinator.transformedState4",
-    String::class.java
-)
-
-internal class ObservableProperty<T>(private var _value: T): ReadWriteProperty<Any?, T> {
-    private var _set = false
-
-    override fun getValue(thisRef: Any?, property: KProperty<*>): T =
-        _value
-
-    override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
-        _value = value
-        _set = true
-    }
-
-    val set: Boolean
-        get() = _set
-
-    val value: T
-        get() = _value
-
-    fun updateIfNotSet(setter: (T) -> T) {
-        if (!set) {
-            _value = setter(_value)
+@Suppress("unused")
+class DecoroutinatorPlugin: Plugin<Project> {
+    override fun apply(target: Project) {
+        log.debug { "applying Decoroutinator plugin to [${target.name}]" }
+        groovyDslInitializer.initGroovyDsl(target)
+        with (target) {
+            val pluginExtension = extensions.create(EXTENSION_NAME, DecoroutinatorPluginExtension::class.java)
+            dependencies.attributesSchema.attribute(decoroutinatorTransformedStateAttribute)
+            dependencies.attributesSchema.attribute(decoroutinatorEmbeddedDebugProbesAttribute)
+            afterEvaluate { _ ->
+                if (pluginExtension.enabled) {
+                    pluginExtension.setupLowLevelConfig(target)
+                    registerArtifactTransformers(
+                        artifactTypes = pluginExtension.artifactTypes,
+                        aarArtifactTypes = pluginExtension.artifactTypesForAarTransformation
+                    )
+                    registerEmbedDebugProbesTransformations(pluginExtension.artifactTypes)
+                    registerArtifactTypeInitialAttributes(pluginExtension.artifactTypes)
+                    addDependenciesToConfigurations(
+                        regularDependencyConfigurationMatcher = pluginExtension.regularDependencyConfigurations.matcher,
+                        androidDependencyConfigurationMatcher = pluginExtension.androidDependencyConfigurations.matcher,
+                        jvmDependencyConfigurationMatcher = pluginExtension.jvmDependencyConfigurations.matcher
+                    )
+                    addAndroidGeneratorDependenciesToConfigurations(
+                        configurationMatcher = pluginExtension.androidRuntimeDependencyConfigurations.matcher
+                    )
+                    addJvmGeneratorDependenciesToConfigurations(
+                        configurationMatcher = pluginExtension.jvmRuntimeDependencyConfigurations.matcher
+                    )
+                    setConfigurationsTransformedAttributes(
+                        regularConfigurationMatcher = pluginExtension.transformedClassesConfigurations.matcher,
+                        skippingSpecMethodsConfigurationMatcher =
+                            pluginExtension.transformedClassesSkippingSpecMethodsConfigurations.matcher
+                    )
+                    setConfigurationsEmbeddedDebugProbesAttributes(
+                        configurationMatcher = pluginExtension.embeddedDebugProbesConfigurations.matcher
+                    )
+                    setCompileTasksInPlaceTransformations(
+                        regularTasksMatcher = pluginExtension.tasks.matcher,
+                        skippingSpecMethodsTasksMatcher = pluginExtension.tasksSkippingSpecMethods.matcher
+                    )
+                    unsetTransformedAttributesForAllProjectsConfigurationsOutgoingVariants(
+                        artifactTypes = pluginExtension.artifactTypes
+                    )
+                    if (isAndroid) {
+                        setGeneratingProguardFiles(pluginExtension.legacyAndroidCompatibility)
+                    }
+                } else {
+                    log.debug { "Decoroutinator plugin is disabled" }
+                }
+            }
         }
     }
 }
 
-@Suppress("PropertyName")
-class StringMatcherProperty {
-    internal val _include = ObservableProperty(setOf<String>())
-    internal val _exclude = ObservableProperty(setOf<String>())
-    var include: Set<String> by _include
-    var exclude: Set<String> by _exclude
-
-    internal val matcher: StringMatcher
-        get() = StringMatcher(this)
+internal fun interface GroovyDslInitializer {
+    fun initGroovyDsl(target: Project)
 }
 
-internal class StringMatcher(property: StringMatcherProperty) {
-    private val includes = property.include.asSequence().distinct().map { Regex(it) }.toList()
-    private val excludes = property.exclude.asSequence().distinct().map { Regex(it) }.toList()
-
-    fun matches(value: String): Boolean =
-        includes.any { it.matches(value) } && excludes.all { !it.matches(value) }
-}
-
-@Suppress("PropertyName")
-open class DecoroutinatorPluginExtension {
-    // high level configurations
-    internal val _legacyAndroidCompatibility = ObservableProperty(false)
-    internal val _embedDebugProbesForAndroidTest = ObservableProperty(false)
-    var enabled = true
-    var addAndroidRuntimeDependency = true
-    var addJvmRuntimeDependency = true
-    var androidTestsOnly = false
-    var jvmTestsOnly = false
-    var useTransformedClassesForCompilation = false
-    var legacyAndroidCompatibility: Boolean by _legacyAndroidCompatibility
-    var embedDebugProbesForAndroid = false
-    var embedDebugProbesForAndroidTest: Boolean by _embedDebugProbesForAndroidTest
-
-    // low level configurations
-    val regularDependencyConfigurations = StringMatcherProperty()
-    val androidDependencyConfigurations = StringMatcherProperty()
-    val jvmDependencyConfigurations = StringMatcherProperty()
-    val jvmRuntimeDependencyConfigurations = StringMatcherProperty()
-    val androidRuntimeDependencyConfigurations = StringMatcherProperty()
-    val transformedClassesConfigurations = StringMatcherProperty()
-    val transformedClassesSkippingSpecMethodsConfigurations = StringMatcherProperty()
-    val tasks = StringMatcherProperty()
-    val tasksSkippingSpecMethods = StringMatcherProperty()
-    var artifactTypesForAttributes = setOf(
-        ArtifactTypeDefinition.JAR_TYPE,
-        ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
-        ArtifactTypeDefinition.ZIP_TYPE,
-        "aar",
-        "android-classes-directory",
-        "android-classes-jar"
-    )
-    var artifactTypesForTransformation = listOf(
-        "aar",
-        ArtifactTypeDefinition.JAR_TYPE,
-        ArtifactTypeDefinition.JVM_CLASS_DIRECTORY,
-        ArtifactTypeDefinition.ZIP_TYPE,
-        "android-classes-directory",
-        "android-classes-jar"
-    )
-    var artifactTypesForAarTransformation = setOf("aar")
-    val embeddedDebugProbesConfigurations = StringMatcherProperty()
-    val runtimeSettingsDependencyConfigurations = StringMatcherProperty()
-}
+private val groovyDslInitializer = ServiceLoader.load(GroovyDslInitializer::class.java).iterator().next()!!
 
 private val Project.isAndroid: Boolean
     get() = pluginManager.hasPlugin("com.android.base")
@@ -203,13 +159,6 @@ private fun DecoroutinatorPluginExtension.setupLowLevelDependencyConfig(project:
             jvmConfigs
         } else {
             emptySet()
-        }
-    }
-    runtimeSettingsDependencyConfigurations._include.updateIfNotSet {
-        when {
-            embedDebugProbesForAndroid -> androidMainConfigs
-            embedDebugProbesForAndroidTest -> androidTestConfigs
-            else -> emptySet()
         }
     }
 }
@@ -404,409 +353,316 @@ private fun DecoroutinatorPluginExtension.setupLowLevelConfig(project: Project) 
     setupLowLevelEmbeddedDebugProbesConfigurations(project)
 }
 
-internal fun createUnsetDecoroutinatorTransformedStateAttributeAction(artifactTypes: Collection<String>): Action<Project> =
-    Action<Project> { project ->
-        project.configurations.configureEach { conf ->
-            conf.outgoing.variants.configureEach { variant ->
-                if (variant.artifacts.any { it.type in artifactTypes }) {
-                    val attr = variant.attributes.getAttribute(decoroutinatorTransformedStateAttribute)
-                    if (attr != null) {
-                        log.debug {
-                            "decoroutinatorTransformedStateAttribute for outgoing variant [$variant] of" +
-                                    "configuration [${conf.name}] in project [${project.name}] is already set to [$attr]"
-                        }
-                    } else {
-                        log.debug {
-                            "unsetting decoroutinatorTransformedStateAttribute for outgoing variant" +
-                                    "[$variant] of configuration [${conf.name}] in project [${project.name}]"
-                        }
-                        try {
-                            variant.attributes.attribute(
-                                decoroutinatorTransformedStateAttribute,
-                                DecoroutinatorTransformedState.UNTRANSFORMED
-                            )
-                        } catch (e: IllegalStateException) {
-                            val message =
-                                "Failed to set the necessary attribute for the project " +
-                                        "[${project.name}]. Please apply the " +
-                                        "'dev.reformator.stacktracedecoroutinator.attribute' plugin to it."
-                            throw IllegalStateException(message, e)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-@Suppress("unused")
-class DecoroutinatorPlugin: Plugin<Project> {
-    override fun apply(target: Project) {
-        log.debug { "applying Decoroutinator plugin to [${target.name}]" }
-        groovyDslInitializer.initGroovyDsl(target)
-        with (target) {
-            val pluginExtension = extensions.create(
-                ::stacktraceDecoroutinator.name,
-                DecoroutinatorPluginExtension::class.java
-            )
-            dependencies.attributesSchema.attribute(decoroutinatorTransformedStateAttribute)
-            dependencies.attributesSchema.attribute(decoroutinatorEmbeddedDebugProbesAttribute)
-
-            afterEvaluate { _ ->
-                if (pluginExtension.enabled) {
-                    pluginExtension.setupLowLevelConfig(target)
-                    log.debug { "registering DecoroutinatorArtifactTransformer for types [${pluginExtension.artifactTypesForTransformation}]" }
-                    pluginExtension.artifactTypesForTransformation.forEachIndexed { artifactTypeIndex, artifactType ->
-                        sequenceOf(true, false).forEach { skipSpecMethods ->
-                            fun getTransformedState(index: Int): String {
-                                val transformedState = if (skipSpecMethods) {
-                                    DecoroutinatorTransformedState.TRANSFORMED_SKIPPING_SPEC_METHODS
-                                } else {
-                                    DecoroutinatorTransformedState.TRANSFORMED
-                                }
-                                if (index == 0) return transformedState
-                                return "$transformedState|$artifactType|$index"
-                            }
-
-                            val transformationAction = if (artifactType in pluginExtension.artifactTypesForAarTransformation) {
-                                DecoroutinatorAarTransformAction::class.java
-                            } else {
-                                DecoroutinatorTransformAction::class.java
-                            }
-
-                            dependencies.registerTransform(transformationAction) { transformation ->
-                                transformation.from.attribute(
-                                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                                    artifactType
-                                )
-                                transformation.from.attribute(
-                                    decoroutinatorTransformedStateAttribute,
-                                    DecoroutinatorTransformedState.UNTRANSFORMED
-                                )
-                                transformation.to.attribute(
-                                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                                    artifactType
-                                )
-                                transformation.to.attribute(
-                                    decoroutinatorTransformedStateAttribute,
-                                    getTransformedState(artifactTypeIndex)
-                                )
-                                transformation.parameters { it.skipSpecMethods.set(skipSpecMethods) }
-                            }
-
-                            (1 .. artifactTypeIndex).forEach { index ->
-                                dependencies.registerTransform(DecoroutinatorNoopTransformAction::class.java) { transformation ->
-                                    transformation.from.attribute(
-                                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                                        artifactType
-                                    )
-                                    transformation.from.attribute(
-                                        decoroutinatorTransformedStateAttribute,
-                                        getTransformedState(index)
-                                    )
-                                    transformation.to.attribute(
-                                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                                        artifactType
-                                    )
-                                    transformation.to.attribute(
-                                        decoroutinatorTransformedStateAttribute,
-                                        getTransformedState(index - 1)
-                                    )
-                                }
-                            }
-                        }
-
-                        fun getTransformedState(index: Int): String =
-                            if (index == 0) {
-                                DecoroutinatorEmbeddedDebugProbesState.TRUE
-                            } else {
-                                "$artifactType|$index"
-                            }
-
-                        dependencies.registerTransform(DecoroutinatorEmbedDebugProbesAction::class.java) { transformation ->
-                            transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            transformation.from.attribute(
-                                decoroutinatorTransformedStateAttribute,
-                                DecoroutinatorTransformedState.UNTRANSFORMED
-                            )
-                            transformation.from.attribute(
-                                decoroutinatorEmbeddedDebugProbesAttribute,
-                                DecoroutinatorEmbeddedDebugProbesState.FALSE
-                            )
-                            transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                            transformation.to.attribute(
-                                decoroutinatorTransformedStateAttribute,
-                                DecoroutinatorTransformedState.UNTRANSFORMED
-                            )
-                            transformation.to.attribute(
-                                decoroutinatorEmbeddedDebugProbesAttribute,
-                                getTransformedState(artifactTypeIndex)
-                            )
-                        }
-
-                        (1 .. artifactTypeIndex).forEach { index ->
-                            dependencies.registerTransform(DecoroutinatorNoopTransformAction::class.java) { transformation ->
-                                transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                                transformation.from.attribute(
-                                    decoroutinatorTransformedStateAttribute,
-                                    DecoroutinatorTransformedState.UNTRANSFORMED
-                                )
-                                transformation.from.attribute(
-                                    decoroutinatorEmbeddedDebugProbesAttribute,
-                                    getTransformedState(index)
-                                )
-                                transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
-                                transformation.to.attribute(
-                                    decoroutinatorTransformedStateAttribute,
-                                    DecoroutinatorTransformedState.UNTRANSFORMED
-                                )
-                                transformation.to.attribute(
-                                    decoroutinatorEmbeddedDebugProbesAttribute,
-                                    getTransformedState(index - 1)
-                                )
-                            }
-                        }
-                    }
-
-                    pluginExtension.artifactTypesForAttributes.forEach { artifactType ->
-                        dependencies.artifactTypes.maybeCreate(artifactType).attributes
-                            .attribute(
-                                decoroutinatorTransformedStateAttribute,
-                                DecoroutinatorTransformedState.UNTRANSFORMED
-                            )
-                            .attribute(
-                                decoroutinatorEmbeddedDebugProbesAttribute,
-                                DecoroutinatorEmbeddedDebugProbesState.FALSE
-                            )
-                    }
-
-                    //dependency configurations
-                    run {
-                        val regularMatcher = pluginExtension.regularDependencyConfigurations.matcher
-                        val androidMatcher = pluginExtension.androidDependencyConfigurations.matcher
-                        val jvmMatcher = pluginExtension.jvmDependencyConfigurations.matcher
-                        configurations.configureEach { config ->
-                            with (dependencies) {
-                                if (regularMatcher.matches(config.name)) {
-                                    add(config.name, decoroutinatorCommon())
-                                    add(config.name, decoroutinatorRegularMethodHandleInvoker())
-                                } else {
-                                    if (androidMatcher.matches(config.name)) {
-                                        add(config.name, decoroutinatorCommon())
-                                        add(config.name, decoroutinatorAndroidMethodHandleInvoker())
-                                    }
-                                    if (jvmMatcher.matches(config.name)) {
-                                        add(config.name, decoroutinatorCommon())
-                                        add(config.name, decoroutinatorJvmMethodHandleInvoker())
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    //android runtime generator dependency
-                    run {
-                        val matcher = pluginExtension.androidRuntimeDependencyConfigurations.matcher
-                        configurations.configureEach { config ->
-                            if (matcher.matches(config.name)) {
-                                with (dependencies) {
-                                    add(config.name, decoroutinatorAndroidRuntime())
-                                }
-                            }
-                        }
-                    }
-
-                    //jvm runtime generator dependency
-                    run {
-                        val matcher = pluginExtension.jvmRuntimeDependencyConfigurations.matcher
-                        configurations.configureEach { config ->
-                            if (matcher.matches(config.name)) {
-                                with (dependencies) {
-                                    add(config.name, decoroutinatorJvmRuntime())
-                                }
-                            }
-                        }
-                    }
-
-                    //runtime settings dependency
-                    run {
-                        val matcher = pluginExtension.runtimeSettingsDependencyConfigurations.matcher
-                        configurations.configureEach { config ->
-                            if (matcher.matches(config.name)) {
-                                with (dependencies) {
-                                    add(config.name, decoroutinatorRuntimeSettings())
-                                }
-                            }
-                        }
-                    }
-
-                    run {
-                        val matcher = pluginExtension.transformedClassesConfigurations.matcher
-                        val skippingSpecMethodsMatcher =
-                            pluginExtension.transformedClassesSkippingSpecMethodsConfigurations.matcher
-                        configurations.configureEach { config ->
-                            val state = when {
-                                matcher.matches(config.name) -> DecoroutinatorTransformedState.TRANSFORMED
-                                skippingSpecMethodsMatcher.matches(config.name) ->
-                                    DecoroutinatorTransformedState.TRANSFORMED_SKIPPING_SPEC_METHODS
-                                else -> null
-                            }
-                            if (state != null) {
-                                log.debug { "setting decoroutinatorTransformedStateAttribute for configuration [${config.name}] and state [$state]" }
-                                config.attributes.attribute(decoroutinatorTransformedStateAttribute, state)
-                            } else {
-                                log.debug { "skipping setting decoroutinatorTransformedStateAttribute for configuration [${config.name}]" }
-                            }
-                        }
-                    }
-
-                    run {
-                        val matcher = pluginExtension.embeddedDebugProbesConfigurations.matcher
-                        configurations.configureEach { config ->
-                            if (matcher.matches(config.name)) {
-                                log.debug { "setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
-                                config.attributes.attribute(
-                                    decoroutinatorEmbeddedDebugProbesAttribute,
-                                    DecoroutinatorEmbeddedDebugProbesState.TRUE
-                                )
-                            } else {
-                                log.debug { "skipping setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
-                            }
-                        }
-                    }
-
-                    run {
-                        val matcher = pluginExtension.tasks.matcher
-                        val skippingSpecMethodsMatcher = pluginExtension.tasksSkippingSpecMethods.matcher
-                        tasks.withType(KotlinJvmCompile::class.java) { task ->
-                            val skipSpecMethods = when {
-                                matcher.matches(task.name) -> false
-                                skippingSpecMethodsMatcher.matches(task.name) -> true
-                                else -> null
-                            }
-                            if (skipSpecMethods != null) {
-                                log.debug { "setting transform classes action for task [${task.name}], skipSpecMethods = [$skipSpecMethods]" }
-                                task.doLast { _ ->
-                                    val dir = task.destinationDirectory.get().asFile
-                                    log.debug { "performing in-place transformation of a classes directory [${dir.absolutePath}], skipSpecMethods = [$skipSpecMethods]" }
-                                    val artifact = DirectoryArtifact(dir)
-                                    artifact.transform(
-                                        skipSpecMethods = skipSpecMethods,
-                                        onFile = { modified, path, body ->
-                                            if (modified) {
-                                                log.debug { "class file [$path] was transformed, skipSpecMethods = [$skipSpecMethods]" }
-                                                artifact.addFile(path, body)
-                                            }
-                                            true
-                                        },
-                                        onDirectory = { _ -> }
-                                    )
-                                }
-                            } else {
-                                log.debug { "skipped transform classes action for task [${task.name}]" }
-                            }
-                        }
-                        tasks.withType(AbstractCompile::class.java) { task ->
-                            if (matcher.matches(task.name) || skippingSpecMethodsMatcher.matches(task.name)) {
-                                log.debug { "setting 'addReadProviderModule' action for task [${task.name}]" }
-                                task.doLast { _ ->
-                                    visitModuleInfoFiles(task.destinationDirectory.get().asFile) { path, _ ->
-                                        val moduleNode = path.inputStream().use { tryReadModuleInfo(it) }
-                                        if (moduleNode != null) {
-                                            log.debug { "adding read provider module for file [${path.absolutePath}]" }
-                                            moduleNode.module.addRequiresModule(PROVIDER_MODULE_NAME)
-                                            path.outputStream().use { it.write(moduleNode.classBody) }
-                                        }
-                                    }
-                                }
-                            } else {
-                                log.debug { "skipped 'addReadProviderModule' action for task [${task.name}]" }
-                            }
-                        }
-                    }
-
-                    val unsetTransformedAttributeAction = createUnsetDecoroutinatorTransformedStateAttributeAction(
-                        artifactTypes = pluginExtension.artifactTypesForAttributes
-                    )
-                    rootProject.allprojects { project ->
-                        if (project.state.executed) {
-                            unsetTransformedAttributeAction.execute(project)
-                        } else {
-                            project.afterEvaluate(unsetTransformedAttributeAction)
-                        }
-                    }
-
-                    if (isAndroid) {
-                        val extractProguardFilesTaskName = "extractProguardFiles"
-                        val extractProguardFilesTask = tasks.findByName(extractProguardFilesTaskName)
-                        if (extractProguardFilesTask == null) {
-                            log.error { "Task [extractProguardFiles] was not found" }
-                        } else {
-                            val dir = decoroutinatorDir
-                            val legacyAndroidCompatibility = pluginExtension.legacyAndroidCompatibility
-                            extractProguardFilesTask.doLast { _ ->
-                                dir.mkdirs()
-                                dir.resolve(ANDROID_PROGUARD_RULES_FILE_NAME).writeText(ANDROID_PROGUARD_RULES)
-                                dir.resolve(ANDROID_LEGACY_PROGUARD_RULES_FILE_NAME).writeText(ANDROID_LEGACY_PROGUARD_RULES)
-                                val androidCurrentProguardRules = if (legacyAndroidCompatibility) {
-                                    ANDROID_LEGACY_PROGUARD_RULES
-                                } else {
-                                    ANDROID_PROGUARD_RULES
-                                }
-                                dir.resolve(ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME).writeText(androidCurrentProguardRules)
-                            }
-                        }
-                    }
+private fun Project.registerArtifactTransformers(artifactTypes: List<String>, aarArtifactTypes: Collection<String>) {
+    log.debug { "registering artifact transformers for types [$artifactTypes]" }
+    artifactTypes.forEachIndexed { artifactTypeIndex, artifactType ->
+        sequenceOf(true, false).forEach { skipSpecMethods ->
+            fun getTransformedState(index: Int): String {
+                val transformedState = if (skipSpecMethods) {
+                    DecoroutinatorTransformedState.TRANSFORMED_SKIPPING_SPEC_METHODS
                 } else {
-                    log.debug { "Decoroutinator plugin is disabled" }
+                    DecoroutinatorTransformedState.TRANSFORMED
+                }
+                if (index == 0) return transformedState
+                return "$transformedState|$artifactType|$index"
+            }
+
+            val transformationAction = if (artifactType in aarArtifactTypes) {
+                DecoroutinatorAarTransformAction::class.java
+            } else {
+                DecoroutinatorTransformAction::class.java
+            }
+
+            dependencies.registerTransform(transformationAction) { transformation ->
+                transformation.from.attribute(
+                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                    artifactType
+                )
+                transformation.from.attribute(
+                    decoroutinatorTransformedStateAttribute,
+                    DecoroutinatorTransformedState.UNTRANSFORMED
+                )
+                transformation.to.attribute(
+                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                    artifactType
+                )
+                transformation.to.attribute(
+                    decoroutinatorTransformedStateAttribute,
+                    getTransformedState(artifactTypeIndex)
+                )
+                transformation.parameters { it.skipSpecMethods.set(skipSpecMethods) }
+            }
+
+            (1 .. artifactTypeIndex).forEach { index ->
+                dependencies.registerTransform(DecoroutinatorNoopTransformAction::class.java) { transformation ->
+                    transformation.from.attribute(
+                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                        artifactType
+                    )
+                    transformation.from.attribute(
+                        decoroutinatorTransformedStateAttribute,
+                        getTransformedState(index)
+                    )
+                    transformation.to.attribute(
+                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                        artifactType
+                    )
+                    transformation.to.attribute(
+                        decoroutinatorTransformedStateAttribute,
+                        getTransformedState(index - 1)
+                    )
                 }
             }
         }
     }
 }
 
-internal fun interface GroovyDslInitializer {
-    fun initGroovyDsl(target: Project)
-}
+private fun Project.registerEmbedDebugProbesTransformations(artifactTypes: List<String>) {
+    artifactTypes.forEachIndexed { artifactTypeIndex, artifactType ->
+        fun getTransformedState(index: Int): String =
+            if (index == 0) {
+                DecoroutinatorEmbeddedDebugProbesState.TRUE
+            } else {
+                "$artifactType|$index"
+            }
 
-private val groovyDslInitializer = ServiceLoader.load(GroovyDslInitializer::class.java).iterator().next()!!
+        dependencies.registerTransform(DecoroutinatorEmbedDebugProbesAction::class.java) { transformation ->
+            transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+            transformation.from.attribute(
+                decoroutinatorTransformedStateAttribute,
+                DecoroutinatorTransformedState.UNTRANSFORMED
+            )
+            transformation.from.attribute(
+                decoroutinatorEmbeddedDebugProbesAttribute,
+                DecoroutinatorEmbeddedDebugProbesState.FALSE
+            )
+            transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+            transformation.to.attribute(
+                decoroutinatorTransformedStateAttribute,
+                DecoroutinatorTransformedState.UNTRANSFORMED
+            )
+            transformation.to.attribute(
+                decoroutinatorEmbeddedDebugProbesAttribute,
+                getTransformedState(artifactTypeIndex)
+            )
+        }
 
-private inline fun visitModuleInfoFiles(root: File, onModuleInfoFile: (path: File, relativePath: File) -> Unit) {
-    root.walk().forEach { file ->
-        if (file.isFile && file.isModuleInfo) {
-            val relativePath = file.relativeTo(root)
-            onModuleInfoFile(file, relativePath)
+        (1 .. artifactTypeIndex).forEach { index ->
+            dependencies.registerTransform(DecoroutinatorNoopTransformAction::class.java) { transformation ->
+                transformation.from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                transformation.from.attribute(
+                    decoroutinatorTransformedStateAttribute,
+                    DecoroutinatorTransformedState.UNTRANSFORMED
+                )
+                transformation.from.attribute(
+                    decoroutinatorEmbeddedDebugProbesAttribute,
+                    getTransformedState(index)
+                )
+                transformation.to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, artifactType)
+                transformation.to.attribute(
+                    decoroutinatorTransformedStateAttribute,
+                    DecoroutinatorTransformedState.UNTRANSFORMED
+                )
+                transformation.to.attribute(
+                    decoroutinatorEmbeddedDebugProbesAttribute,
+                    getTransformedState(index - 1)
+                )
+            }
         }
     }
 }
 
-private val File.isModuleInfo: Boolean
-    get() = name == MODULE_INFO_CLASS_NAME
-
-internal val Project.decoroutinatorDir: File
-    get() = layout.buildDirectory.dir("decoroutinator").get().asFile
-
-private const val ANDROID_PROGUARD_RULES_FILE_NAME = "android.pro"
-private const val ANDROID_LEGACY_PROGUARD_RULES_FILE_NAME = "android-legacy.pro"
-internal const val ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME = "android-current.pro"
-
-@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-private val ANDROID_PROGUARD_RULES = """
-    # Decoroutinator ProGuard rules
-    -dontwarn dev.reformator.bytecodeprocessor.intrinsics.*
-    -keep,allowobfuscation @interface ${DecoroutinatorTransformed::class.java.name}
-    -keepattributes RuntimeVisibleAnnotations,LineNumberTable,SourceFile
-    -keepclasseswithmembers,allowshrinking @${DecoroutinatorTransformed::class.java.name} class * {
-        static *(${DecoroutinatorSpec::class.java.name}, ${Object::class.java.name});
+private fun Project.registerArtifactTypeInitialAttributes(artifactTypes: Collection<String>) {
+    artifactTypes.forEach { artifactType ->
+        dependencies.artifactTypes.maybeCreate(artifactType).attributes
+            .attribute(
+                decoroutinatorTransformedStateAttribute,
+                DecoroutinatorTransformedState.UNTRANSFORMED
+            )
+            .attribute(
+                decoroutinatorEmbeddedDebugProbesAttribute,
+                DecoroutinatorEmbeddedDebugProbesState.FALSE
+            )
     }
-    -keepclassmembers @${DecoroutinatorTransformed::class.java.name} class * {
-        static *(${DecoroutinatorSpec::class.java.name}, ${Object::class.java.name});
-    }
-    -keep,allowobfuscation interface ${DecoroutinatorSpec::class.java.name} { *; }
-    -keep @${AndroidKeep::class.java.name} class * { *; }
-    
-""".trimIndent()
+}
 
-private val ANDROID_LEGACY_PROGUARD_RULES = ANDROID_PROGUARD_RULES + """
-    -keep @${AndroidLegacyKeep::class.java.name} class * { *; }
-    
-""".trimIndent()
+private fun Project.addDependenciesToConfigurations(
+    regularDependencyConfigurationMatcher: StringMatcher,
+    androidDependencyConfigurationMatcher: StringMatcher,
+    jvmDependencyConfigurationMatcher: StringMatcher
+) {
+    configurations.configureEach { config ->
+        with (dependencies) {
+            if (regularDependencyConfigurationMatcher.matches(config.name)) {
+                add(config.name, decoroutinatorRegularMethodHandleInvoker())
+            } else {
+                if (androidDependencyConfigurationMatcher.matches(config.name)) {
+                    add(config.name, decoroutinatorAndroidMethodHandleInvoker())
+                }
+                if (jvmDependencyConfigurationMatcher.matches(config.name)) {
+                    add(config.name, decoroutinatorJvmMethodHandleInvoker())
+                }
+            }
+        }
+    }
+}
+
+private fun Project.addAndroidGeneratorDependenciesToConfigurations(configurationMatcher: StringMatcher) {
+    configurations.configureEach { config ->
+        if (configurationMatcher.matches(config.name)) {
+            with (dependencies) {
+                add(config.name, decoroutinatorAndroidRuntime())
+            }
+        }
+    }
+}
+
+private fun Project.addJvmGeneratorDependenciesToConfigurations(configurationMatcher: StringMatcher) {
+    configurations.configureEach { config ->
+        if (configurationMatcher.matches(config.name)) {
+            with (dependencies) {
+                add(config.name, decoroutinatorJvmRuntime())
+            }
+        }
+    }
+}
+
+private fun Project.setConfigurationsTransformedAttributes(
+    regularConfigurationMatcher: StringMatcher,
+    skippingSpecMethodsConfigurationMatcher: StringMatcher
+) {
+    configurations.configureEach { config ->
+        val state = when {
+            regularConfigurationMatcher.matches(config.name) -> DecoroutinatorTransformedState.TRANSFORMED
+            skippingSpecMethodsConfigurationMatcher.matches(config.name) ->
+                DecoroutinatorTransformedState.TRANSFORMED_SKIPPING_SPEC_METHODS
+            else -> null
+        }
+        if (state != null) {
+            log.debug { "setting decoroutinatorTransformedStateAttribute for configuration [${config.name}] and state [$state]" }
+            config.attributes.attribute(decoroutinatorTransformedStateAttribute, state)
+        } else {
+            log.debug { "skipping setting decoroutinatorTransformedStateAttribute for configuration [${config.name}]" }
+        }
+    }
+}
+
+private fun Project.setConfigurationsEmbeddedDebugProbesAttributes(configurationMatcher: StringMatcher) {
+    configurations.configureEach { config ->
+        if (configurationMatcher.matches(config.name)) {
+            log.debug { "setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
+            config.attributes.attribute(
+                decoroutinatorEmbeddedDebugProbesAttribute,
+                DecoroutinatorEmbeddedDebugProbesState.TRUE
+            )
+        } else {
+            log.debug { "skipping setting decoroutinatorEmbeddedDebugProbesAttribute for configuration [${config.name}]" }
+        }
+    }
+}
+
+private fun Project.setCompileTasksInPlaceTransformations(
+    regularTasksMatcher: StringMatcher,
+    skippingSpecMethodsTasksMatcher: StringMatcher
+) {
+    tasks.withType(KotlinJvmCompile::class.java) { task ->
+        val skipSpecMethods = when {
+            regularTasksMatcher.matches(task.name) -> false
+            skippingSpecMethodsTasksMatcher.matches(task.name) -> true
+            else -> null
+        }
+        if (skipSpecMethods != null) {
+            log.debug { "setting transforming classes action for task [${task.name}], skipSpecMethods = [$skipSpecMethods]" }
+            task.doLast { _ ->
+                val dir = task.destinationDirectory.get().asFile
+                log.debug { "performing in-place transformation of a classes directory [${dir.absolutePath}], skipSpecMethods = [$skipSpecMethods]" }
+                val artifact = DirectoryArtifact(dir)
+                artifact.transform(
+                    skipSpecMethods = skipSpecMethods,
+                    onFile = { modified, path, body ->
+                        if (modified) {
+                            log.debug { "class file [$path] was transformed, skipSpecMethods = [$skipSpecMethods]" }
+                            artifact.addFile(path, body)
+                        }
+                        true
+                    },
+                    onDirectory = { _ -> }
+                )
+            }
+        } else {
+            log.debug { "skipped transforming classes action for task [${task.name}]" }
+        }
+    }
+    tasks.withType(AbstractCompile::class.java) { task ->
+        if (regularTasksMatcher.matches(task.name) || skippingSpecMethodsTasksMatcher.matches(task.name)) {
+            log.debug { "setting adding read provider module action for task [${task.name}]" }
+            task.doLast { _ ->
+                task.destinationDirectory.get().asFile.walk().forEach { path ->
+                    if (path.isFile && path.name == MODULE_INFO_CLASS_NAME) {
+                        val moduleNode = path.inputStream().use { tryReadModuleInfo(it) }
+                        if (moduleNode != null) {
+                            log.debug { "adding read provider module for file [${path.absolutePath}]" }
+                            moduleNode.module.addRequiresModule(PROVIDER_MODULE_NAME)
+                            path.outputStream().use { it.write(moduleNode.classBody) }
+                        }
+                    }
+                }
+            }
+        } else {
+            log.debug { "skipped adding read provider module action for task [${task.name}]" }
+        }
+    }
+}
+
+private fun Project.unsetTransformedAttributesForAllProjectsConfigurationsOutgoingVariants(
+    artifactTypes: Collection<String>
+) {
+    val unsetTransformedAttributeAction =
+        buildUnsetTransformedStateAttributeActionForAllConfigurationsOutgoingVariants(artifactTypes)
+    rootProject.allprojects { project ->
+        if (project.state.executed) {
+            unsetTransformedAttributeAction.execute(project)
+        } else {
+            project.afterEvaluate(unsetTransformedAttributeAction)
+        }
+    }
+}
+
+private fun Project.setGeneratingProguardFiles(legacyAndroidCompatibility: Boolean) {
+    val extractProguardFilesTask = tasks.findByName("extractProguardFiles")
+    if (extractProguardFilesTask == null) {
+        log.error { "Task [extractProguardFiles] was not found" }
+    } else {
+        val dir = decoroutinatorDir
+        @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN") val proguardRules = """
+            # Decoroutinator ProGuard rules
+            -dontwarn dev.reformator.bytecodeprocessor.intrinsics.*
+            -keep,allowobfuscation @interface ${DecoroutinatorTransformed::class.java.name}
+            -keepattributes RuntimeVisibleAnnotations,LineNumberTable,SourceFile
+            -keepclasseswithmembers,allowshrinking @${DecoroutinatorTransformed::class.java.name} class * {
+                static *(${DecoroutinatorSpec::class.java.name}, ${Object::class.java.name});
+            }
+            -keepclassmembers @${DecoroutinatorTransformed::class.java.name} class * {
+                static *(${DecoroutinatorSpec::class.java.name}, ${Object::class.java.name});
+            }
+            -keep,allowobfuscation interface ${DecoroutinatorSpec::class.java.name} { *; }
+            -keep @${AndroidKeep::class.java.name} class * { *; }
+            
+        """.trimIndent()
+        val legacyProguardRules = proguardRules + """
+            -keep @${AndroidLegacyKeep::class.java.name} class * { *; }
+            
+        """.trimIndent()
+        extractProguardFilesTask.doLast { _ ->
+            dir.mkdirs()
+            dir.resolve("android.pro").writeText(proguardRules)
+            dir.resolve("android-legacy.pro").writeText(legacyProguardRules)
+            val androidCurrentProguardRules = if (legacyAndroidCompatibility) {
+                legacyProguardRules
+            } else {
+                proguardRules
+            }
+            dir.resolve(ANDROID_CURRENT_PROGUARD_RULES_FILE_NAME).writeText(androidCurrentProguardRules)
+        }
+    }
+}

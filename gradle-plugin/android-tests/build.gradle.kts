@@ -22,7 +22,6 @@ stacktraceDecoroutinator {
     addAndroidRuntimeDependency = false
     useTransformedClassesForCompilation = true
     embedDebugProbesForAndroid = true
-    runtimeSettingsDependencyConfigurations.include = emptySet()
 }
 
 val aarBuilderBundleReleaseAarTask =

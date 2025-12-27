@@ -8,15 +8,19 @@ import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
 import org.gradle.api.artifacts.transform.TransformOutputs
 import org.gradle.api.file.FileSystemLocation
+import org.gradle.api.internal.file.temp.TemporaryFileProvider
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.util.zip.ZipFile
-import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import javax.inject.Inject
+import kotlin.random.Random
 
 private val log = KotlinLogging.logger { }
 
@@ -27,6 +31,9 @@ abstract class DecoroutinatorAarTransformAction: TransformAction<DecoroutinatorT
     @get:InputArtifact
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val inputArtifact: Provider<FileSystemLocation>
+
+    @get:Inject
+    abstract val objects: ObjectFactory
 
     override fun transform(outputs: TransformOutputs) {
         val root = inputArtifact.get().asFile
@@ -58,81 +65,87 @@ abstract class DecoroutinatorAarTransformAction: TransformAction<DecoroutinatorT
             return
         }
 
-        val classesJarArtifact = ZipArtifact { ZipInputStream(classesJarReaderProducer()) }
-
-        val needModification = try {
-            var needModification = false
-            classesJarArtifact.transform(
-                skipSpecMethods = parameters.skipSpecMethods.get(),
-                onFile = { modified, _, _ ->
-                    if (modified) {
-                        needModification = true
-                        false
-                    } else {
-                        true
-                    }
-                },
-                onDirectory = { _ -> }
-            )
-            needModification
-        } catch (e: IOException) {
-            log.warn(e) { "error reading artifact [${root.absolutePath}]. It will be skipped." }
-            false
-        }
-
-        if (!needModification) {
-            log.debug { "file artifact [${root.absolutePath}] was skipped" }
-            outputs.file(inputArtifact)
-            return
-        }
-
-        val transformedClassesJarBuffer = ByteArrayOutputStream()
-        run {
-            ZipOutputStream(transformedClassesJarBuffer).use { output ->
-                val transformedClassesArtifact = ZipArtifactBuilder(output)
-                classesJarArtifact.transform(
-                    skipSpecMethods = parameters.skipSpecMethods.get(),
-                    onFile = { _, path, body ->
-                        transformedClassesArtifact.addFile(path, body)
-                        true
-                    },
-                    onDirectory = { transformedClassesArtifact.addDirectory(it) }
-                )
-            }
-        }
-
-        val newFile = run {
-            val suffix = root.name.lastIndexOf('.').let { index ->
-                if (index == -1) "" else root.name.substring(index)
-            }
-            val newName = root.name.removeSuffix(suffix) + "-decoroutinator" + suffix
-            outputs.file(newName)
-        }
-
-        ZipOutputStream(newFile.outputStream()).use { output ->
-            val outputArtifact = ZipArtifactBuilder(output)
-            inputZipFile.walk(object: ArtifactWalker {
-                override fun onFile(
-                    path: ArtifactPath,
-                    reader: () -> InputStream
-                ): Boolean {
-                    if (path == classesJarPath) {
-                        transformedClassesJarBuffer.toByteArray().inputStream().use { body ->
-                            outputArtifact.addFile(path, body)
-                        }
-                    } else {
-                        reader().use { body ->
-                            outputArtifact.addFile(path, body)
-                        }
-                    }
-                    return true
+        val tempClassesJar = createTempClasserJarFile()
+        try {
+            classesJarReaderProducer().use { input ->
+                tempClassesJar.outputStream().use { output ->
+                    input.copyTo(output)
                 }
+            }
 
-                override fun onDirectory(path: ArtifactPath): Boolean {
-                    outputArtifact.addDirectory(path)
-                    return true
+            val classesJarArtifact = ZipFileArtifact(ZipFile(tempClassesJar))
+
+            val needModification = try {
+                classesJarArtifact.doesNeedTransformation(parameters.skipSpecMethods.get())
+            } catch (e: IOException) {
+                log.warn(e) { "error reading artifact [${root.absolutePath}]. It will be skipped." }
+                false
+            }
+
+            if (!needModification) {
+                log.debug { "file artifact [${root.absolutePath}] was skipped" }
+                outputs.file(inputArtifact)
+                return
+            }
+
+            val transformedClassesJarBuffer = ByteArrayOutputStream()
+            run {
+                ZipOutputStream(transformedClassesJarBuffer).use { output ->
+                    val transformedClassesArtifact = ZipArtifactBuilder(output)
+                    classesJarArtifact.transformTo(
+                        skipSpecMethods = parameters.skipSpecMethods.get(),
+                        builder = transformedClassesArtifact
+                    )
                 }
-            })
+            }
+
+            val newFile = run {
+                val suffix = root.name.lastIndexOf('.').let { index ->
+                    if (index == -1) "" else root.name.substring(index)
+                }
+                val newName = root.name.removeSuffix(suffix) + "-decoroutinator" + suffix
+                outputs.file(newName)
+            }
+
+            ZipOutputStream(newFile.outputStream()).use { output ->
+                val outputArtifact = ZipArtifactBuilder(output)
+                inputZipFile.walk(object : ArtifactWalker {
+                    override fun onFile(
+                        path: ArtifactPath,
+                        reader: () -> InputStream
+                    ): Boolean {
+                        if (path == classesJarPath) {
+                            transformedClassesJarBuffer.toByteArray().inputStream().use { body ->
+                                outputArtifact.addFile(path, body)
+                            }
+                        } else {
+                            reader().use { body ->
+                                outputArtifact.addFile(path, body)
+                            }
+                        }
+                        return true
+                    }
+
+                    override fun onDirectory(path: ArtifactPath): Boolean {
+                        outputArtifact.addDirectory(path)
+                        return true
+                    }
+                })
+            }
+        } finally {
+            tempClassesJar.delete()
         }
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun createTempClasserJarFile(): File {
+        abstract class Service {
+            @get:Inject
+            abstract val tempFileProvider: TemporaryFileProvider
+        }
+        val fileName = "classes-${Random.nextBytes(10).toHexString()}.jar"
+        val result = objects.newInstance(Service::class.java).tempFileProvider.newTemporaryFile(fileName)
+        result.parentFile.mkdirs()
+        return result
     }
 }

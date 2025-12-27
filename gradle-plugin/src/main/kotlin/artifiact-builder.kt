@@ -9,12 +9,10 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.ModuleNode
 import org.objectweb.asm.tree.ModuleRequireNode
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
-import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.sequences.forEach
 
@@ -106,35 +104,6 @@ internal interface ArtifactBuilder {
     override fun getFileReader(filePath: ArtifactPath): (() -> InputStream)? {
         val entry = zip.getEntry(filePath.joinToString(separator = "/")) ?: return null
         return { zip.getInputStream(entry) }
-    }
-}
-
-internal class ZipArtifact(private val streamProducer: () -> ZipInputStream): Artifact {
-    override fun walk(walker: ArtifactWalker) {
-        streamProducer().use { stream ->
-            while (true) {
-                val entry = stream.nextEntry ?: break
-                val path = run {
-                    val segments = entry.name.split("/")
-                    if (entry.isDirectory) segments.dropLast(1) else segments
-                }
-                val continueWalking = if (entry.isDirectory) {
-                    walker.onDirectory(path)
-                } else {
-                    val buffer = run {
-                        val buffer = ByteArrayOutputStream()
-                        stream.copyTo(buffer)
-                        buffer.toByteArray()
-                    }
-                    val walking = walker.onFile(path) {
-                        buffer.inputStream()
-                    }
-                    walking
-                }
-                stream.closeEntry()
-                if (!continueWalking) return
-            }
-        }
     }
 }
 

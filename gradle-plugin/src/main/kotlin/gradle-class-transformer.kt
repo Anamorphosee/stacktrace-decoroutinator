@@ -63,20 +63,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
                     return@run false
                 }
                 try {
-                    var needModification = false
-                    artifact.transform(
-                        skipSpecMethods = parameters.skipSpecMethods.get(),
-                        onFile = { modified, _, _ ->
-                            if (modified) {
-                                needModification = true
-                                false
-                            } else {
-                                true
-                            }
-                        },
-                        onDirectory = { _ -> }
-                    )
-                    needModification
+                    artifact.doesNeedTransformation(parameters.skipSpecMethods.get())
                 } catch (e: IOException) {
                     log.warn(e) { "Failed to read artifact [${root.absolutePath}]. It will be skipped." }
                     false
@@ -102,22 +89,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
         } else if (root.isDirectory) {
             log.debug { "artifact [${root.absolutePath}] is a directory" }
             val artifact = DirectoryArtifact(root)
-            val needModification = run {
-                var needModification = false
-                artifact.transform(
-                    skipSpecMethods = parameters.skipSpecMethods.get(),
-                    onFile = { modified, _, _ ->
-                        if (modified) {
-                            needModification = true
-                            false
-                        } else {
-                            true
-                        }
-                    },
-                    onDirectory = { _ -> }
-                )
-                needModification
-            }
+            val needModification = artifact.doesNeedTransformation(parameters.skipSpecMethods.get())
             if (needModification) {
                 val newRoot = outputs.dir(root.name + "-decoroutinator")
                 artifact.transformTo(
@@ -135,7 +107,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
     }
 }
 
-private fun Artifact.transformTo(skipSpecMethods: Boolean, builder: ArtifactBuilder) {
+internal fun Artifact.transformTo(skipSpecMethods: Boolean, builder: ArtifactBuilder) {
     transform(
         skipSpecMethods = skipSpecMethods,
         onFile = { _, path, body ->
@@ -149,6 +121,23 @@ private fun Artifact.transformTo(skipSpecMethods: Boolean, builder: ArtifactBuil
     if (containsFile(BASE_CONTINUATION_CLASS_NAME.className2ArtifactPath)) {
         builder.addJarClassesAndResources(baseContinuationAccessorJarBase64)
     }
+}
+
+internal fun Artifact.doesNeedTransformation(skipSpecMethods: Boolean): Boolean {
+    var result = false
+    transform(
+        skipSpecMethods = skipSpecMethods,
+        onFile = { modified, _, _ ->
+            if (modified) {
+                result = true
+                false
+            } else {
+                true
+            }
+        },
+        onDirectory = { _ -> }
+    )
+    return result
 }
 
 internal fun Artifact.transform(

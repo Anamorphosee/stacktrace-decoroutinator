@@ -57,22 +57,35 @@ private inline fun Any.getElementAndSpecMethod(
     elementSupplier: () -> StackTraceElement?
 ) {
     contract { callsInPlace(consumer, InvocationKind.EXACTLY_ONCE) }
-    if (this is BaseContinuationExtractor) {
-        val label = `$decoroutinator$label`
-        val element = `$decoroutinator$elements`[label]
-        val specMethods = `$decoroutinator$specMethods`
-        val specMethod = specMethods[label] ?: run {
-            val specMethod =
-                specMethodsFactory.getSpecMethodHandle(element) ?: methodHandleInvoker.unknownSpecMethodHandle
-            specMethods[label] = specMethod
-            specMethod
+    when (this) {
+        is BaseContinuationExtractor -> {
+            val label = `$decoroutinator$label`
+            val element = `$decoroutinator$elements`[label]
+            val specMethods = `$decoroutinator$specMethods`
+            val specMethod = specMethods[label] ?: run {
+                val specMethod =
+                    specMethodsFactory.getSpecMethodHandle(element) ?: methodHandleInvoker.unknownSpecMethodHandle
+                specMethods[label] = specMethod
+                specMethod
+            }
+            consumer(element, specMethod)
         }
-        consumer(element, specMethod)
-    } else {
-        val element = elementSupplier()
-        val specMethod = element?.let { specMethodsFactory.getSpecMethodHandle(it) }
-            ?: methodHandleInvoker.unknownSpecMethodHandle
-        consumer(element, specMethod)
+        is DecoroutinatorContinuationImpl -> {
+            val element = cache.element
+            val specMethod = cache.speckMethod ?: run {
+                val specMethod =
+                    specMethodsFactory.getSpecMethodHandle(element) ?: methodHandleInvoker.unknownSpecMethodHandle
+                cache.speckMethod = specMethod
+                specMethod
+            }
+            consumer(element, specMethod)
+        }
+        else -> {
+            val element = elementSupplier()
+            val specMethod = element?.let { specMethodsFactory.getSpecMethodHandle(it) }
+                ?: methodHandleInvoker.unknownSpecMethodHandle
+            consumer(element, specMethod)
+        }
     }
 }
 

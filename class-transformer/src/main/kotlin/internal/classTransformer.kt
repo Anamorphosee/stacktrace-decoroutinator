@@ -17,6 +17,7 @@ import dev.reformator.stacktracedecoroutinator.intrinsics.LABEL_FIELD_NAME
 import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
 import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
+import dev.reformator.stacktracedecoroutinator.provider.TailCallDeoptimizeCache
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import dev.reformator.stacktracedecoroutinator.provider.internal.providerInternalApiClass
@@ -57,6 +58,7 @@ fun transformClassBody(
 
     var doTransformation = false
     val lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>> = HashMap()
+    val tailCallCaches: MutableList<TailCallDeoptimizeMethodNameAndLineNumber> = ArrayList()
 
     val metadataAnnotation = node.kotlinMetadataAnnotation ?: return noClassBodyTransformationStatus
     val xi = metadataAnnotation.getField("xi") as Int?
@@ -80,14 +82,16 @@ fun transformClassBody(
             ).getNonSuspendFunctionSignatures()
 
             if (node.tryTransformSuspendMethods(
-                    metadataResolver = metadataResolver,
-                    lineNumbersBySpecMethodName = lineNumbersBySpecMethodName,
-                    notSuspendFunctionSignatures = notSuspendFunctionSignatures
+                metadataResolver = metadataResolver,
+                lineNumbersBySpecMethodName = lineNumbersBySpecMethodName,
+                notSuspendFunctionSignatures = notSuspendFunctionSignatures,
+                tailCallCaches = tailCallCaches
             )) doTransformation = true
         }
     }
     return if (doTransformation) {
         node.generateSpecMethodsAndTransformAnnotation(skipSpecMethods, lineNumbersBySpecMethodName)
+        node.saveTailCallCaches(tailCallCaches)
         ClassBodyTransformationStatus(
             updatedBody = node.classBody,
             needReadProviderModule = true
@@ -152,9 +156,16 @@ private val decoroutinatorTransformedLineNumbersMethodName: String
 private val decoroutinatorTransformedSkipSpecMethodsMethodName: String
     @LoadConstant("decoroutinatorTransformedSkipSpecMethodsMethodName") get() = fail()
 
+private val isTailCallDeoptimizationEnabledMethodName: String
+    @LoadConstant("isTailCallDeoptimizationEnabledMethodName") get() = fail()
+
+private val tailCallDeoptimizeMethodName: String
+    @LoadConstant("tailCallDeoptimizeMethodName") get() = fail()
+
 private const val baseContinuationElementsFieldName = "\$decoroutinator\$elements"
 private const val baseContinuationSpecMethodsFieldName = "\$decoroutinator\$specMethods"
 
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 private fun Metadata.getNonSuspendFunctionSignatures(): List<JvmMethodSignature> {
     val functions = when(val metadata = KotlinClassMetadata.readLenient(this)) {
         is KotlinClassMetadata.Class -> metadata.kmClass.functions
@@ -302,6 +313,7 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
     return true
 }
 
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 private fun ClassNode.transformBaseContinuation() {
     val resumeWithMethod = methods?.find {
         it.desc == "(${Type.getDescriptor(Object::class.java)})${Type.VOID_TYPE.descriptor}" && !it.isStatic
@@ -458,6 +470,75 @@ private fun ClassNode.generateSpecMethodsAndTransformAnnotation(
         }
 }
 
+private fun ClassNode.saveTailCallCaches(tailCallCaches: List<TailCallDeoptimizeMethodNameAndLineNumber>) {
+    if (tailCallCaches.isEmpty()) return
+
+    val isInterface = access and Opcodes.ACC_INTERFACE != 0
+    val fieldAccess = (if (isInterface) Opcodes.ACC_PUBLIC else Opcodes.ACC_PRIVATE) or Opcodes.ACC_STATIC or
+            Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
+
+    fields = fields.orEmpty() + List(tailCallCaches.size) { index ->
+        FieldNode(
+            Opcodes.ASM9,
+            fieldAccess,
+            getTailCallCacheFieldName(index),
+            Type.getDescriptor(TailCallDeoptimizeCache::class.java),
+            null,
+            null
+        )
+    }
+
+    getOrCreateClinitMethod().apply {
+        instructions.insertBefore(instructions.first, InsnList().apply {
+            add(MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                Type.getInternalName(providerApiClass),
+                isTailCallDeoptimizationEnabledMethodName,
+                "()${Type.BOOLEAN_TYPE.descriptor}"
+            ))
+            val tailCallDeoptimizationDisabledLabel = LabelNode()
+            add(JumpInsnNode(Opcodes.IFEQ, tailCallDeoptimizationDisabledLabel))
+
+            tailCallCaches.forEachIndexed { index, cache ->
+                add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(TailCallDeoptimizeCache::class.java)))
+                add(InsnNode(Opcodes.DUP))
+                add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(StackTraceElement::class.java)))
+                add(InsnNode(Opcodes.DUP))
+                add(LdcInsnNode(Type.getObjectType(this@saveTailCallCaches.name).className))
+                add(LdcInsnNode(cache.methodName))
+                if (this@saveTailCallCaches.sourceFile != null) {
+                    add(LdcInsnNode(this@saveTailCallCaches.sourceFile))
+                } else {
+                    add(InsnNode(Opcodes.ACONST_NULL))
+                }
+                add(LdcInsnNode(cache.lineNumber))
+                add(MethodInsnNode(
+                    Opcodes.INVOKESPECIAL,
+                    Type.getInternalName(StackTraceElement::class.java),
+                    "<init>",
+                    "(${Type.getDescriptor(String::class.java)}${Type.getDescriptor(String::class.java)}"
+                            + "${Type.getDescriptor(String::class.java)}${Type.INT_TYPE.descriptor})${Type.VOID_TYPE.descriptor}"
+                ))
+                add(MethodInsnNode(
+                    Opcodes.INVOKESPECIAL,
+                    Type.getInternalName(TailCallDeoptimizeCache::class.java),
+                    "<init>",
+                    "(${Type.getDescriptor(StackTraceElement::class.java)})${Type.VOID_TYPE.descriptor}"
+                ))
+                add(FieldInsnNode(
+                    Opcodes.PUTSTATIC,
+                    this@saveTailCallCaches.name,
+                    getTailCallCacheFieldName(index),
+                    Type.getDescriptor(TailCallDeoptimizeCache::class.java)
+                ))
+            }
+
+            add(tailCallDeoptimizationDisabledLabel)
+            add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
+        })
+    }
+}
+
 private val ClassNode.kotlinMetadataAnnotation: AnnotationNode?
     get() = visibleAnnotations
         .orEmpty()
@@ -466,6 +547,7 @@ private val ClassNode.kotlinMetadataAnnotation: AnnotationNode?
 private fun ClassNode.tryTransformSuspendMethods(
     metadataResolver: (className: String) -> DebugMetadataInfo?,
     lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>>,
+    tailCallCaches: MutableList<TailCallDeoptimizeMethodNameAndLineNumber>,
     notSuspendFunctionSignatures: Collection<JvmMethodSignature>
 ): Boolean {
     var needTransformation = false
@@ -487,10 +569,9 @@ private fun ClassNode.tryTransformSuspendMethods(
                     completionVarIndex = status.completionVarIndex,
                     clazz = this,
                     method = method,
-                    lineNumbersBySpecMethodName = lineNumbersBySpecMethodName
-                )) {
-                    needTransformation = true
-                }
+                    lineNumbersBySpecMethodName = lineNumbersBySpecMethodName,
+                    tailCallCaches = tailCallCaches
+                )) needTransformation = true
             }
             null -> { }
         }
@@ -498,14 +579,15 @@ private fun ClassNode.tryTransformSuspendMethods(
     return needTransformation
 }
 
-private val getBaseContinuationMethodName: String
-    @LoadConstant("getBaseContinuationMethodName") get() = fail()
+private class TailCallDeoptimizeMethodNameAndLineNumber(val methodName: String, val lineNumber: Int)
 
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 private fun tailCallDeopt(
     completionVarIndex: Int,
     clazz: ClassNode,
     method: MethodNode,
-    lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>>
+    lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>>,
+    tailCallCaches: MutableList<TailCallDeoptimizeMethodNameAndLineNumber>
 ): Boolean {
     var result = false
     method.instructions.forEach { instruction ->
@@ -521,29 +603,27 @@ private fun tailCallDeopt(
                     .firstOrNull()?.line
                 ?: UNKNOWN_LINE_NUMBER
 
-            val currentLineNumbers = lineNumbersBySpecMethodName.computeIfAbsent(method.name) {
+            lineNumbersBySpecMethodName.computeIfAbsent(method.name) {
                 mutableSetOf(UNKNOWN_LINE_NUMBER)
-            }
-            currentLineNumbers.add(lineNumber)
+            }.add(lineNumber)
+
+            val cacheFieldName = getTailCallCacheFieldName(tailCallCaches.size)
+            tailCallCaches.add(TailCallDeoptimizeMethodNameAndLineNumber(method.name, lineNumber))
+
             method.instructions.insert(instruction, InsnList().apply {
-                if (clazz.sourceFile != null) {
-                    add(LdcInsnNode(clazz.sourceFile))
-                } else {
-                    add(InsnNode(Opcodes.ACONST_NULL))
-                }
-                add(LdcInsnNode(Type.getObjectType(clazz.name).className))
-                add(LdcInsnNode(method.name))
-                add(LdcInsnNode(lineNumber))
+                add(FieldInsnNode(
+                    Opcodes.GETSTATIC,
+                    clazz.name,
+                    cacheFieldName,
+                    Type.getDescriptor(TailCallDeoptimizeCache::class.java)
+                ))
                 add(MethodInsnNode(
                     Opcodes.INVOKESTATIC,
                     Type.getInternalName(providerApiClass),
-                    getBaseContinuationMethodName,
+                    tailCallDeoptimizeMethodName,
                     "("
                         + Type.getDescriptor(Object::class.java)
-                        + Type.getDescriptor(String::class.java)
-                        + Type.getDescriptor(String::class.java)
-                        + Type.getDescriptor(String::class.java)
-                        + Type.INT_TYPE.descriptor
+                        + Type.getDescriptor(TailCallDeoptimizeCache::class.java)
                         + ")${Type.getDescriptor(Object::class.java)}"
                 ))
                 add(TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Continuation::class.java)))
@@ -552,6 +632,9 @@ private fun tailCallDeopt(
     }
     return result
 }
+
+private fun getTailCallCacheFieldName(index: Int): String =
+    "\$decoroutinator\$tailCallDeoptimizeCache$$index"
 
 @Suppress("UNCHECKED_CAST")
 private val ClassNode.debugMetadataInfo: DebugMetadataInfo?
@@ -586,6 +669,7 @@ private sealed interface CheckTransformationStatus
 private class DefaultTransformationStatus(val baseContinuationClassName: String): CheckTransformationStatus
 private class TailCallTransformationStatus(val completionVarIndex: Int): CheckTransformationStatus
 
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 private fun getCheckTransformationStatus(
     clazz: ClassNode,
     method: MethodNode,

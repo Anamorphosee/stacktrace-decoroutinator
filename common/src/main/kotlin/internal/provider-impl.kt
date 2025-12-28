@@ -4,6 +4,7 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
+import dev.reformator.stacktracedecoroutinator.provider.TailCallDeoptimizeCache
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider
 import java.lang.invoke.MethodHandles
@@ -42,15 +43,12 @@ internal class Provider: DecoroutinatorProvider {
         transformedClassesRegistry.registerTransformedClass(lookup)
     }
 
+    override val isTailCallDeoptimizationEnabled: Boolean
+        get() = tailCallDeoptimize
+
     @Suppress("UNCHECKED_CAST")
-    override fun getBaseContinuation(
-        completion: Any?,
-        fileName: String?,
-        className: String,
-        methodName: String,
-        lineNumber: Int
-    ): Any? {
-        if (!tailCallDeoptimize || completion == null) {
+    override fun tailCallDeoptimize(completion: Any, cache: TailCallDeoptimizeCache?): Any {
+        if (cache == null) {
             return completion
         }
         if (completion is BaseContinuation) {
@@ -62,13 +60,7 @@ internal class Provider: DecoroutinatorProvider {
                 }
             if (label != NONE_LABEL && label and Int.MIN_VALUE != 0) return completion
         }
-        return DecoroutinatorContinuationImpl(
-            completion = completion as Continuation<Any?>,
-            fileName = fileName,
-            className = className,
-            methodName = methodName,
-            lineNumber = lineNumber
-        )
+        return DecoroutinatorContinuationImpl(completion as Continuation<Any?>, cache)
     }
 
     override val isUsingElementFactoryForBaseContinuationEnabled: Boolean

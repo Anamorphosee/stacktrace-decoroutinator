@@ -11,6 +11,7 @@ import dev.reformator.stacktracedecoroutinator.provider.internal.provider
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 
+@Suppress("unused")
 @AndroidLegacyKeep
 interface DecoroutinatorSpec {
     val lineNumber: Int
@@ -20,6 +21,7 @@ interface DecoroutinatorSpec {
     fun resumeNext(result: Any?): Any?
 }
 
+@Suppress("unused")
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FILE)
 @Retention
 annotation class DecoroutinatorTransformed(
@@ -65,6 +67,14 @@ interface BaseContinuationExtractor {
     val `$decoroutinator$specMethods`: Array<MethodHandle?>
 }
 
+@Suppress("unused")
+class TailCallDeoptimizeCache(
+    val element: StackTraceElement
+) {
+    var speckMethod: MethodHandle? = null
+}
+
+@Suppress("unused")
 val isDecoroutinatorEnabled: Boolean
     @MethodNameConstant("isDecoroutinatorEnabledMethodName") get() = provider.isDecoroutinatorEnabled
 
@@ -75,22 +85,16 @@ fun registerTransformedClass(lookup: MethodHandles.Lookup) {
 }
 
 @Suppress("unused")
-@MethodNameConstant("getBaseContinuationMethodName")
-fun getBaseContinuation(
-    completion: Any?,
-    fileName: String?,
-    className: String,
-    methodName: String,
-    lineNumber: Int
-): Any? =
-    provider.getBaseContinuation(
-        completion = completion,
-        fileName = fileName,
-        className = className,
-        methodName = methodName,
-        lineNumber = lineNumber
-    )
+val isTailCallDeoptimizationEnabled: Boolean
+    @MethodNameConstant("isTailCallDeoptimizationEnabledMethodName")
+    get() = provider.isTailCallDeoptimizationEnabled
 
+@Suppress("unused")
+@MethodNameConstant("tailCallDeoptimizeMethodName")
+fun tailCallDeoptimize(completion: Any, cache: TailCallDeoptimizeCache?): Any =
+    provider.tailCallDeoptimize(completion, cache)
+
+@Suppress("unused")
 val isUsingElementFactoryForBaseContinuationEnabled: Boolean
     @MethodNameConstant("isUsingElementFactoryForBaseContinuationEnabledMethodName")
     get() = provider.isUsingElementFactoryForBaseContinuationEnabled

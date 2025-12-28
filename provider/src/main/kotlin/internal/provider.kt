@@ -2,6 +2,7 @@
 
 package dev.reformator.stacktracedecoroutinator.provider.internal
 
+import dev.reformator.stacktracedecoroutinator.provider.TailCallDeoptimizeCache
 import java.lang.invoke.MethodHandles
 import java.util.ServiceLoader
 
@@ -11,13 +12,8 @@ interface DecoroutinatorProvider {
     fun prepareBaseContinuationAccessor(lookup: MethodHandles.Lookup): BaseContinuationAccessor
     fun awakeBaseContinuation(accessor: BaseContinuationAccessor, baseContinuation: Any, result: Any?)
     fun registerTransformedClass(lookup: MethodHandles.Lookup)
-    fun getBaseContinuation(
-        completion: Any?,
-        fileName: String?,
-        className: String,
-        methodName: String,
-        lineNumber: Int
-    ): Any?
+    val isTailCallDeoptimizationEnabled: Boolean
+    fun tailCallDeoptimize(completion: Any, cache: TailCallDeoptimizeCache?): Any
     val isUsingElementFactoryForBaseContinuationEnabled: Boolean
     fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement?
 }
@@ -51,13 +47,10 @@ private class NoopProvider: DecoroutinatorProvider {
         error("not supported")
     }
 
-    override fun getBaseContinuation(
-        completion: Any?,
-        fileName: String?,
-        className: String,
-        methodName: String,
-        lineNumber: Int
-    ): Any? =
+    override val isTailCallDeoptimizationEnabled: Boolean
+        get() = false
+
+    override fun tailCallDeoptimize(completion: Any, cache: TailCallDeoptimizeCache?): Any =
         completion
 
     override val isUsingElementFactoryForBaseContinuationEnabled: Boolean

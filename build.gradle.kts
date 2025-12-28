@@ -27,7 +27,7 @@ plugins {
 
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
-    version = "2.6.1"
+    version = "2.6.2-SNAPSHOT"
 }
 
 repositories {

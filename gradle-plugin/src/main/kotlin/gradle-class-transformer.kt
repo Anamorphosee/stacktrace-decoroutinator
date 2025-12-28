@@ -70,11 +70,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
                 }
             }
             if (needModification) {
-                val suffix = root.name.lastIndexOf('.').let { index ->
-                    if (index == -1) "" else root.name.substring(index)
-                }
-                val newName = root.name.removeSuffix(suffix) + "-decoroutinator" + suffix
-                val newFile = outputs.file(newName)
+                val newFile = outputs.file(root.name.addVariant("decoroutinator"))
                 ZipOutputStream(newFile.outputStream()).use { output ->
                     artifact!!.transformTo(
                         skipSpecMethods = parameters.skipSpecMethods.get(),
@@ -91,7 +87,7 @@ abstract class DecoroutinatorTransformAction: TransformAction<DecoroutinatorTran
             val artifact = DirectoryArtifact(root)
             val needModification = artifact.doesNeedTransformation(parameters.skipSpecMethods.get())
             if (needModification) {
-                val newRoot = outputs.dir(root.name + "-decoroutinator")
+                val newRoot = outputs.dir(root.name.addVariant("decoroutinator"))
                 artifact.transformTo(
                     skipSpecMethods = parameters.skipSpecMethods.get(),
                     builder = DirectoryArtifact(newRoot)

@@ -125,13 +125,7 @@ abstract class DecoroutinatorEmbedDebugProbesAction: TransformAction<TransformPa
                             outputs.file(inputArtifact)
                         },
                         modifyArtifact = { builder ->
-                            val newName = run {
-                                val suffix = root.name.lastIndexOf('.').let { index ->
-                                    if (index == -1) "" else root.name.substring(index)
-                                }
-                                root.name.removeSuffix(suffix) + "-embed-dep-props" + suffix
-                            }
-                            val newFile = outputs.file(newName)
+                            val newFile = outputs.file(root.name.addVariant("embed-dep-props"))
                             ZipOutputStream(newFile.outputStream()).use { output ->
                                 builder(ZipArtifactBuilder(output))
                             }

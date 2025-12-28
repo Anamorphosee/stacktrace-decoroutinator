@@ -131,3 +131,10 @@ open class DecoroutinatorPluginExtension {
 
 internal val Project.decoroutinatorDir: File
     get() = layout.buildDirectory.dir("decoroutinator").get().asFile
+
+internal fun String.addVariant(variant: String): String {
+    val suffix = lastIndexOf('.').let { index ->
+        if (index == -1) "" else substring(index)
+    }
+    return "${removeSuffix(suffix)}-$variant$suffix"
+}

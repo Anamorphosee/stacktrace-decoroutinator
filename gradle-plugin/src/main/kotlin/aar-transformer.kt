@@ -99,14 +99,7 @@ abstract class DecoroutinatorAarTransformAction: TransformAction<DecoroutinatorT
                 }
             }
 
-            val newFile = run {
-                val suffix = root.name.lastIndexOf('.').let { index ->
-                    if (index == -1) "" else root.name.substring(index)
-                }
-                val newName = root.name.removeSuffix(suffix) + "-decoroutinator" + suffix
-                outputs.file(newName)
-            }
-
+            val newFile = outputs.file(root.name.addVariant("decoroutinator"))
             ZipOutputStream(newFile.outputStream()).use { output ->
                 val outputArtifact = ZipArtifactBuilder(output)
                 inputZipFile.walk(object : ArtifactWalker {

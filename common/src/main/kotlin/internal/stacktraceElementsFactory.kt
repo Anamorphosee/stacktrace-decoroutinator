@@ -77,10 +77,10 @@ private fun Class<*>.getElementsByLabel(): Array<StackTraceElement>? {
     val (debugMeta, debugMetaSucceed) = try {
         val meta = getAnnotation(DebugMetadata::class.java)?.let { meta ->
             KotlinDebugMetadata(
-                sourceFile = meta.f,
-                className = meta.c,
-                methodName = meta.m,
-                lineNumbers = meta.l
+                sourceFile = meta.fileName,
+                className = meta.className,
+                methodName = meta.methodName,
+                lineNumbers = meta.lineNumbers
             )
         }
         meta to true

@@ -1,4 +1,5 @@
 import dev.reformator.bytecodeprocessor.plugins.ChangeClassNameProcessor
+import dev.reformator.bytecodeprocessor.plugins.LoadConstantProcessor
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -12,6 +13,7 @@ repositories {
 }
 
 dependencies {
+    //noinspection UseTomlInstead
     compileOnly("dev.reformator.bytecodeprocessor:bytecode-processor-intrinsics")
     testImplementation(kotlin("test"))
 }
@@ -39,7 +41,8 @@ sourceSets {
 
 bytecodeProcessor {
     processors = listOf(
-        ChangeClassNameProcessor
+        ChangeClassNameProcessor,
+        LoadConstantProcessor
     )
     skipUpdate = true
 }

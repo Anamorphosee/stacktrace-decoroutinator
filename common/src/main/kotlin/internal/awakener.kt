@@ -234,9 +234,10 @@ private fun BaseContinuation.callSpecMethods(
         spec = DecoroutinatorSpecImpl(
             accessor = accessor,
             lineNumber =
-                element.let { element ->
-                    @Suppress("IfThenToElvis")
-                    if (element == null) UNKNOWN_LINE_NUMBER else element.normalizedLineNumber
+                @Suppress("IfThenToElvis") if (element == null) {
+                    UNKNOWN_LINE_NUMBER
+                } else {
+                    element.normalizedLineNumber
                 },
             _nextSpec = spec,
             _nextSpecHandle = specMethod,

@@ -102,12 +102,13 @@ fun transformClassBody(
 fun getDebugMetadataInfoFromClassBody(body: InputStream): DebugMetadataInfo? =
     getClassNode(body, skipCode = true)?.debugMetadataInfo
 
+@Suppress("unused")
 fun getDebugMetadataInfoFromClass(clazz: Class<*>): DebugMetadataInfo? =
     clazz.getDeclaredAnnotation(DebugMetadata::class.java)?.let {
         DebugMetadataInfo(
-            specClassInternalClassName = it.c.internalName,
-            methodName = it.m,
-            lineNumbers = it.l.toSet()
+            specClassInternalClassName = it.className.internalName,
+            methodName = it.methodName,
+            lineNumbers = it.lineNumbers.toSet()
         )
     }
 
@@ -254,11 +255,11 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
     }
 
     getOrCreateClinitMethod().apply {
-        val className = (debugMetadata.getField(DebugMetadata::c.name) as String?).orEmpty()
-        val methodName = (debugMetadata.getField(DebugMetadata::m.name) as String?).orEmpty()
-        val fileName = (debugMetadata.getField(DebugMetadata::f.name) as String?)?.takeIf { it.isNotEmpty() }
+        val className = (debugMetadata.getField(debugMetadataClassNameMethodName) as String?).orEmpty()
+        val methodName = (debugMetadata.getField(debugMetadataMethodNameMethodName) as String?).orEmpty()
+        val fileName = (debugMetadata.getField(debugMetadataFileNameMethodName) as String?)?.takeIf { it.isNotEmpty() }
         @Suppress("UNCHECKED_CAST")
-        val lineNumbers = (debugMetadata.getField(DebugMetadata::l.name) as List<Int>?).orEmpty()
+        val lineNumbers = (debugMetadata.getField(debugMetadataLineNumbersMethodName) as List<Int>?).orEmpty()
         instructions.insertBefore(instructions.first, InsnList().apply {
             add(MethodInsnNode(
                 Opcodes.INVOKESTATIC,
@@ -639,9 +640,9 @@ private fun getTailCallCacheFieldName(index: Int): String =
 @Suppress("UNCHECKED_CAST")
 private val ClassNode.debugMetadataInfo: DebugMetadataInfo?
     get() = kotlinDebugMetadataAnnotation?.let { annotation ->
-        val internalClassName = (annotation.getField(DebugMetadata::c.name) as String).internalName
-        val methodName = annotation.getField(DebugMetadata::m.name) as String
-        val lineNumbers = (annotation.getField(DebugMetadata::l.name) as List<Int>).toSet()
+        val internalClassName = (annotation.getField(debugMetadataClassNameMethodName) as String).internalName
+        val methodName = annotation.getField(debugMetadataMethodNameMethodName) as String
+        val lineNumbers = (annotation.getField(debugMetadataLineNumbersMethodName) as List<Int>).toSet()
         if (lineNumbers.isEmpty()) {
             return null
         }
@@ -806,3 +807,15 @@ private val ClassNode.classBody: ByteArray
         accept(writer)
         return writer.toByteArray()
     }
+
+private val debugMetadataFileNameMethodName: String
+    @LoadConstant("debugMetadataFileNameMethodName") get() = fail()
+
+private val debugMetadataLineNumbersMethodName: String
+    @LoadConstant("debugMetadataLineNumbersMethodName") get() = fail()
+
+private val debugMetadataMethodNameMethodName: String
+    @LoadConstant("debugMetadataMethodNameMethodName") get() = fail()
+
+private val debugMetadataClassNameMethodName: String
+    @LoadConstant("debugMetadataClassNameMethodName") get() = fail()

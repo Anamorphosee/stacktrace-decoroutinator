@@ -8,7 +8,6 @@ import dev.reformator.stacktracedecoroutinator.common.internal.TransformationMet
 import dev.reformator.stacktracedecoroutinator.common.internal.AnnotationMetadataResolver
 import dev.reformator.stacktracedecoroutinator.common.internal.KotlinDebugMetadata
 import dev.reformator.stacktracedecoroutinator.common.internal.parseTransformationMetadata
-import dev.reformator.stacktracedecoroutinator.intrinsics.DebugMetadata
 import dev.reformator.stacktracedecoroutinator.specmethodbuilder.internal.decoroutinatorTransformedAnnotation
 import dev.reformator.stacktracedecoroutinator.specmethodbuilder.internal.getClassNode
 import dev.reformator.stacktracedecoroutinator.specmethodbuilder.internal.getField
@@ -41,10 +40,10 @@ class AnnotationMetadataResolverImpl: AnnotationMetadataResolver {
         val clazz = getClassNode(classBody, skipCode = true) ?: return null
         val metadataAnnotation = clazz.kotlinDebugMetadataAnnotation ?: return null
         return KotlinDebugMetadata(
-            sourceFile = metadataAnnotation.getField(DebugMetadata::f.name) as String,
-            className = metadataAnnotation.getField(DebugMetadata::c.name) as String,
-            methodName = metadataAnnotation.getField(DebugMetadata::m.name) as String,
-            lineNumbers = (metadataAnnotation.getField(DebugMetadata::l.name) as List<Int>).toIntArray(),
+            sourceFile = metadataAnnotation.getField(debugMetadataFileNameMethodName) as String,
+            className = metadataAnnotation.getField(debugMetadataClassNameMethodName) as String,
+            methodName = metadataAnnotation.getField(debugMetadataMethodNameMethodName) as String,
+            lineNumbers = (metadataAnnotation.getField(debugMetadataLineNumbersMethodName) as List<Int>).toIntArray(),
         )
     }
 }
@@ -66,3 +65,15 @@ private val decoroutinatorTransformedLineNumbersMethodName: String
 
 private val decoroutinatorTransformedSkipSpecMethodsMethodName: String
     @LoadConstant("decoroutinatorTransformedSkipSpecMethodsMethodName") get() = fail()
+
+private val debugMetadataFileNameMethodName: String
+    @LoadConstant("debugMetadataFileNameMethodName") get() = fail()
+
+private val debugMetadataLineNumbersMethodName: String
+    @LoadConstant("debugMetadataLineNumbersMethodName") get() = fail()
+
+private val debugMetadataMethodNameMethodName: String
+    @LoadConstant("debugMetadataMethodNameMethodName") get() = fail()
+
+private val debugMetadataClassNameMethodName: String
+    @LoadConstant("debugMetadataClassNameMethodName") get() = fail()

@@ -3,6 +3,7 @@
 package dev.reformator.stacktracedecoroutinator.intrinsics
 
 import dev.reformator.bytecodeprocessor.intrinsics.ChangeClassName
+import dev.reformator.bytecodeprocessor.intrinsics.MethodNameConstant
 import dev.reformator.bytecodeprocessor.intrinsics.fail
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.jvm.internal.CoroutineStackFrame
@@ -12,11 +13,11 @@ const val UNKNOWN_LINE_NUMBER = -1
 const val PROVIDER_MODULE_NAME = "dev.reformator.stacktracedecoroutinator.provider"
 const val LABEL_FIELD_NAME = "label"
 
-@ChangeClassName(toName = BASE_CONTINUATION_CLASS_NAME, deleteAfterChanging = true)
+@ChangeClassName(toName = BASE_CONTINUATION_CLASS_NAME)
 abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
-    @Suppress("RedundantNullableReturnType")
+    @Suppress("RedundantNullableReturnType", "unused")
     val completion: Continuation<Any?>?
-        get() { fail() }
+        get() = fail()
 
     final override fun resumeWith(result: Result<Any?>) { fail() }
 
@@ -32,14 +33,26 @@ abstract class BaseContinuation: Continuation<Any?>, CoroutineStackFrame {
         get() = fail()
 }
 
-@ChangeClassName(
-    toName = "kotlin.coroutines.jvm.internal.DebugMetadata",
-    deleteAfterChanging = true
-)
+@ChangeClassName(toName = "kotlin.coroutines.jvm.internal.DebugMetadata")
 @Target(AnnotationTarget.CLASS)
 annotation class DebugMetadata(
-    val f: String = "",
-    val l: IntArray = [],
-    val m: String = "",
-    val c: String = ""
+    @get:MethodNameConstant("debugMetadataFileNameMethodName")
+    @get:JvmName("f")
+    @Suppress("unused")
+    val fileName: String = "",
+
+    @get:MethodNameConstant("debugMetadataLineNumbersMethodName")
+    @get:JvmName("l")
+    @Suppress("unused")
+    val lineNumbers: IntArray = [],
+
+    @get:MethodNameConstant("debugMetadataMethodNameMethodName")
+    @get:JvmName("m")
+    @Suppress("unused")
+    val methodName: String = "",
+
+    @get:MethodNameConstant("debugMetadataClassNameMethodName")
+    @get:JvmName("c")
+    @Suppress("unused")
+    val className: String = ""
 )

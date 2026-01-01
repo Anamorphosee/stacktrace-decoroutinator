@@ -41,7 +41,6 @@ androidx-annotation = { group = "androidx.annotation", name = "annotation", vers
 shadow = { id = "com.gradleup.shadow" }
 dokka = { id = "org.jetbrains.dokka", version = "1.9.20" }
 android-library = { id = "com.android.library" }
-nmcp-aggregation = { id = "com.gradleup.nmcp.aggregation", version = "1.4.0" }
 gradle-plugin-publish = { id = "com.gradle.plugin-publish", version = "2.0.0" }
 #noinspection SimilarGradleDependency
 kotlin-jvm-build = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

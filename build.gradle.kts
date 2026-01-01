@@ -21,10 +21,6 @@ buildscript {
     }
 }
 
-plugins {
-    alias(libs.plugins.nmcp.aggregation)
-}
-
 subprojects {
     group = "dev.reformator.stacktracedecoroutinator"
     version = "2.6.2-SNAPSHOT"
@@ -32,15 +28,6 @@ subprojects {
 
 repositories {
     mavenCentral()
-}
-
-nmcpAggregation {
-    centralPortal {
-        username = properties["sonatype.username"] as String?
-        password = properties["sonatype.password"] as String?
-        publishingType = "USER_MANAGED"
-    }
-    publishAllProjectsProbablyBreakingProjectIsolation()
 }
 
 tasks.register("latestGradleTest") {

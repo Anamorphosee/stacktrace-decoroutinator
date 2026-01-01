@@ -68,3 +68,15 @@ pluginManagement {
     includeBuild("_plugins/gradle-plugin-test")
     includeBuild("_plugins/force-variant-java-version")
 }
+
+plugins {
+    id("com.gradleup.nmcp.settings") version "1.4.2"
+}
+
+nmcpSettings {
+    centralPortal {
+        username = providers.gradleProperty("sonatype.username").orNull
+        password = providers.gradleProperty("sonatype.password").orNull
+        publishingType = "USER_MANAGED"
+    }
+}

@@ -17,7 +17,7 @@ import dev.reformator.stacktracedecoroutinator.intrinsics.LABEL_FIELD_NAME
 import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
 import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
-import dev.reformator.stacktracedecoroutinator.provider.TailCallDeoptimizeCache
+import dev.reformator.stacktracedecoroutinator.provider.SpecCache
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import dev.reformator.stacktracedecoroutinator.provider.internal.providerInternalApiClass
@@ -32,7 +32,6 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.io.InputStream
-import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import kotlin.coroutines.Continuation
 
@@ -133,11 +132,8 @@ private val getElementFactoryStacktraceElementMethodName: String
 private val baseContinuationExtractorGetLabelMethodName: String
     @LoadConstant("baseContinuationExtractorGetLabelMethodName") get() = fail()
 
-private val baseContinuationExtractorGetElementsMethodName: String
-    @LoadConstant("baseContinuationExtractorGetElementsMethodName") get() = fail()
-
-private val baseContinuationExtractorGetSpecMethodsMethodName: String
-    @LoadConstant("baseContinuationExtractorGetSpecMethodsMethodName") get() = fail()
+private val baseContinuationExtractorGetCachesMethodName: String
+    @LoadConstant("baseContinuationExtractorGetCachesMethodName") get() = fail()
 
 private val decoroutinatorTransformedFileNamePresentMethodName: String
     @LoadConstant("decoroutinatorTransformedFileNamePresentMethodName") get() = fail()
@@ -163,8 +159,10 @@ private val isTailCallDeoptimizationEnabledMethodName: String
 private val tailCallDeoptimizeMethodName: String
     @LoadConstant("tailCallDeoptimizeMethodName") get() = fail()
 
-private const val baseContinuationElementsFieldName = "\$decoroutinator\$elements"
-private const val baseContinuationSpecMethodsFieldName = "\$decoroutinator\$specMethods"
+private val continuationCachedGetCacheMethodName: String
+    @LoadConstant("continuationCachedGetCacheMethodName") get() = fail()
+
+private const val baseContinuationCachesFieldName = "\$decoroutinator\$caches"
 
 @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 private fun Metadata.getNonSuspendFunctionSignatures(): List<JvmMethodSignature> {
@@ -199,15 +197,8 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
     fields = fields.orEmpty() + FieldNode(
         Opcodes.ASM9,
         Opcodes.ACC_PRIVATE or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC,
-        baseContinuationElementsFieldName,
-        Type.getDescriptor(Array<StackTraceElement>::class.java),
-        null,
-        null
-    ) + FieldNode(
-        Opcodes.ASM9,
-        Opcodes.ACC_PRIVATE or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC,
-        baseContinuationSpecMethodsFieldName,
-        Type.getDescriptor(Array<MethodHandle>::class.java),
+        baseContinuationCachesFieldName,
+        Type.getDescriptor(Array<SpecCache>::class.java),
         null,
         null
     )
@@ -228,27 +219,14 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
         }
     } + MethodNode(Opcodes.ASM9).apply {
         access = Opcodes.ACC_PUBLIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
-        name = baseContinuationExtractorGetElementsMethodName
-        desc = "()${Type.getDescriptor(Array<StackTraceElement>::class.java)}"
+        name = baseContinuationExtractorGetCachesMethodName
+        desc = "()${Type.getDescriptor(Array<SpecCache>::class.java)}"
         instructions = InsnList().apply {
             add(FieldInsnNode(
                 Opcodes.GETSTATIC,
                 this@tryAddBaseContinuationExtractor.name,
-                baseContinuationElementsFieldName,
-                Type.getDescriptor(Array<StackTraceElement>::class.java)
-            ))
-            add(InsnNode(Opcodes.ARETURN))
-        }
-    } + MethodNode(Opcodes.ASM9).apply {
-        access = Opcodes.ACC_PUBLIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
-        name = baseContinuationExtractorGetSpecMethodsMethodName
-        desc = "()${Type.getDescriptor(Array<MethodHandle>::class.java)}"
-        instructions = InsnList().apply {
-            add(FieldInsnNode(
-                Opcodes.GETSTATIC,
-                this@tryAddBaseContinuationExtractor.name,
-                baseContinuationSpecMethodsFieldName,
-                Type.getDescriptor(Array<MethodHandle>::class.java)
+                baseContinuationCachesFieldName,
+                Type.getDescriptor(Array<SpecCache>::class.java)
             ))
             add(InsnNode(Opcodes.ARETURN))
         }
@@ -273,10 +251,12 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
                 defaultAwakeLabel
             ))
             add(LdcInsnNode(lineNumbers.size + 1))
-            add(TypeInsnNode(Opcodes.ANEWARRAY, Type.getInternalName(StackTraceElement::class.java)))
+            add(TypeInsnNode(Opcodes.ANEWARRAY, Type.getInternalName(SpecCache::class.java)))
             repeat(lineNumbers.size + 1) { index ->
                 add(InsnNode(Opcodes.DUP))
                 add(LdcInsnNode(index))
+                add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(SpecCache::class.java)))
+                add(InsnNode(Opcodes.DUP))
                 add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(StackTraceElement::class.java)))
                 add(InsnNode(Opcodes.DUP))
                 add(LdcInsnNode(className))
@@ -290,21 +270,19 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
                     "(${Type.getDescriptor(String::class.java)}${Type.getDescriptor(String::class.java)}"
                         + "${Type.getDescriptor(String::class.java)}${Type.INT_TYPE.descriptor})${Type.VOID_TYPE.descriptor}"
                 ))
+                add(MethodInsnNode(
+                    Opcodes.INVOKESPECIAL,
+                    Type.getInternalName(SpecCache::class.java),
+                    "<init>",
+                    "(${Type.getDescriptor(StackTraceElement::class.java)})${Type.VOID_TYPE.descriptor}"
+                ))
                 add(InsnNode(Opcodes.AASTORE))
             }
             add(FieldInsnNode(
                 Opcodes.PUTSTATIC,
                 this@tryAddBaseContinuationExtractor.name,
-                baseContinuationElementsFieldName,
-                Type.getDescriptor(Array<StackTraceElement>::class.java)
-            ))
-            add(LdcInsnNode(lineNumbers.size + 1))
-            add(TypeInsnNode(Opcodes.ANEWARRAY, Type.getInternalName(MethodHandle::class.java)))
-            add(FieldInsnNode(
-                Opcodes.PUTSTATIC,
-                this@tryAddBaseContinuationExtractor.name,
-                baseContinuationSpecMethodsFieldName,
-                Type.getDescriptor(Array<MethodHandle>::class.java)
+                baseContinuationCachesFieldName,
+                Type.getDescriptor(Array<SpecCache>::class.java)
             ))
             add(defaultAwakeLabel)
             add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
@@ -483,7 +461,7 @@ private fun ClassNode.saveTailCallCaches(tailCallCaches: List<TailCallDeoptimize
             Opcodes.ASM9,
             fieldAccess,
             getTailCallCacheFieldName(index),
-            Type.getDescriptor(TailCallDeoptimizeCache::class.java),
+            Type.getDescriptor(SpecCache::class.java),
             null,
             null
         )
@@ -501,7 +479,7 @@ private fun ClassNode.saveTailCallCaches(tailCallCaches: List<TailCallDeoptimize
             add(JumpInsnNode(Opcodes.IFEQ, tailCallDeoptimizationDisabledLabel))
 
             tailCallCaches.forEachIndexed { index, cache ->
-                add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(TailCallDeoptimizeCache::class.java)))
+                add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(SpecCache::class.java)))
                 add(InsnNode(Opcodes.DUP))
                 add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(StackTraceElement::class.java)))
                 add(InsnNode(Opcodes.DUP))
@@ -522,7 +500,7 @@ private fun ClassNode.saveTailCallCaches(tailCallCaches: List<TailCallDeoptimize
                 ))
                 add(MethodInsnNode(
                     Opcodes.INVOKESPECIAL,
-                    Type.getInternalName(TailCallDeoptimizeCache::class.java),
+                    Type.getInternalName(SpecCache::class.java),
                     "<init>",
                     "(${Type.getDescriptor(StackTraceElement::class.java)})${Type.VOID_TYPE.descriptor}"
                 ))
@@ -530,7 +508,7 @@ private fun ClassNode.saveTailCallCaches(tailCallCaches: List<TailCallDeoptimize
                     Opcodes.PUTSTATIC,
                     this@saveTailCallCaches.name,
                     getTailCallCacheFieldName(index),
-                    Type.getDescriptor(TailCallDeoptimizeCache::class.java)
+                    Type.getDescriptor(SpecCache::class.java)
                 ))
             }
 
@@ -616,7 +594,7 @@ private fun tailCallDeopt(
                     Opcodes.GETSTATIC,
                     clazz.name,
                     cacheFieldName,
-                    Type.getDescriptor(TailCallDeoptimizeCache::class.java)
+                    Type.getDescriptor(SpecCache::class.java)
                 ))
                 add(MethodInsnNode(
                     Opcodes.INVOKESTATIC,
@@ -624,7 +602,7 @@ private fun tailCallDeopt(
                     tailCallDeoptimizeMethodName,
                     "("
                         + Type.getDescriptor(Object::class.java)
-                        + Type.getDescriptor(TailCallDeoptimizeCache::class.java)
+                        + Type.getDescriptor(SpecCache::class.java)
                         + ")${Type.getDescriptor(Object::class.java)}"
                 ))
                 add(TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Continuation::class.java)))

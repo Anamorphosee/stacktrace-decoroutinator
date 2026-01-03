@@ -46,6 +46,7 @@ tasks.withType<JavaCompile> {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
+        freeCompilerArgs.add("-Xjvm-default=all")
     }
 }
 

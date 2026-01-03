@@ -2,7 +2,7 @@
 
 package dev.reformator.stacktracedecoroutinator.provider.internal
 
-import dev.reformator.stacktracedecoroutinator.provider.TailCallDeoptimizeCache
+import dev.reformator.stacktracedecoroutinator.provider.SpecCache
 import java.lang.invoke.MethodHandles
 import java.util.ServiceLoader
 
@@ -13,7 +13,7 @@ interface DecoroutinatorProvider {
     fun awakeBaseContinuation(accessor: BaseContinuationAccessor, baseContinuation: Any, result: Any?)
     fun registerTransformedClass(lookup: MethodHandles.Lookup)
     val isTailCallDeoptimizationEnabled: Boolean
-    fun tailCallDeoptimize(completion: Any, cache: TailCallDeoptimizeCache?): Any
+    fun tailCallDeoptimize(completion: Any, cache: SpecCache?): Any
     val isUsingElementFactoryForBaseContinuationEnabled: Boolean
     fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement?
 }
@@ -50,7 +50,7 @@ private class NoopProvider: DecoroutinatorProvider {
     override val isTailCallDeoptimizationEnabled: Boolean
         get() = false
 
-    override fun tailCallDeoptimize(completion: Any, cache: TailCallDeoptimizeCache?): Any =
+    override fun tailCallDeoptimize(completion: Any, cache: SpecCache?): Any =
         completion
 
     override val isUsingElementFactoryForBaseContinuationEnabled: Boolean

@@ -17,7 +17,7 @@ internal val _baseContinuationAccessorProvider =
 
 internal val enabled =
     _baseContinuationAccessorProvider != null && getRuntimeSettingsValue({ enabled }) {
-        System.getProperty("dev.reformator.stacktracedecoroutinator.enabled", "true").toBoolean()
+        System.getProperty(ENABLED_PROPERTY, "true").toBoolean()
     }
 
 internal val recoveryExplicitStacktrace =

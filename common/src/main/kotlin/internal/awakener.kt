@@ -6,7 +6,7 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics.FailureResult
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.toResult
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
-import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
+import dev.reformator.stacktracedecoroutinator.provider.ContinuationCached
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import java.lang.invoke.MethodHandle
@@ -57,35 +57,20 @@ private inline fun Any.getElementAndSpecMethod(
     elementSupplier: () -> StackTraceElement?
 ) {
     contract { callsInPlace(consumer, InvocationKind.EXACTLY_ONCE) }
-    when (this) {
-        is BaseContinuationExtractor -> {
-            val label = `$decoroutinator$label`
-            val element = `$decoroutinator$elements`[label]
-            val specMethods = `$decoroutinator$specMethods`
-            val specMethod = specMethods[label] ?: run {
-                val specMethod =
-                    specMethodsFactory.getSpecMethodHandle(element) ?: methodHandleInvoker.unknownSpecMethodHandle
-                specMethods[label] = specMethod
-                specMethod
-            }
-            consumer(element, specMethod)
+    if (this is ContinuationCached) {
+        val cache = `$decoroutinator$cache`
+        val specMethod = cache.speckMethod ?: run {
+            val specMethod = specMethodsFactory.getSpecMethodHandle(cache.element) ?:
+                methodHandleInvoker.unknownSpecMethodHandle
+            cache.speckMethod = specMethod
+            specMethod
         }
-        is DecoroutinatorContinuationImpl -> {
-            val element = cache.element
-            val specMethod = cache.speckMethod ?: run {
-                val specMethod =
-                    specMethodsFactory.getSpecMethodHandle(element) ?: methodHandleInvoker.unknownSpecMethodHandle
-                cache.speckMethod = specMethod
-                specMethod
-            }
-            consumer(element, specMethod)
-        }
-        else -> {
-            val element = elementSupplier()
-            val specMethod = element?.let { specMethodsFactory.getSpecMethodHandle(it) }
-                ?: methodHandleInvoker.unknownSpecMethodHandle
-            consumer(element, specMethod)
-        }
+        consumer(cache.element, specMethod)
+    } else {
+        val element = elementSupplier()
+        val specMethod = element?.let { specMethodsFactory.getSpecMethodHandle(it) } ?:
+            methodHandleInvoker.unknownSpecMethodHandle
+        consumer(element, specMethod)
     }
 }
 

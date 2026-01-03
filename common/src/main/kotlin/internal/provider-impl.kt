@@ -4,7 +4,8 @@ package dev.reformator.stacktracedecoroutinator.common.internal
 
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
-import dev.reformator.stacktracedecoroutinator.provider.TailCallDeoptimizeCache
+import dev.reformator.stacktracedecoroutinator.provider.ContinuationCached
+import dev.reformator.stacktracedecoroutinator.provider.SpecCache
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.DecoroutinatorProvider
 import java.lang.invoke.MethodHandles
@@ -47,7 +48,7 @@ internal class Provider: DecoroutinatorProvider {
         get() = tailCallDeoptimize
 
     @Suppress("UNCHECKED_CAST")
-    override fun tailCallDeoptimize(completion: Any, cache: TailCallDeoptimizeCache?): Any {
+    override fun tailCallDeoptimize(completion: Any, cache: SpecCache?): Any {
         if (cache == null) {
             return completion
         }
@@ -67,8 +68,8 @@ internal class Provider: DecoroutinatorProvider {
         get() = dev.reformator.stacktracedecoroutinator.common.internal.isUsingElementFactoryForBaseContinuationEnabled
 
     override fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement? =
-        if (baseContinuation is BaseContinuationExtractor) {
-            baseContinuation.`$decoroutinator$elements`[baseContinuation.`$decoroutinator$label`]
+        if (baseContinuation is ContinuationCached) {
+            baseContinuation.`$decoroutinator$cache`.element
         } else {
             stacktraceElementsFactory.getStacktraceElement(baseContinuation as BaseContinuation)
         }

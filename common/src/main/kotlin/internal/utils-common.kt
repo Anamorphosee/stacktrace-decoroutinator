@@ -8,8 +8,9 @@ import dev.reformator.stacktracedecoroutinator.common.intrinsics.createFailure
 import dev.reformator.stacktracedecoroutinator.common.intrinsics.probeCoroutineResumed
 import dev.reformator.stacktracedecoroutinator.intrinsics.BaseContinuation
 import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
+import dev.reformator.stacktracedecoroutinator.provider.ContinuationCached
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorSpec
-import dev.reformator.stacktracedecoroutinator.provider.TailCallDeoptimizeCache
+import dev.reformator.stacktracedecoroutinator.provider.SpecCache
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
 import java.io.InputStream
@@ -106,13 +107,13 @@ internal const val ENABLED_PROPERTY = "dev.reformator.stacktracedecoroutinator.e
 
 internal class DecoroutinatorContinuationImpl(
     completion: Continuation<Any?>,
-    val cache: TailCallDeoptimizeCache
-): ContinuationImpl(completion) {
+    override val `$decoroutinator$cache`: SpecCache
+): ContinuationImpl(completion), ContinuationCached {
     override fun invokeSuspend(result: Any?): Any? =
         result
 
     override fun getStackTraceElement(): StackTraceElement =
-        cache.element
+        `$decoroutinator$cache`.element
 }
 
 internal fun <K: Any, V: Any> MutableMap<K, V>.optimisticLockGet(key: K, notSetValue: V, lock: Lock): V? {

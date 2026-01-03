@@ -53,22 +53,27 @@ annotation class DecoroutinatorTransformed(
     val skipSpecMethods: Boolean = false
 )
 
-interface BaseContinuationExtractor {
+interface ContinuationCached {
+    @Suppress("unused", "PropertyName")
+    @get:MethodNameConstant("continuationCachedGetCacheMethodName")
+    val `$decoroutinator$cache`: SpecCache
+}
+
+interface BaseContinuationExtractor: ContinuationCached {
     @Suppress("unused", "PropertyName")
     @get:MethodNameConstant("baseContinuationExtractorGetLabelMethodName")
     val `$decoroutinator$label`: Int
 
     @Suppress("unused", "PropertyName")
-    @get:MethodNameConstant("baseContinuationExtractorGetElementsMethodName")
-    val `$decoroutinator$elements`: Array<StackTraceElement>
+    @get:MethodNameConstant("baseContinuationExtractorGetCachesMethodName")
+    val `$decoroutinator$caches`: Array<SpecCache>
 
-    @Suppress("unused", "PropertyName")
-    @get:MethodNameConstant("baseContinuationExtractorGetSpecMethodsMethodName")
-    val `$decoroutinator$specMethods`: Array<MethodHandle?>
+    override val `$decoroutinator$cache`: SpecCache
+        get() = `$decoroutinator$caches`[`$decoroutinator$label`]
 }
 
 @Suppress("unused")
-class TailCallDeoptimizeCache(
+class SpecCache(
     val element: StackTraceElement
 ) {
     var speckMethod: MethodHandle? = null
@@ -91,7 +96,7 @@ val isTailCallDeoptimizationEnabled: Boolean
 
 @Suppress("unused")
 @MethodNameConstant("tailCallDeoptimizeMethodName")
-fun tailCallDeoptimize(completion: Any, cache: TailCallDeoptimizeCache?): Any =
+fun tailCallDeoptimize(completion: Any, cache: SpecCache?): Any =
     provider.tailCallDeoptimize(completion, cache)
 
 @Suppress("unused")

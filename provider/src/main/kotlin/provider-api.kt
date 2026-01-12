@@ -55,16 +55,20 @@ annotation class DecoroutinatorTransformed(
 
 interface ContinuationCached {
     @Suppress("unused", "PropertyName")
-    @get:MethodNameConstant("continuationCachedGetCacheMethodName")
-    val `$decoroutinator$cache`: SpecCache
+    val `$decoroutinator$cache`: SpecCache?
+
+    @Suppress("unused", "PropertyName")
+    @get:MethodNameConstant("continuationCachedGetCacheElementMethodName")
+    val `$decoroutinator$cacheElement`: StackTraceElement?
+        get() = `$decoroutinator$cache`?.element
 }
 
 interface BaseContinuationExtractor: ContinuationCached {
-    @Suppress("unused", "PropertyName")
+    @Suppress("PropertyName")
     @get:MethodNameConstant("baseContinuationExtractorGetLabelMethodName")
     val `$decoroutinator$label`: Int
 
-    @Suppress("unused", "PropertyName")
+    @Suppress("PropertyName")
     @get:MethodNameConstant("baseContinuationExtractorGetCachesMethodName")
     val `$decoroutinator$caches`: Array<SpecCache>
 
@@ -72,11 +76,30 @@ interface BaseContinuationExtractor: ContinuationCached {
         get() = `$decoroutinator$caches`[`$decoroutinator$label`]
 }
 
+interface ManualContinuation: ContinuationCached {
+    @Suppress("PropertyName")
+    @get:MethodNameConstant("manualContinuationGetCacheFieldMethodName")
+    val `$decoroutinator$cacheField`: SpecCache
+
+    override val `$decoroutinator$cache`: SpecCache?
+        get() {
+            val cache = `$decoroutinator$cacheField`
+            return if (javaClass.name == cache.element.className) cache else null
+        }
+}
+
 @Suppress("unused")
 class SpecCache(
     val element: StackTraceElement
 ) {
     var speckMethod: MethodHandle? = null
+
+    constructor(className: String, methodName: String, fileName: String?, lineNumber: Int): this(StackTraceElement(
+        className,
+        methodName,
+        fileName,
+        lineNumber
+    ))
 }
 
 @Suppress("unused")
@@ -103,6 +126,16 @@ fun tailCallDeoptimize(completion: Any, cache: SpecCache?): Any =
 val isUsingElementFactoryForBaseContinuationEnabled: Boolean
     @MethodNameConstant("isUsingElementFactoryForBaseContinuationEnabledMethodName")
     get() = provider.isUsingElementFactoryForBaseContinuationEnabled
+
+@Suppress("unused")
+val fillUnknownElementsWithClassName: Boolean
+    @MethodNameConstant("fillUnknownElementsWithClassNameMethodName")
+    get() = provider.fillUnknownElementsWithClassName
+
+@Suppress("unused")
+val isUsingElementCacheForManualContinuationGetElementMethodEnabled: Boolean
+    @MethodNameConstant("isUsingElementCacheForManualContinuationGetElementMethodEnabledMethodName")
+    get() = provider.isUsingElementCacheForManualContinuationGetElementMethodEnabled
 
 val providerApiClass: Class<*>
     @GetOwnerClass get() { fail() }

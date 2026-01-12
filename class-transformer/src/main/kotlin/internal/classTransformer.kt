@@ -17,6 +17,7 @@ import dev.reformator.stacktracedecoroutinator.intrinsics.LABEL_FIELD_NAME
 import dev.reformator.stacktracedecoroutinator.intrinsics.UNKNOWN_LINE_NUMBER
 import dev.reformator.stacktracedecoroutinator.provider.BaseContinuationExtractor
 import dev.reformator.stacktracedecoroutinator.provider.DecoroutinatorTransformed
+import dev.reformator.stacktracedecoroutinator.provider.ManualContinuation
 import dev.reformator.stacktracedecoroutinator.provider.SpecCache
 import dev.reformator.stacktracedecoroutinator.provider.internal.BaseContinuationAccessor
 import dev.reformator.stacktracedecoroutinator.provider.internal.internalName
@@ -34,6 +35,7 @@ import org.objectweb.asm.tree.*
 import java.io.InputStream
 import java.lang.invoke.MethodHandles
 import kotlin.coroutines.Continuation
+import kotlin.coroutines.jvm.internal.CoroutineStackFrame
 
 class ClassBodyTransformationStatus(
     val updatedBody: ByteArray?,
@@ -67,7 +69,9 @@ fun transformClassBody(
             node.transformBaseContinuation()
             doTransformation = true
         } else {
-            if (node.tryAddBaseContinuationExtractor()) doTransformation = true
+            if (node.tryAddBaseContinuationExtractor() || node.tryAddManualContinuation(lineNumbersBySpecMethodName)) {
+                doTransformation = true
+            }
 
             @Suppress("UNCHECKED_CAST")
             val notSuspendFunctionSignatures = createMetadata(
@@ -111,58 +115,13 @@ fun getDebugMetadataInfoFromClass(clazz: Class<*>): DebugMetadataInfo? =
         )
     }
 
-private val isDecoroutinatorEnabledMethodName: String
-    @LoadConstant("isDecoroutinatorEnabledMethodName") get() = fail()
-
-private val getBaseContinuationAccessorMethodName: String
-    @LoadConstant("getBaseContinuationAccessorMethodName") get() = fail()
-
-private val prepareBaseContinuationAccessorMethodName: String
-    @LoadConstant("prepareBaseContinuationAccessorMethodName") get() = fail()
-
-private val awakeBaseContinuationMethodName: String
-    @LoadConstant("awakeBaseContinuationMethodName") get() = fail()
-
-private val isUsingElementFactoryForBaseContinuationEnabledMethodName: String
-    @LoadConstant("isUsingElementFactoryForBaseContinuationEnabledMethodName") get() = fail()
-
-private val getElementFactoryStacktraceElementMethodName: String
-    @LoadConstant("getElementFactoryStacktraceElementMethodName") get() = fail()
-
-private val baseContinuationExtractorGetLabelMethodName: String
-    @LoadConstant("baseContinuationExtractorGetLabelMethodName") get() = fail()
-
-private val baseContinuationExtractorGetCachesMethodName: String
-    @LoadConstant("baseContinuationExtractorGetCachesMethodName") get() = fail()
-
-private val decoroutinatorTransformedFileNamePresentMethodName: String
-    @LoadConstant("decoroutinatorTransformedFileNamePresentMethodName") get() = fail()
-
-private val decoroutinatorTransformedFileNameMethodName: String
-    @LoadConstant("decoroutinatorTransformedFileNameMethodName") get() = fail()
-
-private val decoroutinatorTransformedMethodNamesMethodName: String
-    @LoadConstant("decoroutinatorTransformedMethodNamesMethodName") get() = fail()
-
-private val decoroutinatorTransformedLineNumbersCountsMethodName: String
-    @LoadConstant("decoroutinatorTransformedLineNumbersCountsMethodName") get() = fail()
-
-private val decoroutinatorTransformedLineNumbersMethodName: String
-    @LoadConstant("decoroutinatorTransformedLineNumbersMethodName") get() = fail()
-
-private val decoroutinatorTransformedSkipSpecMethodsMethodName: String
-    @LoadConstant("decoroutinatorTransformedSkipSpecMethodsMethodName") get() = fail()
-
-private val isTailCallDeoptimizationEnabledMethodName: String
-    @LoadConstant("isTailCallDeoptimizationEnabledMethodName") get() = fail()
-
-private val tailCallDeoptimizeMethodName: String
-    @LoadConstant("tailCallDeoptimizeMethodName") get() = fail()
-
-private val continuationCachedGetCacheMethodName: String
-    @LoadConstant("continuationCachedGetCacheMethodName") get() = fail()
+private val manualContinuationsInternalClassNames =
+    sequenceOf(
+        "kotlinx.coroutines.internal.ScopeCoroutine"
+    ).map { it.internalName }.toHashSet()
 
 private const val baseContinuationCachesFieldName = "\$decoroutinator\$caches"
+private const val manualContinuationCacheFieldName = "\$decoroutinator\$cache"
 
 @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 private fun Metadata.getNonSuspendFunctionSignatures(): List<JvmMethodSignature> {
@@ -185,7 +144,7 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
     val debugMetadata = kotlinDebugMetadataAnnotation ?: return false
 
     if (
-        access and Opcodes.ACC_INTERFACE != 0 || fields.orEmpty().all { field ->
+        isInterface || fields.orEmpty().all { field ->
             field.name != LABEL_FIELD_NAME
             || field.desc != Type.INT_TYPE.descriptor
             || field.access and Opcodes.ACC_STATIC != 0
@@ -245,11 +204,8 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
                 isDecoroutinatorEnabledMethodName,
                 "()${Type.BOOLEAN_TYPE.descriptor}"
             ))
-            val defaultAwakeLabel = LabelNode()
-            add(JumpInsnNode(
-                Opcodes.IFEQ,
-                defaultAwakeLabel
-            ))
+            val disabledLabel = LabelNode()
+            add(JumpInsnNode(Opcodes.IFEQ, disabledLabel))
             add(LdcInsnNode(lineNumbers.size + 1))
             add(TypeInsnNode(Opcodes.ANEWARRAY, Type.getInternalName(SpecCache::class.java)))
             repeat(lineNumbers.size + 1) { index ->
@@ -257,24 +213,16 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
                 add(LdcInsnNode(index))
                 add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(SpecCache::class.java)))
                 add(InsnNode(Opcodes.DUP))
-                add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(StackTraceElement::class.java)))
-                add(InsnNode(Opcodes.DUP))
                 add(LdcInsnNode(className))
                 add(LdcInsnNode(methodName))
                 add(if (fileName != null) LdcInsnNode(fileName) else InsnNode(Opcodes.ACONST_NULL))
                 add(LdcInsnNode(if (index == 0) UNKNOWN_LINE_NUMBER else lineNumbers[index - 1]))
                 add(MethodInsnNode(
                     Opcodes.INVOKESPECIAL,
-                    Type.getInternalName(StackTraceElement::class.java),
-                    "<init>",
-                    "(${Type.getDescriptor(String::class.java)}${Type.getDescriptor(String::class.java)}"
-                        + "${Type.getDescriptor(String::class.java)}${Type.INT_TYPE.descriptor})${Type.VOID_TYPE.descriptor}"
-                ))
-                add(MethodInsnNode(
-                    Opcodes.INVOKESPECIAL,
                     Type.getInternalName(SpecCache::class.java),
                     "<init>",
-                    "(${Type.getDescriptor(StackTraceElement::class.java)})${Type.VOID_TYPE.descriptor}"
+                    "(${Type.getDescriptor(String::class.java)}${Type.getDescriptor(String::class.java)}"
+                            + "${Type.getDescriptor(String::class.java)}${Type.INT_TYPE.descriptor})${Type.VOID_TYPE.descriptor}"
                 ))
                 add(InsnNode(Opcodes.AASTORE))
             }
@@ -284,13 +232,132 @@ private fun ClassNode.tryAddBaseContinuationExtractor(): Boolean {
                 baseContinuationCachesFieldName,
                 Type.getDescriptor(Array<SpecCache>::class.java)
             ))
-            add(defaultAwakeLabel)
+            add(disabledLabel)
             add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
         })
     }
 
     return true
 }
+
+@Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+private fun ClassNode.tryAddManualContinuation(
+    lineNumbersBySpecMethodName: MutableMap<String, MutableSet<Int>>
+): Boolean {
+    if (isInterface || (
+        name !in manualContinuationsInternalClassNames &&
+        superName !in manualContinuationsInternalClassNames
+    )) return false
+
+    interfaces = interfaces.orEmpty() + Type.getInternalName(ManualContinuation::class.java)
+
+    fields = fields.orEmpty() + FieldNode(
+        Opcodes.ASM9,
+        Opcodes.ACC_PRIVATE or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC,
+        manualContinuationCacheFieldName,
+        Type.getDescriptor(SpecCache::class.java),
+        null,
+        null
+    )
+
+    getOrCreateClinitMethod().apply {
+        instructions.insertBefore(instructions.first, InsnList().apply {
+            add(MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                Type.getInternalName(providerApiClass),
+                fillUnknownElementsWithClassNameMethodName,
+                "()${Type.BOOLEAN_TYPE.descriptor}"
+            ))
+            val disabledLabel = LabelNode()
+            add(JumpInsnNode(Opcodes.IFEQ, disabledLabel))
+            add(TypeInsnNode(Opcodes.NEW, Type.getInternalName(SpecCache::class.java)))
+            add(InsnNode(Opcodes.DUP))
+            add(LdcInsnNode(Type.getObjectType(this@tryAddManualContinuation.name)))
+            add(MethodInsnNode(
+                Opcodes.INVOKEVIRTUAL,
+                Type.getInternalName(Class::class.java),
+                Class<*>::getName.name,
+                "()${Type.getDescriptor(String::class.java)}",
+            ))
+            add(LdcInsnNode(Continuation<*>::resumeWith.name))
+            add(sourceFile.let { if (it != null) LdcInsnNode(it) else InsnNode(Opcodes.ACONST_NULL) })
+            add(LdcInsnNode(UNKNOWN_LINE_NUMBER))
+            add(MethodInsnNode(
+                Opcodes.INVOKESPECIAL,
+                Type.getInternalName(SpecCache::class.java),
+                "<init>",
+                "(" +
+                    "${Type.getDescriptor(String::class.java)}" +
+                    "${Type.getDescriptor(String::class.java)}" +
+                    "${Type.getDescriptor(String::class.java)}" +
+                    "${Type.INT_TYPE.descriptor}" +
+                ")${Type.VOID_TYPE.descriptor}"
+            ))
+            add(FieldInsnNode(
+                Opcodes.PUTSTATIC,
+                this@tryAddManualContinuation.name,
+                manualContinuationCacheFieldName,
+                Type.getDescriptor(SpecCache::class.java)
+            ))
+            add(disabledLabel)
+            add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
+        })
+    }
+
+    methods = methods.orEmpty() + MethodNode(Opcodes.ASM9).apply {
+        access = Opcodes.ACC_PUBLIC or Opcodes.ACC_SYNTHETIC
+        name = manualContinuationGetCacheFieldMethodName
+        desc = "()${Type.getDescriptor(SpecCache::class.java)}"
+        instructions = InsnList().apply {
+            add(FieldInsnNode(
+                Opcodes.GETSTATIC,
+                this@tryAddManualContinuation.name,
+                manualContinuationCacheFieldName,
+                Type.getDescriptor(SpecCache::class.java)
+            ))
+            add(InsnNode(Opcodes.ARETURN))
+        }
+    }
+
+    val getStackTraceElementMethod = methods.find { method ->
+        method.name == CoroutineStackFrame::getStackTraceElement.name && !method.isStatic &&
+        method.desc == "()${Type.getDescriptor(StackTraceElement::class.java)}" &&
+        (method.instructions?.size() ?: 0) > 0
+    }
+
+    @Suppress("IfThenToSafeAccess")
+    if (getStackTraceElementMethod != null) {
+        getStackTraceElementMethod.instructions.insertBefore(getStackTraceElementMethod.instructions.first, InsnList().apply {
+            add(MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                Type.getInternalName(providerApiClass),
+                isUsingElementCacheForManualContinuationGetElementMethodEnabledMethodName,
+                "()${Type.BOOLEAN_TYPE.descriptor}"
+            ))
+            val disabledLabel = LabelNode()
+            add(JumpInsnNode(Opcodes.IFEQ, disabledLabel))
+            add(VarInsnNode(Opcodes.ALOAD, 0))
+            add(MethodInsnNode(
+                Opcodes.INVOKEVIRTUAL,
+                this@tryAddManualContinuation.name,
+                continuationCachedGetCacheElementMethodName,
+                "()${Type.getDescriptor(StackTraceElement::class.java)}"
+            ))
+            add(InsnNode(Opcodes.ARETURN))
+            add(disabledLabel)
+            add(FrameNode(Opcodes.F_SAME, 0, null, 0, null))
+        })
+    }
+
+    lineNumbersBySpecMethodName.computeIfAbsent(Continuation<*>::resumeWith.name) {
+        hashSetOf(UNKNOWN_LINE_NUMBER)
+    }.add(UNKNOWN_LINE_NUMBER)
+
+    return true
+}
+
+private val ClassNode.isInterface: Boolean
+    get() = access and Opcodes.ACC_INTERFACE != 0
 
 @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 private fun ClassNode.transformBaseContinuation() {
@@ -394,7 +461,6 @@ private fun ClassNode.generateSpecMethodsAndTransformAnnotation(
     skipSpecMethods: Boolean,
     lineNumbersBySpecMethodName: Map<String, Set<Int>>
 ) {
-    val isInterface = access and Opcodes.ACC_INTERFACE != 0
     val isPrivateMethodsInInterfacesSupported = version >= Opcodes.V9
     val makePrivate = !isInterface || isPrivateMethodsInInterfacesSupported
     val makeFinal = !isInterface
@@ -452,7 +518,6 @@ private fun ClassNode.generateSpecMethodsAndTransformAnnotation(
 private fun ClassNode.saveTailCallCaches(tailCallCaches: List<TailCallDeoptimizeMethodNameAndLineNumber>) {
     if (tailCallCaches.isEmpty()) return
 
-    val isInterface = access and Opcodes.ACC_INTERFACE != 0
     val fieldAccess = (if (isInterface) Opcodes.ACC_PUBLIC else Opcodes.ACC_PRIVATE) or Opcodes.ACC_STATIC or
             Opcodes.ACC_FINAL or Opcodes.ACC_SYNTHETIC
 
@@ -717,13 +782,12 @@ private fun getCheckTransformationStatus(
             localVar.name == "\$continuation"
         }
         val isMethodSynthetic = method.access and Opcodes.ACC_SYNTHETIC != 0
-        val isInterface = clazz.access and Opcodes.ACC_INTERFACE != 0
         val isMethodStatic = method.access and Opcodes.ACC_STATIC != 0
         if (
-            hasCompletionLocalVar &&
-            !hasContinuationLocalVar && (
-                    !isMethodSynthetic || (isInterface && isMethodStatic && method.name.startsWith("defaultImpl\$"))
-                    )
+            hasCompletionLocalVar && !hasContinuationLocalVar && (
+                !isMethodSynthetic ||
+                    (clazz.isInterface && isMethodStatic && method.name.startsWith("defaultImpl\$"))
+            )
         ) {
             TailCallTransformationStatus(completionIndex)
         } else {
@@ -797,3 +861,63 @@ private val debugMetadataMethodNameMethodName: String
 
 private val debugMetadataClassNameMethodName: String
     @LoadConstant("debugMetadataClassNameMethodName") get() = fail()
+
+private val continuationCachedGetCacheElementMethodName: String
+    @LoadConstant("continuationCachedGetCacheElementMethodName") get() = fail()
+
+private val isDecoroutinatorEnabledMethodName: String
+    @LoadConstant("isDecoroutinatorEnabledMethodName") get() = fail()
+
+private val getBaseContinuationAccessorMethodName: String
+    @LoadConstant("getBaseContinuationAccessorMethodName") get() = fail()
+
+private val prepareBaseContinuationAccessorMethodName: String
+    @LoadConstant("prepareBaseContinuationAccessorMethodName") get() = fail()
+
+private val awakeBaseContinuationMethodName: String
+    @LoadConstant("awakeBaseContinuationMethodName") get() = fail()
+
+private val isUsingElementFactoryForBaseContinuationEnabledMethodName: String
+    @LoadConstant("isUsingElementFactoryForBaseContinuationEnabledMethodName") get() = fail()
+
+private val getElementFactoryStacktraceElementMethodName: String
+    @LoadConstant("getElementFactoryStacktraceElementMethodName") get() = fail()
+
+private val baseContinuationExtractorGetLabelMethodName: String
+    @LoadConstant("baseContinuationExtractorGetLabelMethodName") get() = fail()
+
+private val baseContinuationExtractorGetCachesMethodName: String
+    @LoadConstant("baseContinuationExtractorGetCachesMethodName") get() = fail()
+
+private val decoroutinatorTransformedFileNamePresentMethodName: String
+    @LoadConstant("decoroutinatorTransformedFileNamePresentMethodName") get() = fail()
+
+private val decoroutinatorTransformedFileNameMethodName: String
+    @LoadConstant("decoroutinatorTransformedFileNameMethodName") get() = fail()
+
+private val decoroutinatorTransformedMethodNamesMethodName: String
+    @LoadConstant("decoroutinatorTransformedMethodNamesMethodName") get() = fail()
+
+private val decoroutinatorTransformedLineNumbersCountsMethodName: String
+    @LoadConstant("decoroutinatorTransformedLineNumbersCountsMethodName") get() = fail()
+
+private val decoroutinatorTransformedLineNumbersMethodName: String
+    @LoadConstant("decoroutinatorTransformedLineNumbersMethodName") get() = fail()
+
+private val decoroutinatorTransformedSkipSpecMethodsMethodName: String
+    @LoadConstant("decoroutinatorTransformedSkipSpecMethodsMethodName") get() = fail()
+
+private val isTailCallDeoptimizationEnabledMethodName: String
+    @LoadConstant("isTailCallDeoptimizationEnabledMethodName") get() = fail()
+
+private val tailCallDeoptimizeMethodName: String
+    @LoadConstant("tailCallDeoptimizeMethodName") get() = fail()
+
+private val manualContinuationGetCacheFieldMethodName: String
+    @LoadConstant("manualContinuationGetCacheFieldMethodName") get() = fail()
+
+private val fillUnknownElementsWithClassNameMethodName: String
+    @LoadConstant("fillUnknownElementsWithClassNameMethodName") get() = fail()
+
+private val isUsingElementCacheForManualContinuationGetElementMethodEnabledMethodName: String
+    @LoadConstant("isUsingElementCacheForManualContinuationGetElementMethodEnabledMethodName") get() = fail()

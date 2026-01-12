@@ -41,7 +41,7 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    open fun inlineTransformedClassForKotlinc() {
+    fun inlineTransformedClassForKotlinc() {
         runBlocking {
             flowOf(1)
                 .transform { emit(it) }
@@ -50,7 +50,7 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    open fun basic() = runBlocking {
+    fun basic() = runBlocking {
         val random = Random(123)
         val size = 30
         val lineNumberOffsets = generateSequence {
@@ -71,13 +71,13 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    open fun overloadedMethods() = runBlocking {
+    fun overloadedMethods() = runBlocking {
         overload(1)
         overload("")
     }
 
     @Junit4Test @Junit5Test
-    open fun resumeWithException() {
+    fun resumeWithException() {
         try {
             runBlocking {
                 resumeWithExceptionRec(10)
@@ -99,7 +99,7 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    open fun resumeDoubleException() {
+    fun resumeDoubleException() {
         var firstResumeLineNumber = 0
         var secondResumeLineNumber = 0
         var resumeClassName = ""
@@ -158,12 +158,12 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    open fun testLoadSelfDefinedClass() {
+    fun testLoadSelfDefinedClass() {
         Class.forName("io.ktor.utils.io.ByteBufferChannel")
     }
 
     @Junit4Test @Junit5Test
-    open fun testSuspendCrossinlineInDifferentFile() {
+    fun testSuspendCrossinlineInDifferentFile() {
         val flow = flow {
             for (i in 2..6) {
                 emit(i)
@@ -190,12 +190,12 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    open fun loadInterfaceWithSuspendFunWithDefaultImpl() = runBlocking {
+    fun loadInterfaceWithSuspendFunWithDefaultImpl() = runBlocking {
         object: InterfaceWithDefaultMethod { }.startCheck()
     }
 
     @Junit4Test @Junit5Test
-    open fun flowSingle(): Unit = runBlocking {
+    fun flowSingle(): Unit = runBlocking {
         val flow = flow {
             emit(10)
             yield()
@@ -204,7 +204,7 @@ open class RuntimeTest {
     }
 
     @Junit4Test @Junit5Test
-    open fun concurrentTest() {
+    fun concurrentTest() {
         val numThreads = Runtime.getRuntime().availableProcessors() * 2
         val numMocks = 10
         val random = Random(123)
@@ -223,6 +223,17 @@ open class RuntimeTest {
             } finally {
                 executor.shutdown()
             }
+        }
+    }
+
+    @Junit4Test @Junit5Test
+    fun withContextMustHaveDispatchedCoroutineResumeWithMethod(): Unit = runBlocking {
+        withContext(Dispatchers.Default) {
+            yield()
+            assertTrue(Exception().stackTrace.any { element ->
+                element.className == "kotlinx.coroutines.DispatchedCoroutine" &&
+                element.methodName == "resumeWith"
+            })
         }
     }
 

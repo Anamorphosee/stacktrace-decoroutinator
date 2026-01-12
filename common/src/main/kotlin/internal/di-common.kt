@@ -61,6 +61,15 @@ internal val fillUnknownElementsWithClassName =
         ).toBoolean()
     }
 
+internal val isUsingElementCacheForManualContinuationGetElementMethodEnabled =
+    fillUnknownElementsWithClassName &&
+    getRuntimeSettingsValue({ isUsingElementCacheForManualContinuationGetElementMethodEnabled }) {
+        System.getProperty(
+            "dev.reformator.stacktracedecoroutinator.isUsingElementCacheForManualContinuationGetElementMethodEnabled",
+            "true"
+        ).toBoolean()
+    }
+
 internal val isUsingElementFactoryForBaseContinuationEnabled: Boolean =
     enabled && getRuntimeSettingsValue({ isUsingElementFactoryForBaseContinuationEnabled }) {
         System.getProperty(

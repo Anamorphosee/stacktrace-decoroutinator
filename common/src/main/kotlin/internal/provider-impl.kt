@@ -69,8 +69,14 @@ internal class Provider: DecoroutinatorProvider {
 
     override fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement? =
         if (baseContinuation is ContinuationCached) {
-            baseContinuation.`$decoroutinator$cache`.element
+            baseContinuation.`$decoroutinator$cache`?.element
         } else {
             stacktraceElementsFactory.getStacktraceElement(baseContinuation as BaseContinuation)
         }
+
+    override val fillUnknownElementsWithClassName: Boolean
+        get() = dev.reformator.stacktracedecoroutinator.common.internal.fillUnknownElementsWithClassName
+
+    override val isUsingElementCacheForManualContinuationGetElementMethodEnabled: Boolean
+        get() = dev.reformator.stacktracedecoroutinator.common.internal.isUsingElementCacheForManualContinuationGetElementMethodEnabled
 }

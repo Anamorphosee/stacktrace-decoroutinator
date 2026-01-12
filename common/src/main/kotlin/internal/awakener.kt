@@ -57,8 +57,8 @@ private inline fun Any.getElementAndSpecMethod(
     elementSupplier: () -> StackTraceElement?
 ) {
     contract { callsInPlace(consumer, InvocationKind.EXACTLY_ONCE) }
-    if (this is ContinuationCached) {
-        val cache = `$decoroutinator$cache`
+    val cache = (this as? ContinuationCached)?.`$decoroutinator$cache`
+    if (cache != null) {
         val specMethod = cache.speckMethod ?: run {
             val specMethod = specMethodsFactory.getSpecMethodHandle(cache.element) ?:
                 methodHandleInvoker.unknownSpecMethodHandle
@@ -136,7 +136,7 @@ private fun Any.getNormalizedStackTraceElement(element: StackTraceElement?): Sta
         element != null -> element
         fillUnknownElementsWithClassName -> StackTraceElement(
             javaClass.name,
-            "resumeWith",
+            Continuation<*>::resumeWith.name,
             null,
             UNKNOWN_LINE_NUMBER
         )

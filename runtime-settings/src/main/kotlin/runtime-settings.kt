@@ -28,6 +28,9 @@ interface DecoroutinatorRuntimeSettingsProvider {
     val isUsingElementFactoryForBaseContinuationEnabled: Boolean
         get() = defaultValue()
 
+    val isUsingElementCacheForManualContinuationGetElementMethodEnabled: Boolean
+        get() = defaultValue()
+
     // JVM Agent settings
 
     val metadataInfoResolveStrategy: DecoroutinatorMetadataInfoResolveStrategy

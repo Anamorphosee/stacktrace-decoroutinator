@@ -16,6 +16,8 @@ interface DecoroutinatorProvider {
     fun tailCallDeoptimize(completion: Any, cache: SpecCache?): Any
     val isUsingElementFactoryForBaseContinuationEnabled: Boolean
     fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement?
+    val fillUnknownElementsWithClassName: Boolean
+    val isUsingElementCacheForManualContinuationGetElementMethodEnabled: Boolean
 }
 
 internal val provider: DecoroutinatorProvider =
@@ -58,6 +60,12 @@ private class NoopProvider: DecoroutinatorProvider {
 
     override fun getElementFactoryStacktraceElement(baseContinuation: Any): StackTraceElement =
         error("not supported")
+
+    override val fillUnknownElementsWithClassName: Boolean
+        get() = false
+
+    override val isUsingElementCacheForManualContinuationGetElementMethodEnabled: Boolean
+        get() = false
 }
 
 interface BaseContinuationAccessor {
